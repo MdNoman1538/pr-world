@@ -1,0 +1,7 @@
+# Approved scope for a PR: the files/globs the change is allowed to touch.
+# Written before coding (from the approved requirement), checked by the reviewer: plan vs actual.
+requirement: ISSUE-9999
+approved_by: "Product owner name"
+allowed_paths:
+  - src/MessagePack/Formatters/**
+  - tests/**

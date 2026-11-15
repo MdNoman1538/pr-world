@@ -1,0 +1,127 @@
+{
+ "decision": "BLOCKED",
+ "reason": "Merge locked: Tests: Tests failed Not checked: Requirement. WARNING: review-policy.yaml is not approved by a named human yet.",
+ "tier": "high",
+ "ai_error": "",
+ "findings": [],
+ "areas": [
+  {
+   "area": "What",
+   "status": "verified",
+   "reason": "Change meets the requirement: The PR implements `MoneyMath.ToCents` exactly to specification, updates all cent-rounding points across the four specified modules without altering calculation flow, preserves error and validation semantics, and adds thorough unit tests.",
+   "evidence": []
+  },
+  {
+   "area": "Where",
+   "status": "human",
+   "reason": "Tier HIGH → full human read and 2 sign-off(s) required",
+   "evidence": [
+    "src/Bank.Api/Modules/Deposits/Application/DepositService.cs: area 'Deposits' is medium (Savings and interest)",
+    "src/Bank.Api/Modules/Fees/Application/FeeCalculator.cs: area 'Fees' is high (What the bank charges customers)",
+    "src/Bank.Api/Modules/Fx/Application/FxService.cs: area 'Fx' is high (Exchange rates decide how much money customers get)",
+    "src/Bank.Api/Modules/Loans/Application/LoanService.cs: area 'Loans' is high (Credit decisions and payouts)",
+    "src/Bank.Api/Shared/Money/MoneyMath.cs: area 'Platform' is high (Database schema, wiring and bank-wide settings touch every module)"
+   ]
+  },
+  {
+   "area": "Why",
+   "status": "verified",
+   "reason": "Linked to a requirement",
+   "evidence": []
+  },
+  {
+   "area": "Security",
+   "status": "verified",
+   "reason": "No secrets, no unverified packages, no safety findings",
+   "evidence": []
+  },
+  {
+   "area": "Build",
+   "status": "verified",
+   "reason": "Build succeeded",
+   "evidence": []
+  },
+  {
+   "area": "Tests",
+   "status": "blocked",
+   "reason": "Tests failed",
+   "evidence": [
+    "Failed!  - Failed:     4, Passed:   249, Skipped:     0, Total:   253, Duration: 3 s - Bank.Tests.dll (net10.0)"
+   ]
+  },
+  {
+   "area": "Correctness",
+   "status": "verified",
+   "reason": "No blocking issue",
+   "evidence": []
+  },
+  {
+   "area": "Architecture",
+   "status": "verified",
+   "reason": "No blocking issue",
+   "evidence": []
+  },
+  {
+   "area": "Maintainability",
+   "status": "verified",
+   "reason": "No blocking issue",
+   "evidence": []
+  },
+  {
+   "area": "Performance",
+   "status": "verified",
+   "reason": "No blocking issue",
+   "evidence": []
+  },
+  {
+   "area": "Impact",
+   "status": "verified",
+   "reason": "16 changed member(s); callers covered by tests or none",
+   "evidence": []
+  },
+  {
+   "area": "Requirement",
+   "status": "not_checked",
+   "reason": "Not checked: requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho",
+   "evidence": []
+  }
+ ],
+ "run_id": "20261114-203406-pr-10",
+ "sensors": [
+  {
+   "name": "secret_scan",
+   "result": null,
+   "summary": "No secret patterns in added lines"
+  },
+  {
+   "name": "package_check",
+   "result": null,
+   "summary": "No package references added"
+  },
+  {
+   "name": "test_integrity",
+   "result": null,
+   "summary": "No test files edited"
+  },
+  {
+   "name": "removed_guards",
+   "result": null,
+   "summary": "No validation/guard lines removed"
+  },
+  {
+   "name": "risky_code",
+   "result": null,
+   "summary": "0 pattern hit(s) in added code"
+  },
+  {
+   "name": "dotnet_build",
+   "result": null,
+   "summary": "Build succeeded"
+  },
+  {
+   "name": "dotnet_test",
+   "result": null,
+   "summary": "Tests failed (exit 1)"
+  }
+ ]
+}

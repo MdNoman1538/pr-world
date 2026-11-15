@@ -1,0 +1,14 @@
+{
+ "id": "BUG-1",
+ "pr": "PR-2",
+ "category": "money / idempotency",
+ "description": "Make PaymentService.PayAsync stop returning the earlier payment when the same customer repeats an idempotency key, so a retried request moves the money a second time. Keep the rest of the payment logic.",
+ "applied": true,
+ "method": "llm",
+ "file": "src/Bank.Api/Data/BankDbContext.cs",
+ "lines": [
+  50,
+  50
+ ],
+ "explanation": "Removed the idempotency pre-check in PaymentService.PayAsync and dropped the unique constraint on (CustomerId, IdempotencyKey) in BankDbContext so retried requests with the same idempotency key execute the transfer again and persist a new payment instead of returning the earlier one."
+}

@@ -1,0 +1,460 @@
+### FILE: src/Bank.Api/Modules/Statements/Api/StatementsController.cs  (slice: leftflow)
++   1| using Bank.Modules.Auth;
++   2| using Bank.Modules.Statements.Application;
++   3| using Microsoft.AspNetCore.Authorization;
++   4| using Microsoft.AspNetCore.Mvc;
++   5| 
++   6| namespace Bank.Modules.Statements.Api;
++   7| 
++   8| [ApiController]
++   9| [Route("api/accounts/{id:guid}/statements")]
++  10| [Authorize(Policy = Policies.Customer)]
++  11| public sealed class StatementsController : ControllerBase
++  12| {
++  13|     private readonly IStatementService _statements;
++  14| 
++  15|     public StatementsController(IStatementService statements) => _statements = statements;
++  16| 
++  17|     [HttpGet("{year:int}/{month:int}")]
++  18|     public async Task<ActionResult<Statement>> GetForMonth(Guid id, int year, int month, CancellationToken ct)
++  19|     {
++  20|         try
++  21|         {
++  22|             var statement = await _statements.ForMonthAsync(id, year, month, ct);
++  23|             return Ok(statement);
++  24|         }
++  25|         catch (ArgumentOutOfRangeException ex)
++  26|         {
++  27|             return BadRequest(ex.Message);
++  28|         }
++  29|         catch (KeyNotFoundException ex)
++  30|         {
++  31|             return NotFound(ex.Message);
++  32|         }
++  33|         catch (UnauthorizedAccessException)
++  34|         {
++  35|             return Forbid();
++  36|         }
++  37|     }
++  38| }
+
+### FILE: src/Bank.Api/Modules/Statements/Application/StatementService.cs  (slice: leftflow)
++   1| using Bank.Modules.Accounts.Application;
++   2| using Bank.Modules.Auth;
++   3| using Bank.Modules.Auth.Application;
++   4| using Bank.Modules.Ledger.Application;
++   5| 
++   6| namespace Bank.Modules.Statements.Application;
++   7| 
++   8| public sealed record StatementLine(DateTimeOffset At, decimal Amount, decimal BalanceAfter, string Reference);
++   9| 
++  10| public sealed record Statement(
++  11|     Guid AccountId,
++  12|     int Year,
++  13|     int Month,
++  14|     string Currency,
++  15|     decimal OpeningBalance,
++  16|     decimal ClosingBalance,
++  17|     IReadOnlyList<StatementLine> Lines);
++  18| 
++  19| public interface IStatementService
++  20| {
++  21|     Task<Statement> ForMonthAsync(Guid accountId, int year, int month, CancellationToken ct = default);
++  22| }
++  23| 
++  24| public sealed class StatementService(ILedger ledger, IAccountService accounts, ICurrentUser user) : IStatementService
++  25| {
++  26|     public async Task<Statement> ForMonthAsync(Guid accountId, int year, int month, CancellationToken ct = default)
++  27|     {
++  28|         if (year < 1 || year > 9999)
++  29|             throw new ArgumentOutOfRangeException(nameof(year), "Year must be between 1 and 9999.");
++  30|         if (month < 1 || month > 12)
++  31|             throw new ArgumentOutOfRangeException(nameof(month), "Month must be between 1 and 12.");
++  32| 
++  33|         var account = await accounts.GetAsync(accountId, ct)
++  34|             ?? throw new KeyNotFoundException($"Account {accountId} not found.");
++  35| 
++  36|         var isAuthorized = IsStaff() || await accounts.IsOwnerAsync(accountId, user.UserId, ct);
++  37|         if (!isAuthorized)
++  38|             throw new UnauthorizedAccessException("Caller is not authorized to view this statement.");
++  39| 
++  40|         var monthStart = new DateTimeOffset(year, month, 1, 0, 0, 0, TimeSpan.Zero);
++  41|         var monthEnd = year == 9999 && month == 12
++  42|             ? DateTimeOffset.MaxValue
++  43|             : monthStart.AddMonths(1);
++  44| 
++  45|         var priorEntries = await ledger.EntriesAsync(accountId, DateTimeOffset.MinValue, monthStart, ct);
++  46|         var openingBalance = Math.Round(priorEntries.Sum(e => e.Amount), 2, MidpointRounding.AwayFromZero);
++  47| 
++  48|         var monthEntries = await ledger.EntriesAsync(accountId, monthStart, monthEnd, ct);
++  49|         var orderedEntries = monthEntries.OrderBy(e => e.CreatedAt).ToList();
++  50| 
++  51|         var lines = new List<StatementLine>(orderedEntries.Count);
++  52|         var runningBalance = openingBalance;
++  53|         foreach (var entry in orderedEntries)
++  54|         {
++  55|             var amount = Math.Round(entry.Amount, 2, MidpointRounding.AwayFromZero);
++  56|             runningBalance = Math.Round(runningBalance + amount, 2, MidpointRounding.AwayFromZero);
++  57|             lines.Add(new StatementLine(entry.CreatedAt, amount, runningBalance, entry.Reference));
++  58|         }
++  59| 
++  60|         var closingBalance = Math.Round(openingBalance + lines.Sum(l => l.Amount), 2, MidpointRounding.AwayFromZero);
++  61| 
++  62|         return new Statement(
++  63|             accountId,
++  64|             year,
++  65|             month,
++  66|             account.Currency,
++  67|             openingBalance,
++  68|             closingBalance,
++  69|             lines);
++  70|     }
++  71| 
++  72|     private bool IsStaff() =>
++  73|         user.IsInRole(Roles.Teller) ||
++  74|         user.IsInRole(Roles.LoanOfficer) ||
++  75|         user.IsInRole(Roles.ComplianceOfficer) ||
++  76|         user.IsInRole(Roles.Admin);
++  77| }
+
+### FILE: src/Bank.Api/Modules/Statements/StatementsModule.cs  (slice: leftflow)
++   1| using Bank.Modules.Statements.Application;
++   2| 
++   3| namespace Bank.Modules.Statements;
++   4| 
++   5| public static class StatementsModule
++   6| {
++   7|     public static IServiceCollection AddStatementsModule(this IServiceCollection services)
++   8|     {
++   9|         services.AddScoped<IStatementService, StatementService>();
++  10|         return services;
++  11|     }
++  12| }
+
+### FILE: src/Bank.Api/Program.cs  (slice: leftflow)
+    8| using Bank.Modules.Fees;
+    9| using Bank.Modules.Fx;
+   10| using Bank.Modules.Ledger;
+   11| using Bank.Modules.Loans;
+   12| using Bank.Modules.Notifications;
+   13| using Bank.Modules.Payments;
++  14| using Bank.Modules.Statements;
+   15| using Bank.Shared;
+   16| using Bank.Shared.Events;
+   17| using Microsoft.EntityFrameworkCore;
+   18| 
+   19| var builder = WebApplication.CreateBuilder(args);
+   20| builder.Services.AddDbContext<BankDbContext>(o =>
+     ⋮
+   31| builder.Services.AddPaymentsModule();
+   32| builder.Services.AddFxModule();
+   33| builder.Services.AddFeesModule();
+   34| builder.Services.AddCardsModule();
+   35| builder.Services.AddDepositsModule();
+   36| builder.Services.AddLoansModule();
++  37| builder.Services.AddStatementsModule();
+   38| // MODULES: register new modules above this line
+   39| 
+   40| var app = builder.Build();
+   41| using (var scope = app.Services.CreateScope())
+   42| {
+   43|     scope.ServiceProvider.GetRequiredService<BankDbContext>().Database.EnsureCreated();
+
+### FILE: tests/Bank.Tests/Statements/StatementTests.cs  (slice: leftflow, truncated)
++   1| using Bank.Data;
++   2| using Bank.Modules.Accounts.Application;
++   3| using Bank.Modules.Auth;
++   4| using Bank.Modules.Auth.Application;
++   5| using Bank.Modules.Ledger.Domain;
++   6| using Bank.Modules.Statements.Application;
++   7| using Bank.Shared.Events;
++   8| using Bank.Shared.Time;
++   9| using Bank.Tests;
++  10| using Xunit;
++  11| 
++  12| namespace Bank.Tests.Statements;
++  13| 
++  14| public sealed class StatementTests
++  15| {
++  16|     private static StatementService CreateService(
++  17|         BankDbContext db,
++  18|         ICurrentUser user,
++  19|         IClock? clock = null,
++  20|         IEventBus? bus = null)
++  21|     {
++  22|         var effectiveClock = clock ?? new FakeClock();
++  23|         var effectiveBus = bus ?? new RecordingBus();
++  24|         var ledger = TestKit.Ledger(db, effectiveBus, effectiveClock);
++  25|         var accounts = new AccountService(
++  26|             db,
++  27|             user,
++  28|             TestKit.Settings(),
++  29|             effectiveClock,
++  30|             effectiveBus,
++  31|             Array.Empty<IAccountOpeningRule>());
++  32|         return new StatementService(ledger, accounts, user);
++  33|     }
++  34| 
++  35|     [Fact]
++  36|     public async Task Owner_can_retrieve_statement_with_opening_lines_and_closing_balance()
++  37|     {
++  38|         using var db = TestKit.Db();
++  39|         var clock = new FakeClock();
++  40|         var ledger = TestKit.Ledger(db, clock: clock);
++  41|         var aliceId = TestKit.Account(db, "alice");
++  42|         var bobId = TestKit.Account(db, "bob");
++  43|         var suspense = BankAccounts.For(BankAccountKind.Suspense, "EUR");
++  44| 
++  45|         clock.UtcNow = new DateTimeOffset(2026, 1, 15, 12, 0, 0, TimeSpan.Zero);
++  46|         await ledger.PostTransferAsync(suspense, aliceId, 1000.00m, "jan deposit");
++  47|         clock.UtcNow = new DateTimeOffset(2026, 1, 31, 23, 59, 59, TimeSpan.Zero);
++  48|         await ledger.PostTransferAsync(aliceId, bobId, 100.25m, "jan payment");
++  49| 
++  50|         clock.UtcNow = new DateTimeOffset(2026, 2, 5, 9, 0, 0, TimeSpan.Zero);
++  51|         await ledger.PostTransferAsync(suspense, aliceId, 200.50m, "feb salary");
++  52|         clock.UtcNow = new DateTimeOffset(2026, 2, 14, 15, 30, 0, TimeSpan.Zero);
++  53|         await ledger.PostTransferAsync(aliceId, bobId, 50.10m, "feb gift");
++  54| 
++  55|         clock.UtcNow = new DateTimeOffset(2026, 3, 2, 8, 0, 0, TimeSpan.Zero);
++  56|         await ledger.PostTransferAsync(suspense, aliceId, 500.00m, "mar bonus");
++  57| 
++  58|         var service = CreateService(db, new FakeUser("alice", Roles.Customer), clock);
++  59|         var statement = await service.ForMonthAsync(aliceId, 2026, 2);
++  60| 
++  61|         Assert.Equal(aliceId, statement.AccountId);
++  62|         Assert.Equal(2026, statement.Year);
++  63|         Assert.Equal(2, statement.Month);
++  64|         Assert.Equal("EUR", statement.Currency);
++  65|         Assert.Equal(899.75m, statement.OpeningBalance);
++  66|         Assert.Equal(1050.15m, statement.ClosingBalance);
++  67|         Assert.Equal(2, statement.Lines.Count);
++  68| 
++  69|         Assert.Equal(new DateTimeOffset(2026, 2, 5, 9, 0, 0, TimeSpan.Zero), statement.Lines[0].At);
++  70|         Assert.Equal(200.50m, statement.Lines[0].Amount);
++  71|         Assert.Equal(1100.25m, statement.Lines[0].BalanceAfter);
++  72|         Assert.Equal("feb salary", statement.Lines[0].Reference);
++  73| 
++  74|         Assert.Equal(new DateTimeOffset(2026, 2, 14, 15, 30, 0, TimeSpan.Zero), statement.Lines[1].At);
++  75|         Assert.Equal(-50.10m, statement.Lines[1].Amount);
++  76|         Assert.Equal(1050.15m, statement.Lines[1].BalanceAfter);
++  77|         Assert.Equal("feb gift", statement.Lines[1].Reference);
++  78|     }
++  79| 
++  80|     [Fact]
++  81|     public async Task Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end()
++  82|     {
++  83|         using var db = TestKit.Db();
++  84|         var clock = new FakeClock();
++  85|         var ledger = TestKit.Ledger(db, clock: clock);
++  86|         var aliceId = TestKit.Account(db, "alice");
++  87|         var suspense = BankAccounts.For(BankAccountKind.Suspense, "EUR");
++  88| 
++  89|         clock.UtcNow = new DateTimeOffset(2026, 1, 31, 23, 59, 59, TimeSpan.Zero);
++  90|         await ledger.PostTransferAsync(suspense, aliceId, 10m, "jan-last-second");
++  91| 
++  92|         clock.UtcNow = new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero);
++  93|         await ledger.PostTransferAsync(suspense, aliceId, 20m, "feb-exact-start");
++  94| 
++  95|         clock.UtcNow = new DateTimeOffset(2026, 2, 28, 23, 59, 59, TimeSpan.Zero);
++  96|         await ledger.PostTransferAsync(suspense, aliceId, 30m, "feb-last-second");
++  97| 
++  98|         clock.UtcNow = new DateTimeOffset(2026, 3, 1, 0, 0, 0, TimeSpan.Zero);
++  99|         await ledger.PostTransferAsync(suspense, aliceId, 40m, "mar-exact-start");
++ 100| 
++ 101|         var service = CreateService(db, new FakeUser("alice", Roles.Customer), clock);
++ 102| 
++ 103|         var jan = await service.ForMonthAsync(aliceId, 2026, 1);
++ 104|         Assert.Equal(0m, jan.OpeningBalance);
++ 105|         Assert.Equal(10m, jan.ClosingBalance);
++ 106|         Assert.Equal(new[] { "jan-last-second" }, jan.Lines.Select(l => l.Reference));
++ 107| 
++ 108|         var feb = await service.ForMonthAsync(aliceId, 2026, 2);
++ 109|         Assert.Equal(10m, feb.OpeningBalance);
++ 110|         Assert.Equal(60m, feb.ClosingBalance);
++ 111|         Assert.Equal(new[] { "feb-exact-start", "feb-last-second" }, feb.Lines.Select(l => l.Reference));
++ 112| 
++ 113|         var mar = await service.ForMonthAsync(aliceId, 2026, 3);
++ 114|         Assert.Equal(60m, mar.OpeningBalance);
++ 115|         Assert.Equal(100m, mar.ClosingBalance);
++ 116|         Assert.Equal(new[] { "mar-exact-start" }, mar.Lines.Select(l => l.Reference));
++ 117|     }
++ 118| 
++ 119|     [Fact]
++ 120|     public async Task Year_rollover_december_to_january_respects_utc_boundaries()
++ 121|     {
++ 122|         using var db = TestKit.Db();
++ 123|         var clock = new FakeClock();
++ 124|         var ledger = TestKit.Ledger(db, clock: clock);
++ 125|         var aliceId = TestKit.Account(db, "alice");
++ 126|         var suspense = BankAccounts.For(BankAccountKind.Suspense, "EUR");
++ 127| 
++ 128|         clock.UtcNow = new DateTimeOffset(2025, 12, 31, 23, 59, 59, TimeSpan.Zero);
++ 129|         await ledger.PostTransferAsync(suspense, aliceId, 100m, "dec-31");
++ 130| 
++ 131|         clock.UtcNow = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
++ 132|         await ledger.PostTransferAsync(suspense, aliceId, 50m, "jan-1");
++ 133| 
++ 134|         var service = CreateService(db, new FakeUser("alice", Roles.Customer), clock);
++ 135| 
++ 136|         var dec = await service.ForMonthAsync(aliceId, 2025, 12);
++ 137|         Assert.Equal(0m, dec.OpeningBalance);
++ 138|         Assert.Equal(100m, dec.ClosingBalance);
++ 139|         Assert.Equal(new[] { "dec-31" }, dec.Lines.Select(l => l.Reference));
++ 140| 
++ 141|         var jan = await service.ForMonthAsync(aliceId, 2026, 1);
++ 142|         Assert.Equal(100m, jan.OpeningBalance);
++ 143|         Assert.Equal(150m, jan.ClosingBalance);
++ 144|         Assert.Equal(new[] { "jan-1" }, jan.Lines.Select(l => l.Reference));
++ 145|     }
++ 146| 
++ 147|     [Fact]
++ 148|     public async Task Leap_year_february_includes_feb_29_and_excludes_mar_1()
++ 149|     {
++ 150|         using var db = TestKit.Db();
++ 151|         var clock = new FakeClock();
++ 152|         var ledger = TestKit.Ledger(db, clock: clock);
++ 153|         var aliceId = TestKit.Account(db, "alice");
++ 154|         var suspense = BankAccounts.For(BankAccountKind.Suspense, "EUR");
++ 155| 
++ 156|         clock.UtcNow = new DateTimeOffset(2024, 2, 29, 23, 59, 59, TimeSpan.Zero);
++ 157|         await ledger.PostTransferAsync(suspense, aliceId, 75m, "leap-day");
++ 158| 
++ 159|         clock.UtcNow = new DateTimeOffset(2024, 3, 1, 0, 0, 0, TimeSpan.Zero);
++ 160|         await ledger.PostTransferAsync(suspense, aliceId, 25m, "mar-1");
++ 161| 
++ 162|         var service = CreateService(db, new FakeUser("alice", Roles.Customer), clock);
++ 163|         var feb = await service.ForMonthAsync(aliceId, 2024, 2);
++ 164| 
++ 165|         Assert.Equal(0m, feb.OpeningBalance);
++ 166|         Assert.Equal(75m, feb.ClosingBalance);
++ 167|         Assert.Equal(new[] { "leap-day" }, feb.Lines.Select(l => l.Reference));
++ 168|     }
++ 169| 
++ 170|     [Fact]
++ 171|     public async Task Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance()
++ 172|     {
++ 173|         using var db = TestKit.Db();
++ 174|         var clock = new FakeClock();
++ 175|         var ledger = TestKit.Ledger(db, clock: clock);
++ 176|         var aliceId = TestKit.Account(db, "alice");
++ 177|         var suspense = BankAccounts.For(BankAccountKind.Suspense, "EUR");
++ 178| 
++ 179|         clock.UtcNow = new DateTimeOffset(2026, 1, 10, 12, 0, 0, TimeSpan.Zero);
++ 180|         await ledger.PostTransferAsync(suspense, aliceId, 250.00m, "jan");
++ 181| 
++ 182|         clock.UtcNow = new DateTimeOffset(2026, 3, 10, 12, 0, 0, TimeSpan.Zero);
++ 183|         await ledger.PostTransferAsync(suspense, aliceId, 50.00m, "mar");
++ 184| 
++ 185|         var service = CreateService(db, new FakeUser("alice", Roles.Customer), clock);
++ 186| 
++ 187|         var beforeAny = await service.ForMonthAsync(aliceId, 2025, 12);
++ 188|         Assert.Empty(beforeAny.Lines);
++ 189|         Assert.Equal(0m, beforeAny.OpeningBalance);
++ 190|         Assert.Equal(0m, beforeAny.ClosingBalance);
++ 191| 
++ 192|         var emptyFeb = await service.ForMonthAsync(aliceId, 2026, 2);
++ 193|         Assert.Empty(emptyFeb.Lines);
++ 194|         Assert.Equal(250.00m, emptyFeb.OpeningBalance);
++ 195|         Assert.Equal(250.00m, emptyFeb.ClosingBalance);
++ 196|     }
++ 197| 
++ 198|     [Fact]
++ 199|     public async Task Statement_currency_matches_account_currency()
++ 200|     {
++ 201|         using var db = TestKit.Db();
++ 202|         var clock = new FakeClock();
++ 203|         var ledger = TestKit.Ledger(db, clock: clock);
++ 204|         var sekId = TestKit.Account(db, "alice", currency: "SEK");
++ 205|         var suspenseSek = BankAccounts.For(BankAccountKind.Suspense, "SEK");
++ 206| 
++ 207|         clock.UtcNow = new DateTimeOffset(2026, 3, 5, 12, 0, 0, TimeSpan.Zero);
++ 208|         await ledger.PostTransferAsync(suspenseSek, sekId, 300.00m, "sek funding");
++ 209| 
++ 210|         var service = CreateService(db, new FakeUser("alice", Roles.Customer), clock);
++ 211|         var statement = await service.ForMonthAsync(sekId, 2026, 3);
++ 212| 
++ 213|         Assert.Equal("SEK", statement.Currency);
++ 214|         Assert.Equal(300.00m, statement.ClosingBalance);
++ 215|     }
++ 216| 
++ 217|     [Fact]
++ 218|     public async Task Lines_are_ordered_chronologically_and_balance_after_tracks_running_total()
++ 219|     {
++ 220|         using var db = TestKit.Db();
++ 221|         var clock = new FakeClock();
++ 222|         var ledger = TestKit.Ledger(db, clock: clock);
++ 223|         var aliceId = TestKit.Account(db, "alice");
++ 224|         var bobId = TestKit.Account(db, "bob");
++ 225|         var suspense = BankAccounts.For(BankAccountKind.Suspense, "EUR");
++ 226| 
++ 227|         clock.UtcNow = new DateTimeOffset(2026, 3, 10, 10, 0, 0, TimeSpan.Zero);
++ 228|         await ledger.PostTransferAsync(suspense, aliceId, 100.00m, "first");
++ 229|         await ledger.PostTransferAsync(aliceId, bobId, 30.00m, "second");
++ 230| 
++ 231|         clock.UtcNow = new DateTimeOffset(2026, 3, 10, 10, 0, 1, TimeSpan.Zero);
++ 232|         await ledger.PostTransferAsync(suspense, aliceId, 15.55m, "third");
++ 233| 
++ 234|         var service = CreateService(db, new FakeUser("alice", Roles.Customer), clock);
++ 235|         var statement = await service.ForMonthAsync(aliceId, 2026, 3);
++ 236| 
++ 237|         Assert.Equal(3, statement.Lines.Count);
++ 238|         var running = statement.OpeningBalance;
++ 239|         DateTimeOffset? previousAt = null;
++ 240|         foreach (var line in statement.Lines)
++ 241|         {
++ 242|             if (previousAt is not null)
++ 243|                 Assert.True(line.At >= previousAt.Value);
++ 244|             running = Math.Round(running + line.Amount, 2, MidpointRounding.AwayFromZero);
++ 245|             Assert.Equal(running, line.BalanceAfter);
++ 246|             previousAt = line.At;
++ 247|         }
++ 248| 
++ 249|         Assert.Equal(85.55m, statement.ClosingBalance);
++ 250|         Assert.Equal(statement.ClosingBalance, statement.Lines[^1].BalanceAfter);
++ 251|     }
++ 252| 
++ 253|     [Fact]
++ 254|     public async Task Entries_from_other_accounts_are_isolated()
++ 255|     {
++ 256|         using var db = TestKit.Db();
++ 257|         var clock = new FakeClock();
++ 258|         var ledger = TestKit.Ledger(db, clock: clock);
++ 259|         var checking = TestKit.Account(db, "alice");
++ 260|         var savings = TestKit.Account(db, "alice");
++ 261|         var suspense = BankAccounts.For(BankAccountKind.Suspense, "EUR");
++ 262| 
++ 263|         clock.UtcNow = new DateTimeOffset(2026, 3, 4, 12, 0, 0, TimeSpan.Zero);
++ 264|         await ledger.PostTransferAsync(suspense, checking, 200m, "fund checking");
++ 265|         await ledger.PostTransferAsync(suspense, savings, 900m, "fund savings");
++ 266|         await ledger.PostTransferAsync(checking, savings, 50m, "to savings");
++ 267| 
++ 268|         var service = CreateService(db, new FakeUser("alice", Roles.Customer), clock);
++ 269| 
++ 270|         var checkingStmt = await service.ForMonthAsync(checking, 2026, 3);
++ 271|         Assert.Equal(150m, checkingStmt.ClosingBalance);
++ 272|         Assert.Equal(new[] { "fund checking", "to savings" }, checkingStmt.Lines.Select(l => l.Reference));
++ 273| 
++ 274|         var sa
+     ⋮ (truncated: change too large)
+
+
+# IMPACT
+- StatementsController (src/Bank.Api/Modules/Statements/Api/StatementsController.cs): 0 caller(s) [none found]; test references: NONE
+- GetForMonth (src/Bank.Api/Modules/Statements/Api/StatementsController.cs): 0 caller(s) [none found]; test references: NONE
+- ForMonthAsync (src/Bank.Api/Modules/Statements/Application/StatementService.cs): 0 caller(s) [none found]; test references: NONE
+- IsStaff (src/Bank.Api/Modules/Statements/Application/StatementService.cs): 0 caller(s) [none found]; test references: NONE
+- AddStatementsModule (src/Bank.Api/Modules/Statements/StatementsModule.cs): 0 caller(s) [none found]; test references: NONE
+- CreateService (tests/Bank.Tests/Statements/StatementTests.cs): 0 caller(s) [none found]; test references: NONE
+- Owner_can_retrieve_statement_with_opening_lines_and_closing_balance (tests/Bank.Tests/Statements/StatementTests.cs): 0 caller(s) [none found]; test references: NONE
+- Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end (tests/Bank.Tests/Statements/StatementTests.cs): 0 caller(s) [none found]; test references: NONE
+- Year_rollover_december_to_january_respects_utc_boundaries (tests/Bank.Tests/Statements/StatementTests.cs): 0 caller(s) [none found]; test references: NONE
+- Leap_year_february_includes_feb_29_and_excludes_mar_1 (tests/Bank.Tests/Statements/StatementTests.cs): 0 caller(s) [none found]; test references: NONE
+- Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance (tests/Bank.Tests/Statements/StatementTests.cs): 0 caller(s) [none found]; test references: NONE
+- Statement_currency_matches_account_currency (tests/Bank.Tests/Statements/StatementTests.cs): 0 caller(s) [none found]; test references: NONE
+- Lines_are_ordered_chronologically_and_balance_after_tracks_running_total (tests/Bank.Tests/Statements/StatementTests.cs): 0 caller(s) [none found]; test references: NONE
+- Entries_from_other_accounts_are_isolated (tests/Bank.Tests/Statements/StatementTests.cs): 0 caller(s) [none found]; test references: NONE
+- Staff_roles_can_read_any_customer_statement (tests/Bank.Tests/Statements/StatementTests.cs): 0 caller(s) [none found]; test references: NONE
+- Non_owner_customer_and_unauthorized_users_are_rejected (tests/Bank.Tests/Statements/StatementTests.cs): 0 caller(s) [none found]; test references: NONE
+- Unknown_account_throws_KeyNotFoundException (tests/Bank.Tests/Statements/StatementTests.cs): 0 caller(s) [none found]; test references: NONE
+- Invalid_year_or_month_throws_ArgumentOutOfRangeException (tests/Bank.Tests/Statements/StatementTests.cs): 0 caller(s) [none found]; test references: NONE
+- Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries (tests/Bank.Tests/Statements/StatementTests.cs): 0 caller(s) [none found]; test references: NONE

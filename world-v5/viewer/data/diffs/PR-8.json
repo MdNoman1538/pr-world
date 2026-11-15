@@ -1,0 +1,1125 @@
+{
+ "changed": {
+  "T:Bank.Modules.Statements.Api.StatementsController": "new",
+  "F:Bank.Modules.Statements.Api.StatementsController._statements": "new",
+  "M:Bank.Modules.Statements.Api.StatementsController.#ctor(Bank.Modules.Statements.Application.IStatementService)": "new",
+  "M:Bank.Modules.Statements.Api.StatementsController.GetForMonth(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)": "new",
+  "T:Bank.Modules.Statements.Application.StatementLine": "new",
+  "M:Bank.Modules.Statements.Application.StatementLine.#ctor(System.DateTimeOffset,System.Decimal,System.Decimal,System.String)": "new",
+  "P:Bank.Modules.Statements.Application.StatementLine.At": "new",
+  "P:Bank.Modules.Statements.Application.StatementLine.Amount": "new",
+  "P:Bank.Modules.Statements.Application.StatementLine.BalanceAfter": "new",
+  "P:Bank.Modules.Statements.Application.StatementLine.Reference": "new",
+  "T:Bank.Modules.Statements.Application.Statement": "new",
+  "M:Bank.Modules.Statements.Application.Statement.#ctor(System.Guid,System.Int32,System.Int32,System.String,System.Decimal,System.Decimal,System.Collections.Generic.IReadOnlyList{Bank.Modules.Statements.Application.StatementLine})": "new",
+  "P:Bank.Modules.Statements.Application.Statement.AccountId": "new",
+  "P:Bank.Modules.Statements.Application.Statement.Year": "new",
+  "P:Bank.Modules.Statements.Application.Statement.Month": "new",
+  "P:Bank.Modules.Statements.Application.Statement.Currency": "new",
+  "P:Bank.Modules.Statements.Application.Statement.OpeningBalance": "new",
+  "P:Bank.Modules.Statements.Application.Statement.ClosingBalance": "new",
+  "P:Bank.Modules.Statements.Application.Statement.Lines": "new",
+  "T:Bank.Modules.Statements.Application.IStatementService": "new",
+  "M:Bank.Modules.Statements.Application.IStatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)": "new",
+  "T:Bank.Modules.Statements.Application.StatementService": "new",
+  "M:Bank.Modules.Statements.Application.StatementService.#ctor(Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser)": "new",
+  "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Statements.Application.StatementService.IsStaff": "new",
+  "T:Bank.Modules.Statements.StatementsModule": "new",
+  "M:Bank.Modules.Statements.StatementsModule.AddStatementsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": "new",
+  "M:Program.{Main}$(System.String[])": "modified",
+  "T:Bank.Tests.Statements.StatementTests": "new",
+  "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": "new",
+  "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance": "new",
+  "M:Bank.Tests.Statements.StatementTests.Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end": "new",
+  "M:Bank.Tests.Statements.StatementTests.Year_rollover_december_to_january_respects_utc_boundaries": "new",
+  "M:Bank.Tests.Statements.StatementTests.Leap_year_february_includes_feb_29_and_excludes_mar_1": "new",
+  "M:Bank.Tests.Statements.StatementTests.Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance": "new",
+  "M:Bank.Tests.Statements.StatementTests.Statement_currency_matches_account_currency": "new",
+  "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total": "new",
+  "M:Bank.Tests.Statements.StatementTests.Entries_from_other_accounts_are_isolated": "new",
+  "M:Bank.Tests.Statements.StatementTests.Staff_roles_can_read_any_customer_statement(System.String)": "new",
+  "M:Bank.Tests.Statements.StatementTests.Non_owner_customer_and_unauthorized_users_are_rejected(System.String)": "new",
+  "M:Bank.Tests.Statements.StatementTests.Unknown_account_throws_KeyNotFoundException(System.String)": "new",
+  "M:Bank.Tests.Statements.StatementTests.Invalid_year_or_month_throws_ArgumentOutOfRangeException(System.Int32,System.Int32)": "new",
+  "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries": "new",
+  "endpoint:GET /api/accounts/{id:guid}/statements/{year:int}/{month:int}": "new"
+ },
+ "removed_nodes": [],
+ "new_edges": [
+  [
+   "M:Bank.Modules.Statements.Api.StatementsController.GetForMonth(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Statements.Application.IStatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.IStatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Application.ILedger.EntriesAsync(System.Guid,System.DateTimeOffset,System.DateTimeOffset,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Accounts.Domain.Account.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "F:Bank.Modules.Auth.Roles.Admin",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "F:Bank.Modules.Auth.Roles.ComplianceOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "F:Bank.Modules.Auth.Roles.LoanOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "F:Bank.Modules.Auth.Roles.Teller",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Statements.StatementsModule.AddStatementsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+   "T:Bank.Modules.Statements.Application.StatementService",
+   "registers"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Entries_from_other_accounts_are_isolated",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Entries_from_other_accounts_are_isolated",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Entries_from_other_accounts_are_isolated",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Entries_from_other_accounts_are_isolated",
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Entries_from_other_accounts_are_isolated",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Entries_from_other_accounts_are_isolated",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Entries_from_other_accounts_are_isolated",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Entries_from_other_accounts_are_isolated",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Entries_from_other_accounts_are_isolated",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "table:LedgerEntries",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Invalid_year_or_month_throws_ArgumentOutOfRangeException(System.Int32,System.Int32)",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Invalid_year_or_month_throws_ArgumentOutOfRangeException(System.Int32,System.Int32)",
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Invalid_year_or_month_throws_ArgumentOutOfRangeException(System.Int32,System.Int32)",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Invalid_year_or_month_throws_ArgumentOutOfRangeException(System.Int32,System.Int32)",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Invalid_year_or_month_throws_ArgumentOutOfRangeException(System.Int32,System.Int32)",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Leap_year_february_includes_feb_29_and_excludes_mar_1",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Leap_year_february_includes_feb_29_and_excludes_mar_1",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Leap_year_february_includes_feb_29_and_excludes_mar_1",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Leap_year_february_includes_feb_29_and_excludes_mar_1",
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Leap_year_february_includes_feb_29_and_excludes_mar_1",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Leap_year_february_includes_feb_29_and_excludes_mar_1",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Leap_year_february_includes_feb_29_and_excludes_mar_1",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Leap_year_february_includes_feb_29_and_excludes_mar_1",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Leap_year_february_includes_feb_29_and_excludes_mar_1",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Non_owner_customer_and_unauthorized_users_are_rejected(System.String)",
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Non_owner_customer_and_unauthorized_users_are_rejected(System.String)",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Non_owner_customer_and_unauthorized_users_are_rejected(System.String)",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Non_owner_customer_and_unauthorized_users_are_rejected(System.String)",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Staff_roles_can_read_any_customer_statement(System.String)",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Staff_roles_can_read_any_customer_statement(System.String)",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Staff_roles_can_read_any_customer_statement(System.String)",
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Staff_roles_can_read_any_customer_statement(System.String)",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Staff_roles_can_read_any_customer_statement(System.String)",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Staff_roles_can_read_any_customer_statement(System.String)",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Staff_roles_can_read_any_customer_statement(System.String)",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Staff_roles_can_read_any_customer_statement(System.String)",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Statement_currency_matches_account_currency",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Statement_currency_matches_account_currency",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Statement_currency_matches_account_currency",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Statement_currency_matches_account_currency",
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Statement_currency_matches_account_currency",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Statement_currency_matches_account_currency",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Statement_currency_matches_account_currency",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Statement_currency_matches_account_currency",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Statement_currency_matches_account_currency",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Unknown_account_throws_KeyNotFoundException(System.String)",
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Unknown_account_throws_KeyNotFoundException(System.String)",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Unknown_account_throws_KeyNotFoundException(System.String)",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Year_rollover_december_to_january_respects_utc_boundaries",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Year_rollover_december_to_january_respects_utc_boundaries",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Year_rollover_december_to_january_respects_utc_boundaries",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Year_rollover_december_to_january_respects_utc_boundaries",
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Year_rollover_december_to_january_respects_utc_boundaries",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Year_rollover_december_to_january_respects_utc_boundaries",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Year_rollover_december_to_january_respects_utc_boundaries",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Year_rollover_december_to_january_respects_utc_boundaries",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Year_rollover_december_to_january_respects_utc_boundaries",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "T:Bank.Modules.Statements.Api.StatementsController",
+   "T:Bank.Modules.Statements.Application.IStatementService",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Statements.Application.StatementService",
+   "T:Bank.Modules.Accounts.Application.IAccountService",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Statements.Application.StatementService",
+   "T:Bank.Modules.Auth.Application.ICurrentUser",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Statements.Application.StatementService",
+   "T:Bank.Modules.Ledger.Application.ILedger",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Statements.Application.StatementService",
+   "T:Bank.Modules.Statements.Application.IStatementService",
+   "implements"
+  ],
+  [
+   "endpoint:GET /api/accounts/{id:guid}/statements/{year:int}/{month:int}",
+   "M:Bank.Modules.Statements.Api.StatementsController.GetForMonth(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "routes"
+  ]
+ ],
+ "removed_edges": [],
+ "upstream": {},
+ "downstream": {
+  "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": 1,
+  "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": 1,
+  "M:Bank.Modules.Ledger.Application.ILedger.EntriesAsync(System.Guid,System.DateTimeOffset,System.DateTimeOffset,System.Threading.CancellationToken)": 1,
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": 1,
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": 1,
+  "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)": 1,
+  "F:Bank.Modules.Auth.Roles.Teller": 1,
+  "F:Bank.Modules.Auth.Roles.LoanOfficer": 1,
+  "F:Bank.Modules.Auth.Roles.ComplianceOfficer": 1,
+  "F:Bank.Modules.Auth.Roles.Admin": 1,
+  "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)": 1,
+  "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)": 1,
+  "M:Bank.Tests.TestKit.Db": 1,
+  "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)": 1,
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": 1,
+  "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": 1,
+  "P:Bank.Tests.FakeClock.UtcNow": 1,
+  "F:Bank.Modules.Auth.Roles.Customer": 1,
+  "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)": 1,
+  "table:LedgerEntries": 1,
+  "P:Bank.Tests.RecordingBus.Events": 1,
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": 2,
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": 2,
+  "M:Bank.Modules.Ledger.Application.Ledger.EntriesAsync(System.Guid,System.DateTimeOffset,System.DateTimeOffset,System.Threading.CancellationToken)": 2,
+  "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)": 2,
+  "M:Bank.Tests.FakeUser.IsInRole(System.String)": 2,
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": 2,
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": 2,
+  "table:Accounts": 2,
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": 2,
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": 2,
+  "P:Bank.Modules.Accounts.Domain.Account.Id": 2,
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": 2,
+  "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 3,
+  "T:Bank.Modules.Ledger.Domain.TransferPosted": 3,
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": 3,
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 4,
+  "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 4
+ },
+ "up_via": {},
+ "down_via": {
+  "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Ledger.Application.ILedger.EntriesAsync(System.Guid,System.DateTimeOffset,System.DateTimeOffset,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)": [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "calls"
+  ],
+  "F:Bank.Modules.Auth.Roles.Teller": [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "uses"
+  ],
+  "F:Bank.Modules.Auth.Roles.LoanOfficer": [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "uses"
+  ],
+  "F:Bank.Modules.Auth.Roles.ComplianceOfficer": [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "uses"
+  ],
+  "F:Bank.Modules.Auth.Roles.Admin": [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "uses"
+  ],
+  "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Tests.TestKit.Db": [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "calls"
+  ],
+  "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)": [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "calls"
+  ],
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "calls"
+  ],
+  "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "calls"
+  ],
+  "P:Bank.Tests.FakeClock.UtcNow": [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "uses"
+  ],
+  "F:Bank.Modules.Auth.Roles.Customer": [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "uses"
+  ],
+  "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)": [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "calls"
+  ],
+  "table:LedgerEntries": [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "reads"
+  ],
+  "P:Bank.Tests.RecordingBus.Events": [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "uses"
+  ],
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Ledger.Application.Ledger.EntriesAsync(System.Guid,System.DateTimeOffset,System.DateTimeOffset,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Ledger.Application.ILedger.EntriesAsync(System.Guid,System.DateTimeOffset,System.DateTimeOffset,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)": [
+   "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+   "resolves"
+  ],
+  "M:Bank.Tests.FakeUser.IsInRole(System.String)": [
+   "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+   "resolves"
+  ],
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "uses"
+  ],
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "uses"
+  ],
+  "table:Accounts": [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "writes"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Id": [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "uses"
+  ],
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "T:Bank.Modules.Ledger.Domain.TransferPosted": [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "publishes"
+  ],
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ]
+ },
+ "hot_edges": [
+  [
+   "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+   "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+   "M:Bank.Tests.FakeUser.IsInRole(System.String)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.ILedger.EntriesAsync(System.Guid,System.DateTimeOffset,System.DateTimeOffset,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Application.Ledger.EntriesAsync(System.Guid,System.DateTimeOffset,System.DateTimeOffset,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Ledger.Domain.TransferPosted",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Application.ILedger.EntriesAsync(System.Guid,System.DateTimeOffset,System.DateTimeOffset,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Accounts.Domain.Account.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "F:Bank.Modules.Auth.Roles.Admin",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "F:Bank.Modules.Auth.Roles.ComplianceOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "F:Bank.Modules.Auth.Roles.LoanOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "F:Bank.Modules.Auth.Roles.Teller",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+   "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "table:LedgerEntries",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "P:Bank.Modules.Accounts.Domain.Account.Iban",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "P:Bank.Modules.Accounts.Domain.Account.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "table:Accounts",
+   "writes"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+   "uses"
+  ]
+ ],
+ "modules": {
+  "Accounts": "impacted",
+  "Ledger": "impacted",
+  "Auth": "impacted",
+  "Tests": "changed",
+  "Database": "impacted",
+  "Platform": "changed",
+  "Statements": "changed"
+ },
+ "untested_changed": [
+  "M:Bank.Modules.Statements.Api.StatementsController.#ctor(Bank.Modules.Statements.Application.IStatementService)",
+  "M:Bank.Modules.Statements.Api.StatementsController.GetForMonth(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+  "M:Bank.Modules.Statements.Application.StatementLine.#ctor(System.DateTimeOffset,System.Decimal,System.Decimal,System.String)",
+  "M:Bank.Modules.Statements.Application.Statement.#ctor(System.Guid,System.Int32,System.Int32,System.String,System.Decimal,System.Decimal,System.Collections.Generic.IReadOnlyList{Bank.Modules.Statements.Application.StatementLine})",
+  "M:Bank.Modules.Statements.Application.StatementService.#ctor(Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser)",
+  "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+  "M:Bank.Modules.Statements.StatementsModule.AddStatementsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+  "M:Program.{Main}$(System.String[])"
+ ],
+ "changed_lines": {
+  "src/Bank.Api/Modules/Statements/Api/StatementsController.cs": [
+   [
+    1,
+    38
+   ]
+  ],
+  "src/Bank.Api/Modules/Statements/Application/StatementService.cs": [
+   [
+    1,
+    77
+   ]
+  ],
+  "src/Bank.Api/Modules/Statements/StatementsModule.cs": [
+   [
+    1,
+    12
+   ]
+  ],
+  "src/Bank.Api/Program.cs": [
+   [
+    14,
+    14
+   ],
+   [
+    37,
+    37
+   ]
+  ],
+  "tests/Bank.Tests/Statements/StatementTests.cs": [
+   [
+    1,
+    371
+   ]
+  ]
+ }
+}

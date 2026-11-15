@@ -1,0 +1,570 @@
+{
+ "T:Bank.Modules.Accounts.Application.IAccountOpeningRule": {
+  "summary": "Extension point: other modules can veto opening an account (e.g. identity checks).",
+  "source": "doc comment"
+ },
+ "T:Bank.Modules.Accounts.Domain.Account": {
+  "summary": "A money account. The balance changes only through the Ledger.",
+  "source": "doc comment"
+ },
+ "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+  "summary": "Writes every domain event to the audit trail.",
+  "source": "doc comment"
+ },
+ "T:Bank.Modules.Auth.Api.DemoAuthHandler": {
+  "summary": "Demo sign-in: the caller sends X-User-Id and optional X-Roles headers. Not for production.",
+  "source": "doc comment"
+ },
+ "T:Bank.Modules.Auth.Application.ICurrentUser": {
+  "summary": "Who is calling. Never take a user id from a request body: use this.",
+  "source": "doc comment"
+ },
+ "T:Bank.Modules.Auth.Roles": {
+  "summary": "Role names carried in the X-Roles header (demo sign-in).",
+  "source": "doc comment"
+ },
+ "T:Bank.Modules.Auth.Policies": {
+  "summary": "Authorization policies for [Authorize(Policy = ...)].",
+  "source": "doc comment"
+ },
+ "T:Bank.Modules.Ledger.Application.ILedger": {
+  "summary": "The only way money moves. Every posting is double-entry and in one currency.",
+  "source": "doc comment"
+ },
+ "T:Bank.Modules.Ledger.Domain.BankAccountKind": {
+  "summary": "What one of the bank's own accounts is for.",
+  "source": "doc comment"
+ },
+ "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+  "summary": "The bank's own accounts: one per kind and currency. They may go below zero.",
+  "source": "doc comment"
+ },
+ "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+  "summary": "One side of a double-entry posting. A transfer always writes two entries that sum to zero.",
+  "source": "doc comment"
+ },
+ "T:Bank.Modules.Notifications.Application.INotifier": {
+  "summary": "Sends a message to a customer (app push / e-mail). Messages must not contain [Pii] values.",
+  "source": "doc comment"
+ },
+ "T:Bank.Shared.Events.IDomainEvent": {
+  "summary": "Something that happened in the domain. Every event goes through IEventBus.",
+  "source": "doc comment"
+ },
+ "T:Bank.Shared.Events.InMemoryEventBus": {
+  "summary": "In-process bus: typed handlers first, then catch-all handlers (audit).",
+  "source": "doc comment"
+ },
+ "T:Bank.Shared.PiiAttribute": {
+  "summary": "Marks personal data. It must never be logged, sent in events, written to the audit trail or returned to anyone other than its owner.",
+  "source": "doc comment"
+ },
+ "T:Bank.Shared.Settings.BankSettings": {
+  "summary": "Bank-wide business settings. Changing a value here changes behaviour for every customer.",
+  "source": "doc comment"
+ },
+ "T:Bank.Shared.Time.IClock": {
+  "summary": "The bank's clock. Always use this instead of DateTimeOffset.UtcNow so tests can control time.",
+  "source": "doc comment"
+ },
+ "module:Platform": {
+  "summary": "Platform module containing shared database infrastructure such as BankDbContext.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Data.BankDbContext": {
+  "summary": "Entity Framework DbContext providing database sets for accounts, ledger entries, audit entries, customers, payments, cards, term deposits, and loans.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Accounts": {
+  "summary": "Module responsible for customer accounts, ownership checks, and account opening rules.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Accounts.AccountsModule": {
+  "summary": "Static wiring class that registers Accounts module services with the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Accounts.Api.AccountDto": {
+  "summary": "API data transfer record representing an account with its ID, IBAN, currency, and balance.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Accounts.Api.OpenAccountRequest": {
+  "summary": "API request record carrying an optional currency to open an account.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Accounts.Api.AccountsController": {
+  "summary": "API controller exposing endpoints to list the current user's accounts, fetch an account by ID, and open a new account.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Accounts.Application.IAccountService": {
+  "summary": "Application service interface for retrieving accounts, verifying ownership, listing owner accounts, and opening accounts.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Accounts.Application.AccountService": {
+  "summary": "Application service implementing account queries, ownership verification, and account opening with opening rules and domain events.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Accounts.Domain.AccountKind": {
+  "summary": "Enumeration distinguishing between Customer and Internal account kinds.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Accounts.Domain.AccountOpened": {
+  "summary": "Domain event record emitted when an account is opened, containing account ID, owner ID, currency, and occurrence timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Audit": {
+  "summary": "High-risk compliance module that records domain events in an append-only audit trail without personal data.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Audit.Application.IAuditLog": {
+  "summary": "Application interface defining a method to asynchronously record a domain event.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Audit.Application.AuditLog": {
+  "summary": "Audit log implementation that persists domain events to the database after redacting PII parameters.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Audit.AuditModule": {
+  "summary": "Static wiring class that registers Audit module services with the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Audit.Domain.AuditEntry": {
+  "summary": "Domain entity representing a recorded audit entry with ID, event type, payload, and timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Auth": {
+  "summary": "High-risk security module governing caller identity, role checks, and endpoint authorization.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Auth.Application.CurrentUser": {
+  "summary": "Service implementing ICurrentUser to read the caller's user ID and role membership from the HTTP context.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Auth.AuthModule": {
+  "summary": "Static wiring class that registers Auth module services with the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Cards": {
+  "summary": "High-risk module managing debit cards and card payment authorisation.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Cards.Api.IssueCardRequest": {
+  "summary": "API request record specifying the account ID for which to issue a card.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Cards.Api.AuthoriseCardRequest": {
+  "summary": "Request record carrying the transaction amount and merchant name for authorising a card.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Cards.Api.CardDto": {
+  "summary": "Data transfer record representing a card's identifier, account, customer, last four digits, status, and per-transaction limit in the Cards API.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Cards.Api.CardsController": {
+  "summary": "API controller exposing POST endpoints to issue, freeze, unfreeze, cancel, and authorise cards through ICardService.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Cards.Application.CardAuthorisation": {
+  "summary": "Application result record indicating whether a card payment was approved, an optional decline reason, and an optional transfer ID.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Cards.Application.ICardService": {
+  "summary": "Defines the card service operations for issuing, freezing, unfreezing, cancelling, and authorising payments on cards.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Cards.Application.CardService": {
+  "summary": "Application service implementing ICardService to issue, freeze, unfreeze, cancel, and authorise cards with per-account locking and ledger, account, user, clock, and event bus access.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Cards.CardsModule": {
+  "summary": "Registers the Cards module services in the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Cards.Domain.CardStatus": {
+  "summary": "Represents the status of a card: Active, Frozen, or Cancelled.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Cards.Domain.Card": {
+  "summary": "Domain entity representing a payment card linked to an account and customer, with methods to freeze, unfreeze, and cancel it.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Cards.Domain.CardIssued": {
+  "summary": "Domain event recorded when a card is issued, containing the card ID, customer ID, last four digits, and timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Cards.Domain.CardPaymentAuthorised": {
+  "summary": "Domain event recorded when a card payment is authorised, containing the card ID, amount, currency, merchant, and timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Cards.Domain.CardPaymentDeclined": {
+  "summary": "Domain event recorded when a card payment is declined, containing the card ID, reason, and timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Customers": {
+  "summary": "High-risk compliance module managing customer identity and KYC verification, where unverified customers cannot open accounts and personal data is forbidden in events, logs, or messages.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Customers.Api.CustomerDto": {
+  "summary": "Data transfer record representing a customer's identity, KYC status, deciding officer, and registration timestamp in the Customers API.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Customers.Api.CustomersController": {
+  "summary": "API controller exposing endpoints to register a customer, retrieve the current customer, and verify or reject customers through ICustomerService.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Customers.Application.RegisterCustomerRequest": {
+  "summary": "Request record carrying the full name, email, national ID, and date of birth to register a customer.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Customers.Application.ICustomerService": {
+  "summary": "Defines operations to register, verify, reject, and retrieve customers.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Customers.Application.CustomerService": {
+  "summary": "Implements customer registration, verification, rejection, and retrieval using the database, current user, clock, and event bus.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Customers.Application.KycAccountOpeningRule": {
+  "summary": "Account opening rule implementation that checks whether an owner may open an account against the database.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Customers.CustomersModule": {
+  "summary": "Registers the Customers module services in the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Customers.Domain.KycStatus": {
+  "summary": "Represents a customer's KYC status: Pending, Verified, or Rejected.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Customers.Domain.Customer": {
+  "summary": "Domain entity representing a customer with personal details, KYC status, and methods for an officer to verify or reject them.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Customers.Domain.CustomerRegistered": {
+  "summary": "Domain event recorded when a customer is registered, containing the customer ID and timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Customers.Domain.CustomerVerified": {
+  "summary": "Domain event record emitted when a customer is verified by an officer at a given timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Customers.Domain.CustomerRejected": {
+  "summary": "Domain event recorded when a customer is rejected, containing the customer ID, rejecting officer, and timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Deposits": {
+  "summary": "Medium-risk savings module managing term deposits held in DepositHolding that pay interest from InterestExpense only at maturity.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Deposits.Api.OpenDepositRequest": {
+  "summary": "Request record carrying the account ID, principal amount, and term in months to open a term deposit.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Deposits.Api.TermDepositDto": {
+  "summary": "Data transfer record containing a term deposit's identifiers, principal, currency, term, annual rate, dates, status, and interest paid.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Deposits.Api.DepositsController": {
+  "summary": "API controller exposing POST endpoints to open, mature, and break term deposits.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Deposits.Application.IDepositService": {
+  "summary": "Service interface defining asynchronous operations to open, mature, and break term deposits.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Deposits.Application.DepositService": {
+  "summary": "Application service implementing IDepositService to open, mature, and break term deposits using per-deposit locking, database, ledger, account, clock, and event bus dependencies.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Deposits.DepositsModule": {
+  "summary": "Static wiring class that registers Deposits module services in the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Deposits.Domain.DepositStatus": {
+  "summary": "Enumeration defining the states of a term deposit: Open, Matured, and BrokenEarly.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Deposits.Domain.TermDeposit": {
+  "summary": "Domain entity representing a term deposit with principal, term, interest rate, maturity date, status, and methods to mature or break early.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Deposits.Domain.DepositOpened": {
+  "summary": "Domain event record capturing that a term deposit was opened with its customer, principal, term length, and timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Deposits.Domain.DepositClosed": {
+  "summary": "Domain event record capturing that a term deposit was closed, including interest paid, whether it closed early, and the timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Fees": {
+  "summary": "High-risk Finance module governing published bank fees that are shown before payment and credited to FeeIncome.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Fees.Application.Fee": {
+  "summary": "Record holding a fee amount and its currency.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Fees.Application.FeeCalculator": {
+  "summary": "Application service implementing IFeeCalculator to quote transaction fees using IFxService and configured rate and EUR minimum and maximum bounds.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Fees.Application.IFeeCalculator": {
+  "summary": "Interface defining a method to quote a fee for an amount and currency pair.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Fees.FeesModule": {
+  "summary": "Static wiring class that registers Fees module services in the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Fx": {
+  "summary": "High-risk Treasury module providing currency exchange rates, rounded conversions, and cross-currency clearing rules.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Fx.Application.IFxService": {
+  "summary": "Interface defining methods to look up an exchange rate and convert amounts between currencies.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Fx.Application.FxService": {
+  "summary": "Application service implementing IFxService to validate currencies, look up exchange rates, and convert amounts between EUR, SEK, and USD.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Fx.FxModule": {
+  "summary": "Static wiring class that registers Fx module services in the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Ledger": {
+  "summary": "High-risk Finance module serving as the sole place where single-currency double-entry money transfers are recorded.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Ledger.Application.InsufficientFundsException": {
+  "summary": "Exception thrown when an operation fails due to insufficient funds in an account.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Ledger.Application.CurrencyMismatchException": {
+  "summary": "Exception thrown when an operation encounters mismatched source and target currencies.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Ledger.Application.Ledger": {
+  "summary": "Ledger service implementation for posting transfers and querying account entries within a time range.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Ledger.Domain.TransferPosted": {
+  "summary": "Domain event record representing a posted transfer with transfer and account IDs, amount, currency, reference, and timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Ledger.LedgerModule": {
+  "summary": "Static wiring class that registers Ledger module services in the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Loans": {
+  "summary": "High-risk Credit module managing loan applications, four-eyes credit decisions, and payouts from LoanFunding through the Ledger.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Loans.Api.ApplyLoanRequest": {
+  "summary": "Request record carrying the disbursement account ID, principal amount, and term in months to apply for a loan.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Loans.Api.ApproveLoanRequest": {
+  "summary": "Request record carrying an optional note when approving a loan.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Loans.Api.RejectLoanRequest": {
+  "summary": "Request record carrying an optional reason when rejecting a loan.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Loans.Api.LoanDto": {
+  "summary": "Data transfer record representing loan details, terms, status, and decision metadata for API responses.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Loans.Api.LoansController": {
+  "summary": "API controller exposing endpoints to apply for, retrieve, approve, and reject loans through ILoanService.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Loans.Application.LoanApplication": {
+  "summary": "Application record specifying the disbursement account, principal amount, and term in months for a loan application.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Loans.Application.ILoanService": {
+  "summary": "Interface defining operations to apply for, retrieve, approve, and reject loans.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Loans.Application.LoanService": {
+  "summary": "Application service implementing ILoanService that holds loan principal/term limits, fixed rate, per-loan locks, and database, ledger, account, user, clock, event bus, and notifier dependencies.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Loans.Domain.LoanStatus": {
+  "summary": "Enum representing the states of a loan: Submitted, Rejected, and Disbursed.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Loans.Domain.Loan": {
+  "summary": "Domain entity representing a loan with disbursement account, terms, status, decision metadata, and methods to approve or reject it.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Loans.Domain.LoanSubmitted": {
+  "summary": "Domain event record representing a loan submission with loan ID, customer ID, principal, and timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Loans.Domain.LoanApproved": {
+  "summary": "Domain event record representing a loan approval with loan ID, customer ID, principal, and timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Loans.Domain.LoanRejected": {
+  "summary": "Domain event record representing a loan rejection with loan ID, customer ID, and timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Loans.LoansModule": {
+  "summary": "Static wiring class that registers the Loans module services in the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Notifications": {
+  "summary": "Low-risk module owned by Customer care for sending short messages to customers without personal data.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Notifications.Application.LogNotifier": {
+  "summary": "INotifier implementation that sends customer notifications by writing to an ILogger.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Notifications.NotificationsModule": {
+  "summary": "Static wiring class that registers the Notifications module services in the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Payments": {
+  "summary": "High-risk module owned by Payments for transferring money between accounts across currencies through the ledger while enforcing ownership, idempotency, daily limits, and fraud holds.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Api.RejectPaymentRequest": {
+  "summary": "Request record carrying an optional reason when rejecting a payment.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Api.PaymentDto": {
+  "summary": "Data transfer record representing a payment's identifiers, accounts, amount, currency, fee, status, reference, and creation time in the Payments API.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Api.PaymentsController": {
+  "summary": "API controller providing endpoints and actions to quote, submit, list, hold-review, release, and reject payments via IPaymentService and IPaymentReviewService.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Application.IPaymentReviewService": {
+  "summary": "Interface defining operations to list held payments and to release or reject them.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Application.PaymentReviewService": {
+  "summary": "Application service implementing IPaymentReviewService for compliance officers to list held payments and release or reject them using per-payment locks, database, ledger, clock, event bus, and notifier.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Application.PaymentRequest": {
+  "summary": "Application record containing the idempotency key, source and destination account IDs, amount, and optional reference for a payment.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Application.PaymentQuote": {
+  "summary": "Application record holding quoted amount, currencies, fee, credited amount, and exchange rate for a payment.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Application.DailyLimitExceededException": {
+  "summary": "Exception derived from InvalidOperationException representing a daily payment limit violation.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Application.IPaymentService": {
+  "summary": "Interface defining operations to quote a payment, execute a payment, and list payments for a customer.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Application.PaymentService": {
+  "summary": "Service implementing IPaymentService with dependencies for database access, ledger, accounts, FX, fees, notifications, events, user context, and concurrency locks.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Application.PaymentService.NullNotifier": {
+  "summary": "Private INotifier implementation nested in PaymentService that provides a NotifyAsync method.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Domain.PaymentStatus": {
+  "summary": "Enumeration of payment statuses: Completed, Held, and Rejected.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Domain.Payment": {
+  "summary": "Domain class representing a payment with customer, source and destination accounts, amounts, currencies, fee, rate, status, idempotency key, and optional transfer ID.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Domain.PaymentCompleted": {
+  "summary": "Domain event record representing a completed payment with payment ID, customer ID, amount, currency, and occurrence timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Domain.PaymentHeld": {
+  "summary": "Domain event record representing a held payment with payment ID, customer ID, amount, currency, and occurrence timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Domain.PaymentReleased": {
+  "summary": "Domain event record representing a released payment with payment ID, releaser identifier, and occurrence timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.Domain.PaymentRejected": {
+  "summary": "Domain event record representing a rejected payment with payment ID, rejector identifier, and occurrence timestamp.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Payments.PaymentsModule": {
+  "summary": "Static wiring class that registers the Payments module services in the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Statements": {
+  "summary": "Module that provides calendar-month account statements for account owners or staff, reconciling opening balance, entries, and closing balance.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Statements.Api.StatementsController": {
+  "summary": "API controller exposing a GET endpoint to retrieve an account statement for a given year and month using IStatementService.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Statements.Application.StatementLine": {
+  "summary": "Record representing a single statement line with timestamp, amount, resulting balance, and reference.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Statements.Application.Statement": {
+  "summary": "Record representing a monthly account statement with currency, opening and closing balances, and statement lines.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Statements.Application.IStatementService": {
+  "summary": "Service interface defining retrieval of a monthly statement for a given account, year, and month.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Statements.Application.StatementService": {
+  "summary": "Service implementing IStatementService to produce monthly account statements using ledger, account, and current user services.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Modules.Statements.StatementsModule": {
+  "summary": "Static wiring class that registers the Statements module services in the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Program": {
+  "summary": "Application host entry point class containing the Main method.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Shared.Events.IEventHandler`1": {
+  "summary": "Generic interface for handling a specific type of domain event asynchronously.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Shared.Events.IEventBus": {
+  "summary": "Interface for publishing domain events asynchronously.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Shared.Events.EventBusModule": {
+  "summary": "Static wiring class that registers event bus services in the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Shared.Money.MoneyMath": {
+  "summary": "Static utility class providing a method to convert a decimal amount to cents.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Shared.SharedModule": {
+  "summary": "Static wiring class that registers shared platform services in the dependency injection container.",
+  "source": "AI (unverified meaning)"
+ },
+ "T:Bank.Shared.Time.SystemClock": {
+  "summary": "Clock implementation providing the current UTC date and time.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Tests": {
+  "summary": "Module named Tests with no additional details provided in the constitution.",
+  "source": "AI (unverified meaning)"
+ },
+ "module:Database": {
+  "summary": "A module named Database.",
+  "source": "AI (unverified meaning)"
+ }
+}

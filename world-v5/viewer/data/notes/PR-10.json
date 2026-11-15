@@ -1,0 +1,3286 @@
+{
+ "pr": "PR-10",
+ "findings": [],
+ "source": "ai",
+ "model": "gemini-4-hydrogen",
+ "headline": "Centralize cent rounding in shared MoneyMath.ToCents across Fx, Fees, Deposits, and Loans",
+ "summary": "Introduces Bank.Shared.Money.MoneyMath.ToCents to round monetary amounts to two decimal places using midpoint away-from-zero. Replaces inline decimal.Round and Math.Round calls across DepositService, FeeCalculator, FxService, and LoanService at the same calculation steps.",
+ "business": "No user-visible change (structural).",
+ "business_impact": "none",
+ "notes": {
+  "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": {
+   "changed": "Modified (lines 31, 128–129)."
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)": {
+   "changed": "Modified (lines 31). Now calls MoneyMath.ToCents()."
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.MatureAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "Modified (lines 128–129). Now calls MoneyMath.ToCents()."
+  },
+  "M:Bank.Modules.Fees.Application.FeeCalculator.#ctor(Bank.Modules.Fx.Application.IFxService)": {
+   "changed": "Modified (lines 27–29)."
+  },
+  "M:Bank.Modules.Fees.Application.FeeCalculator.Quote(System.Decimal,System.String,System.String)": {
+   "changed": "Modified (lines 27–29). Now calls MoneyMath.ToCents()."
+  },
+  "M:Bank.Modules.Fx.Application.FxService.Convert(System.Decimal,System.String,System.String)": {
+   "changed": "Modified (lines 46). Now calls MoneyMath.ToCents()."
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)": {
+   "changed": "Modified (lines 70). Now calls MoneyMath.ToCents()."
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.CalculateMonthlyAnnuity(System.Decimal,System.Int32)": {
+   "changed": "Modified (lines 220). Now calls MoneyMath.ToCents()."
+  },
+  "T:Bank.Shared.Money.MoneyMath": {
+   "changed": "Added shared helper class providing centralized cent rounding for monetary amounts.",
+   "changed_facts": "New class with 1 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Shared.Money.MoneyMath.ToCents(System.Decimal)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Deposits.Application.DepositService": {
+   "changed": "Updated term deposit validation and interest calculation to use the shared cent-rounding helper.",
+   "changed_facts": "modified DepositService, OpenAsync, MatureAsync.",
+   "changed_src": "ai"
+  },
+  "module:Deposits": {
+   "changed": "Classes: 1 changed (DepositService).",
+   "affected": "2 part(s) depend on the change and 5 part(s) are reached by it: Open, Mature, Id, CustomerId…."
+  },
+  "T:Bank.Modules.Fees.Application.FeeCalculator": {
+   "changed": "Updated FX fee quote calculation to round fee and bounds through MoneyMath.ToCents.",
+   "changed_facts": "modified FeeCalculator, Quote.",
+   "changed_src": "ai"
+  },
+  "module:Fees": {
+   "changed": "Classes: 1 changed (FeeCalculator)."
+  },
+  "T:Bank.Modules.Fx.Application.FxService": {
+   "changed": "Updated currency conversion to round the converted result via MoneyMath.ToCents.",
+   "affected": "NormalizeAndValidate and FromEur are called inside FxService.Convert before rounding the result with MoneyMath.ToCents.",
+   "changed_facts": "modified Convert.",
+   "changed_src": "ai",
+   "affected_facts": "2 part(s) are reached by it: NormalizeAndValidate, FromEur.",
+   "affected_src": "ai"
+  },
+  "module:Fx": {
+   "changed": "Classes: 1 changed (FxService).",
+   "affected": "2 part(s) are reached by it: NormalizeAndValidate, FromEur."
+  },
+  "T:Bank.Modules.Loans.Application.LoanService": {
+   "changed": "Updated loan principal validation and monthly annuity calculation to use MoneyMath.ToCents.",
+   "changed_facts": "modified ApplyAsync, CalculateMonthlyAnnuity.",
+   "changed_src": "ai"
+  },
+  "module:Loans": {
+   "changed": "Classes: 1 changed (LoanService).",
+   "affected": "1 part(s) depend on the change and 2 part(s) are reached by it: Apply, CustomerId, Id."
+  },
+  "module:Platform": {
+   "changed": "Classes: 1 new (MoneyMath).",
+   "affected": "1 part(s) are reached by it: PublishAsync."
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)": {
+   "affected": "Depends on the change through IDepositService.OpenAsync() (calls), 2 hop(s)."
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)": {
+   "affected": "Depends on the change through IDepositService.MatureAsync() (calls), 2 hop(s)."
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.QuoteAsync(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)": {
+   "affected": "Depends on the change through IFeeCalculator.Quote() (calls), 2 hop(s)."
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "affected": "Depends on the change through IFeeCalculator.Quote() (calls), 2 hop(s)."
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)": {
+   "affected": "Depends on the change through ILoanService.ApplyAsync() (calls), 2 hop(s)."
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Quote(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)": {
+   "affected": "Depends on the change through IPaymentService.QuoteAsync() (calls), 4 hop(s)."
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "affected": "Depends on the change through IPaymentService.PayAsync() (calls), 4 hop(s)."
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "affected": "Reached by the change through DepositService.OpenAsync() (calls), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "affected": "Reached by the change through DepositService.OpenAsync() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Id": {
+   "affected": "Reached by the change through DepositService.OpenAsync() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.CustomerId": {
+   "affected": "Reached by the change through DepositService.OpenAsync() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Currency": {
+   "affected": "Reached by the change through DepositService.OpenAsync() (uses), 1 hop(s)."
+  },
+  "M:Bank.Modules.Deposits.Domain.TermDeposit.Mature(System.Decimal)": {
+   "affected": "Reached by the change through DepositService.MatureAsync() (calls), 1 hop(s)."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Status": {
+   "affected": "Reached by the change through DepositService.MatureAsync() (uses), 1 hop(s)."
+  },
+  "M:Bank.Modules.Fx.Application.FxService.NormalizeAndValidate(System.String,System.String)": {
+   "affected": "Reached by the change through FxService.Convert() (calls), 1 hop(s)."
+  },
+  "M:Bank.Modules.Fx.Application.FxService.FromEur(System.String)": {
+   "affected": "Reached by the change through FxService.Convert() (calls), 1 hop(s)."
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.CustomerId": {
+   "affected": "Reached by the change through LoanService.ApplyAsync() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.Id": {
+   "affected": "Reached by the change through LoanService.ApplyAsync() (uses), 1 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IAccountService.IsOwnerAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IAccountService.GetAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through ILedger.PostTransferAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IEventBus.PublishAsync() (resolves), 2 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "affected": "Reached by the change through AccountService.IsOwnerAsync() (uses), 3 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "affected": "Reached by the change through AccountService.IsOwnerAsync() (uses), 3 hop(s)."
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "affected": "Reached by the change through Ledger.PostTransferAsync() (uses), 3 hop(s)."
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "affected": "Reached by the change through Ledger.PostTransferAsync() (uses), 3 hop(s)."
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IEventHandler.HandleAsync() (resolves), 4 hop(s)."
+  },
+  "T:Bank.Modules.Deposits.Api.DepositsController": {
+   "affected": "Calls IDepositService.OpenAsync and MatureAsync, whose principal validation and interest rounding now use MoneyMath.ToCents.",
+   "affected_facts": "2 part(s) depend on the change: Open, Mature.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Payments.Application.PaymentService": {
+   "affected": "QuoteAsync and PayAsync call IFeeCalculator.Quote, which now rounds fee amounts and bounds via MoneyMath.ToCents.",
+   "affected_facts": "2 part(s) depend on the change: QuoteAsync, PayAsync.",
+   "affected_src": "ai"
+  },
+  "module:Payments": {
+   "affected": "4 part(s) depend on the change: QuoteAsync, PayAsync, Quote, Pay."
+  },
+  "T:Bank.Modules.Loans.Api.LoansController": {
+   "affected": "Apply endpoint calls ILoanService.ApplyAsync, which validates whole-cent principal and rounds annuities via MoneyMath.ToCents.",
+   "affected_facts": "1 part(s) depend on the change: Apply.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Payments.Api.PaymentsController": {
+   "affected": "Quote and Pay endpoints call IPaymentService, reaching FeeCalculator.Quote where fees round via MoneyMath.ToCents.",
+   "affected_facts": "2 part(s) depend on the change: Quote, Pay.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+   "affected": "BankAccounts.For is called by DepositService.OpenAsync after principal whole-cent validation via MoneyMath.ToCents.",
+   "affected_facts": "1 part(s) are reached by it: For.",
+   "affected_src": "ai"
+  },
+  "module:Ledger": {
+   "affected": "4 part(s) are reached by it: For, PostTransferAsync, Currency, Reference."
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "affected": "Account properties Currency, Id, and OwnerId are read during DepositService.OpenAsync and ownership checks.",
+   "affected_facts": "3 part(s) are reached by it: Currency, Id, OwnerId.",
+   "affected_src": "ai"
+  },
+  "module:Accounts": {
+   "affected": "5 part(s) are reached by it: Currency, IsOwnerAsync, GetAsync, Id…."
+  },
+  "T:Bank.Modules.Deposits.Domain.TermDeposit": {
+   "affected": "TermDeposit properties and Mature are used by DepositService.OpenAsync and MatureAsync around MoneyMath.ToCents rounding.",
+   "affected_facts": "5 part(s) are reached by it: Id, CustomerId, Currency, Mature….",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Loans.Domain.Loan": {
+   "affected": "Loan.Id and CustomerId are populated in LoanService.ApplyAsync alongside MoneyMath.ToCents validation and annuity rounding.",
+   "affected_facts": "2 part(s) are reached by it: CustomerId, Id.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "affected": "IsOwnerAsync and GetAsync are resolved via IAccountService during DepositService.OpenAsync after whole-cent validation.",
+   "affected_facts": "2 part(s) are reached by it: IsOwnerAsync, GetAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Ledger.Application.Ledger": {
+   "affected": "PostTransferAsync is resolved via ILedger when DepositService posts principal and MoneyMath.ToCents-rounded interest.",
+   "affected_facts": "1 part(s) are reached by it: PostTransferAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "affected": "PublishAsync is resolved via IEventBus during DepositService and LoanService flows after MoneyMath.ToCents rounding.",
+   "affected_facts": "1 part(s) are reached by it: PublishAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+   "affected": "Currency and Reference properties are used by Ledger.PostTransferAsync during deposit opening and interest payouts.",
+   "affected_facts": "2 part(s) are reached by it: Currency, Reference.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+   "affected": "HandleAsync is resolved via IEventHandler when DepositService and LoanService publish domain events.",
+   "affected_facts": "1 part(s) are reached by it: HandleAsync.",
+   "affected_src": "ai"
+  },
+  "module:Audit": {
+   "affected": "1 part(s) are reached by it: HandleAsync."
+  }
+ },
+ "verdict": {
+  "label": "check",
+  "reasons": [
+   {
+    "kind": "untested",
+    "level": "check",
+    "text": "2 changed method(s) have no usable test evidence",
+    "nodes": [
+     "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+     "M:Bank.Modules.Fees.Application.FeeCalculator.#ctor(Bank.Modules.Fx.Application.IFxService)"
+    ],
+    "detail": "DepositService.DepositService(), FeeCalculator.FeeCalculator()",
+    "say": "Changes in DepositService and FeeCalculator have no test evidence, risking wrong customer fees or deposit amounts. Ask for tests proving their outputs still match pre-change cent values.",
+    "say_facts": "2 changed parts of the code are not covered by any working test. Read them yourself or ask for tests.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "reviewer",
+    "level": "check",
+    "text": "Reviewer asks a human to check Where",
+    "detail": "Tier HIGH → full human read and 2 sign-off(s) required",
+    "say": "Because rounding affects customer balances, fees, and loans, this high-risk change requires a full human read. Verify all rounding steps remain unchanged and ensure two sign-offs are recorded.",
+    "say_facts": "The change touches a sensitive part of the bank. Check that only the intended places changed.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "not_checked",
+    "level": "info",
+    "text": "Not checked at this coverage level: Requirement",
+    "say": "Not checked (switched off by the team's coverage level, or did not run): Requirement. Not counted as passed; trust cannot be High."
+   },
+   {
+    "kind": "inherited",
+    "level": "info",
+    "text": "4 failing case(s) already failed before this PR (in PR-9): not counted here",
+    "say": "4 failing test case(s) were already failing before this PR (in PR-9); they are not held against it."
+   }
+  ],
+  "risk_areas": [
+   {
+    "module": "Fees",
+    "why": "What the bank charges customers"
+   },
+   {
+    "module": "Fx",
+    "why": "Exchange rates decide how much money customers get"
+   },
+   {
+    "module": "Loans",
+    "why": "Credit decisions and payouts"
+   },
+   {
+    "module": "Platform",
+    "why": "Database schema, wiring and bank-wide settings touch every module"
+   }
+  ],
+  "reviewer_gate": "BLOCKED",
+  "failures": {
+   "new": 0,
+   "broken": 0,
+   "inherited": 4,
+   "cases_failed": 4
+  }
+ },
+ "units": {
+  "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.MatureAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense"
+    ],
+    "passed_n": 6,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "M:Bank.Modules.Fees.Application.FeeCalculator.#ctor(Bank.Modules.Fx.Application.IFxService)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "M:Bank.Modules.Fees.Application.FeeCalculator.Quote(System.Decimal,System.String,System.String)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+     "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 2,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "M:Bank.Modules.Fx.Application.FxService.Convert(System.Decimal,System.String,System.String)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Convert_handles_direct_and_inverse_eur_pairs",
+     "Convert_returns_same_amount_for_identical_supported_currencies",
+     "Convert_rounds_half_away_from_zero_to_two_decimal_places",
+     "Convert_throws_argument_exception_for_invalid_or_unknown_currencies",
+     "Convert_triangulates_sek_and_usd_without_intermediate_rounding",
+     "FxClearing_accounts_exist_for_eur_sek_and_usd_and_settle_cross_currency_ledger_legs",
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight"
+    ],
+    "passed_n": 25,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 2,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 2,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.CalculateMonthlyAnnuity(System.Decimal,System.Int32)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 2,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "M:Bank.Shared.Money.MoneyMath.ToCents(System.Decimal)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 54,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Deposits.Application.IDepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)",
+    "calls"
+   ],
+   "direction": "depends on the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Deposits.Application.IDepositService.MatureAsync(System.Guid,System.Threading.CancellationToken)",
+    "calls"
+   ],
+   "direction": "depends on the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.QuoteAsync(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Fees.Application.IFeeCalculator.Quote(System.Decimal,System.String,System.String)",
+    "calls"
+   ],
+   "direction": "depends on the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+     "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 2,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Fees.Application.IFeeCalculator.Quote(System.Decimal,System.String,System.String)",
+    "calls"
+   ],
+   "direction": "depends on the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Loans.Application.ILoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)",
+    "calls"
+   ],
+   "direction": "depends on the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Quote(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Payments.Application.IPaymentService.QuoteAsync(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)",
+    "calls"
+   ],
+   "direction": "depends on the change",
+   "hops": 4
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Payments.Application.IPaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+    "calls"
+   ],
+   "direction": "depends on the change",
+   "hops": 4
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 43,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 43,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Id": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.CustomerId": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Currency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Deposits.Domain.TermDeposit.Mature(System.Decimal)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense"
+    ],
+    "passed_n": 6,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Deposits.Application.DepositService.MatureAsync(System.Guid,System.Threading.CancellationToken)",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Status": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event"
+    ],
+    "passed_n": 9,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Deposits.Application.DepositService.MatureAsync(System.Guid,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Fx.Application.FxService.NormalizeAndValidate(System.String,System.String)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Convert_handles_direct_and_inverse_eur_pairs",
+     "Convert_returns_same_amount_for_identical_supported_currencies",
+     "Convert_rounds_half_away_from_zero_to_two_decimal_places",
+     "Convert_throws_argument_exception_for_invalid_or_unknown_currencies",
+     "Convert_triangulates_sek_and_usd_without_intermediate_rounding",
+     "FxClearing_accounts_exist_for_eur_sek_and_usd_and_settle_cross_currency_ledger_legs",
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight"
+    ],
+    "passed_n": 25,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 2,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Fx.Application.FxService.Convert(System.Decimal,System.String,System.String)",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Fx.Application.FxService.FromEur(System.String)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Convert_handles_direct_and_inverse_eur_pairs",
+     "Convert_returns_same_amount_for_identical_supported_currencies",
+     "Convert_rounds_half_away_from_zero_to_two_decimal_places",
+     "Convert_throws_argument_exception_for_invalid_or_unknown_currencies",
+     "Convert_triangulates_sek_and_usd_without_intermediate_rounding",
+     "FxClearing_accounts_exist_for_eur_sek_and_usd_and_settle_cross_currency_ledger_legs",
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight"
+    ],
+    "passed_n": 25,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 2,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Fx.Application.FxService.Convert(System.Decimal,System.String,System.String)",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.CustomerId": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 2,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Loans.Application.LoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.Id": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 2,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Loans.Application.LoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 42,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 36,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 43,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 43,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 43,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 43,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 43,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 43,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 43,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = bacb26e6-dc35-4cf3-8018-20ca8a66ee44, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 62abc005-3530",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 4
+  }
+ },
+ "roll": {
+  "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Deposits.Application.DepositService": {
+   "changed": {
+    "n": 3,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 67,
+    "conf": 0.625,
+    "lo": 0.177,
+    "hi": 0.961
+   },
+   "affected": null
+  },
+  "layer:Deposits/Application": {
+   "changed": {
+    "n": 3,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 67,
+    "conf": 0.625,
+    "lo": 0.177,
+    "hi": 0.961
+   },
+   "affected": null
+  },
+  "module:Deposits": {
+   "changed": {
+    "n": 3,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 67,
+    "conf": 0.625,
+    "lo": 0.177,
+    "hi": 0.961
+   },
+   "affected": {
+    "n": 7,
+    "verified": 5,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 2,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 71,
+    "conf": 0.688,
+    "lo": 0.352,
+    "hi": 0.935
+   }
+  },
+  "pr": {
+   "changed": {
+    "n": 9,
+    "verified": 7,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 2,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Fees.Application.FeeCalculator.#ctor(Bank.Modules.Fx.Application.IFxService)",
+      "none"
+     ]
+    ],
+    "pct": 78,
+    "conf": 0.75,
+    "lo": 0.456,
+    "hi": 0.951
+   },
+   "affected": {
+    "n": 27,
+    "verified": 21,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 6,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Application.PaymentService.QuoteAsync(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 78,
+    "conf": 0.768,
+    "lo": 0.598,
+    "hi": 0.902
+   }
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.MatureAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Fees.Application.FeeCalculator.#ctor(Bank.Modules.Fx.Application.IFxService)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Fees.Application.FeeCalculator.#ctor(Bank.Modules.Fx.Application.IFxService)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Fees.Application.FeeCalculator": {
+   "changed": {
+    "n": 2,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Fees.Application.FeeCalculator.#ctor(Bank.Modules.Fx.Application.IFxService)",
+      "none"
+     ]
+    ],
+    "pct": 50,
+    "conf": 0.5,
+    "lo": 0.061,
+    "hi": 0.939
+   },
+   "affected": null
+  },
+  "layer:Fees/Application": {
+   "changed": {
+    "n": 2,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Fees.Application.FeeCalculator.#ctor(Bank.Modules.Fx.Application.IFxService)",
+      "none"
+     ]
+    ],
+    "pct": 50,
+    "conf": 0.5,
+    "lo": 0.061,
+    "hi": 0.939
+   },
+   "affected": null
+  },
+  "module:Fees": {
+   "changed": {
+    "n": 2,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Fees.Application.FeeCalculator.#ctor(Bank.Modules.Fx.Application.IFxService)",
+      "none"
+     ]
+    ],
+    "pct": 50,
+    "conf": 0.5,
+    "lo": 0.061,
+    "hi": 0.939
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Fees.Application.FeeCalculator.Quote(System.Decimal,System.String,System.String)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Fx.Application.FxService.Convert(System.Decimal,System.String,System.String)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Fx.Application.FxService": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "layer:Fx/Application": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "module:Fx": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Loans.Application.LoanService": {
+   "changed": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "layer:Loans/Application": {
+   "changed": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "module:Loans": {
+   "changed": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   },
+   "affected": {
+    "n": 3,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 67,
+    "conf": 0.625,
+    "lo": 0.177,
+    "hi": 0.961
+   }
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.CalculateMonthlyAnnuity(System.Decimal,System.Int32)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Shared.Money.MoneyMath.ToCents(System.Decimal)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "T:Bank.Shared.Money.MoneyMath": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "layer:Platform/Shared": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "module:Platform": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Deposits.Api.DepositsController": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 2,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   }
+  },
+  "layer:Deposits/Api": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 2,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   }
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.QuoteAsync(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Application.PaymentService.QuoteAsync(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Payments.Application.PaymentService": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Application.PaymentService.QuoteAsync(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 50,
+    "conf": 0.5,
+    "lo": 0.061,
+    "hi": 0.939
+   }
+  },
+  "layer:Payments/Application": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Application.PaymentService.QuoteAsync(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 50,
+    "conf": 0.5,
+    "lo": 0.061,
+    "hi": 0.939
+   }
+  },
+  "module:Payments": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 3,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Application.PaymentService.QuoteAsync(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Quote(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 25,
+    "conf": 0.3,
+    "lo": 0.028,
+    "hi": 0.716
+   }
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Loans.Api.LoansController": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "layer:Loans/Api": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Quote(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Quote(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Payments.Api.PaymentsController": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 2,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Quote(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   }
+  },
+  "layer:Payments/Api": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 2,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Quote(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   }
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Ledger/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "module:Ledger": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "layer:Accounts/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "module:Accounts": {
+   "changed": null,
+   "affected": {
+    "n": 5,
+    "verified": 5,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.917,
+    "lo": 0.621,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Id": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Deposits.Domain.TermDeposit": {
+   "changed": null,
+   "affected": {
+    "n": 5,
+    "verified": 5,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.917,
+    "lo": 0.621,
+    "hi": 1.0
+   }
+  },
+  "layer:Deposits/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 5,
+    "verified": 5,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.917,
+    "lo": 0.621,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.CustomerId": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Deposits.Domain.TermDeposit.Mature(System.Decimal)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Status": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Fx.Application.FxService.NormalizeAndValidate(System.String,System.String)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Fx.Application.FxService.FromEur(System.String)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.CustomerId": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Loans.Domain.Loan": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "layer:Loans/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.Id": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "layer:Accounts/Application": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Application.Ledger": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Ledger/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Audit/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "module:Audit": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  }
+ },
+ "tests_ran": true,
+ "findings_at": {},
+ "trust": {
+  "level": "medium",
+  "why": "7 of 9 changed methods verified"
+ }
+}

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>__TFM__</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Bank</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="__EF__" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,477 @@
+{
+ "countries": [
+  {
+   "name": "Payments",
+   "tier": "high",
+   "guarded": false,
+   "why": "Customer money leaves the account",
+   "id": "Payments",
+   "files": 4,
+   "touched": true,
+   "changed": 1
+  },
+  {
+   "name": "Platform",
+   "tier": "high",
+   "guarded": false,
+   "why": "Database schema, wiring and bank-wide settings touch every module",
+   "id": "Platform",
+   "files": 8,
+   "touched": true,
+   "changed": 1
+  },
+  {
+   "name": "Accounts",
+   "tier": "medium",
+   "guarded": false,
+   "why": "Customer accounts and ownership",
+   "id": "Accounts",
+   "files": 4,
+   "touched": false,
+   "changed": 0
+  },
+  {
+   "name": "Audit",
+   "tier": "high",
+   "guarded": true,
+   "why": "Compliance trail",
+   "id": "Audit",
+   "files": 3,
+   "touched": false,
+   "changed": 0
+  },
+  {
+   "name": "Auth",
+   "tier": "high",
+   "guarded": true,
+   "why": "Who may do what",
+   "id": "Auth",
+   "files": 3,
+   "touched": false,
+   "changed": 0
+  },
+  {
+   "name": "Cards",
+   "tier": "high",
+   "guarded": false,
+   "why": "Card payments and card numbers",
+   "id": "Cards",
+   "files": 4,
+   "touched": false,
+   "changed": 0
+  },
+  {
+   "name": "Customers",
+   "tier": "high",
+   "guarded": false,
+   "why": "Identity checks (KYC) and personal data",
+   "id": "Customers",
+   "files": 5,
+   "touched": false,
+   "changed": 0
+  },
+  {
+   "name": "Deposits",
+   "tier": "medium",
+   "guarded": false,
+   "why": "Savings and interest",
+   "id": "Deposits",
+   "files": 4,
+   "touched": false,
+   "changed": 0
+  },
+  {
+   "name": "Fees",
+   "tier": "high",
+   "guarded": false,
+   "why": "What the bank charges customers",
+   "id": "Fees",
+   "files": 4,
+   "touched": false,
+   "changed": 0
+  },
+  {
+   "name": "Fx",
+   "tier": "high",
+   "guarded": false,
+   "why": "Exchange rates decide how much money customers get",
+   "id": "Fx",
+   "files": 2,
+   "touched": false,
+   "changed": 0
+  },
+  {
+   "name": "Ledger",
+   "tier": "high",
+   "guarded": true,
+   "why": "The only place money moves",
+   "id": "Ledger",
+   "files": 5,
+   "touched": false,
+   "changed": 0
+  },
+  {
+   "name": "Loans",
+   "tier": "high",
+   "guarded": false,
+   "why": "Credit decisions and payouts",
+   "id": "Loans",
+   "files": 4,
+   "touched": false,
+   "changed": 0
+  },
+  {
+   "name": "Notifications",
+   "tier": "low",
+   "guarded": false,
+   "why": "Customer messages only; no money logic",
+   "id": "Notifications",
+   "files": 2,
+   "touched": false,
+   "changed": 0
+  },
+  {
+   "name": "Statements",
+   "tier": "medium",
+   "guarded": false,
+   "why": "What customers see about their money",
+   "id": "Statements",
+   "files": 3,
+   "touched": false,
+   "changed": 0
+  },
+  {
+   "name": "Tests",
+   "tier": "low",
+   "guarded": false,
+   "why": "Test code (test weakening is checked separately)",
+   "id": "Tests",
+   "files": 15,
+   "touched": false,
+   "changed": 0
+  },
+  {
+   "name": "Unmapped",
+   "tier": "medium",
+   "guarded": false,
+   "why": "no area in the rulebook",
+   "id": "Unmapped",
+   "files": 1,
+   "touched": false,
+   "changed": 0
+  }
+ ],
+ "cities": [
+  {
+   "id": "src/Bank.Api/Data/BankDbContext.cs",
+   "name": "BankDbContext.cs",
+   "path": "src/Bank.Api/Data/BankDbContext.cs",
+   "country": "Platform",
+   "tier": "high",
+   "role": "changed",
+   "changed": true,
+   "n_added": 2,
+   "n_removed": 1,
+   "status": "M",
+   "churn": 8,
+   "members": [
+    {
+     "name": "OnModelCreating",
+     "callers": 0,
+     "tests": 0,
+     "untested": false
+    }
+   ],
+   "findings": {},
+   "is_test": false,
+   "hop": 0
+  },
+  {
+   "id": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "name": "PaymentService.cs",
+   "path": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "country": "Payments",
+   "tier": "high",
+   "role": "changed",
+   "changed": true,
+   "n_added": 198,
+   "n_removed": 44,
+   "status": "M",
+   "churn": 5,
+   "members": [
+    {
+     "name": "PayAsync",
+     "callers": 0,
+     "tests": 0,
+     "untested": false
+    },
+    {
+     "name": "ForCustomerAsync",
+     "callers": 0,
+     "tests": 0,
+     "untested": false
+    },
+    {
+     "name": "ExecuteIdempotentPaymentAsync",
+     "callers": 0,
+     "tests": 0,
+     "untested": false
+    },
+    {
+     "name": "GetSqliteWriteLock",
+     "callers": 0,
+     "tests": 0,
+     "untested": false
+    },
+    {
+     "name": "DetachDirtyEntries",
+     "callers": 0,
+     "tests": 0,
+     "untested": false
+    },
+    {
+     "name": "IsIdempotencyUniqueConstraintViolation",
+     "callers": 0,
+     "tests": 0,
+     "untested": false
+    }
+   ],
+   "findings": {
+    "Blocker": 2,
+    "ShouldFix": 9
+   },
+   "is_test": false,
+   "hop": 0
+  }
+ ],
+ "roads": [],
+ "country_roads": [],
+ "api": {
+  "apis": [
+   {
+    "id": "src/Bank.Api/Data/BankDbContext.cs::OnModelCreating",
+    "name": "OnModelCreating",
+    "file": "src/Bank.Api/Data/BankDbContext.cs",
+    "line": 36,
+    "area": "Platform",
+    "tier": "high",
+    "visibility": "protected",
+    "kind": "method",
+    "change": "body",
+    "breaking": false,
+    "sig_before": "protected override void OnModelCreating(ModelBuilder modelBuilder)",
+    "sig_after": "protected override void OnModelCreating(ModelBuilder modelBuilder)",
+    "callers": [],
+    "tests": [],
+    "untested_callers": [],
+    "caller_areas": [],
+    "more_callers": 0
+   },
+   {
+    "id": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::PayAsync",
+    "name": "PayAsync",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "line": 137,
+    "area": "Payments",
+    "tier": "high",
+    "visibility": "public",
+    "kind": "method",
+    "change": "body",
+    "breaking": false,
+    "sig_before": "public async Task<Payment> PayAsync(PaymentRequest request, CancellationToken ct = default)",
+    "sig_after": "public async Task<Payment> PayAsync(PaymentRequest request, CancellationToken ct = default)",
+    "callers": [],
+    "tests": [],
+    "untested_callers": [],
+    "caller_areas": [],
+    "more_callers": 0
+   },
+   {
+    "id": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::ForCustomerAsync",
+    "name": "ForCustomerAsync",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "line": 212,
+    "area": "Payments",
+    "tier": "high",
+    "visibility": "public",
+    "kind": "method",
+    "change": "body",
+    "breaking": false,
+    "sig_before": "public async Task<IReadOnlyList<Payment>> ForCustomerAsync(string customerId, CancellationToken ct = default)",
+    "sig_after": "public async Task<IReadOnlyList<Payment>> ForCustomerAsync(string customerId, CancellationToken ct = default)",
+    "callers": [],
+    "tests": [],
+    "untested_callers": [],
+    "caller_areas": [],
+    "more_callers": 0
+   },
+   {
+    "id": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::ExecuteIdempotentPaymentAsync",
+    "name": "ExecuteIdempotentPaymentAsync",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "line": 218,
+    "area": "Payments",
+    "tier": "high",
+    "visibility": "private",
+    "kind": "method",
+    "change": "new",
+    "breaking": false,
+    "sig_before": "",
+    "sig_after": "private async Task<(Payment Payment, bool Created)> ExecuteIdempotentPaymentAsync( PaymentRequest request, string customerId, Account fromAccount, Account toAccount, decimal amount,",
+    "callers": [],
+    "tests": [],
+    "untested_callers": [],
+    "caller_areas": [],
+    "more_callers": 0
+   },
+   {
+    "id": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::GetSqliteWriteLock",
+    "name": "GetSqliteWriteLock",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "line": 400,
+    "area": "Payments",
+    "tier": "high",
+    "visibility": "private",
+    "kind": "method",
+    "change": "new",
+    "breaking": false,
+    "sig_before": "",
+    "sig_after": "private SemaphoreSlim? GetSqliteWriteLock()",
+    "callers": [],
+    "tests": [],
+    "untested_callers": [],
+    "caller_areas": [],
+    "more_callers": 0
+   },
+   {
+    "id": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::DetachDirtyEntries",
+    "name": "DetachDirtyEntries",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "line": 413,
+    "area": "Payments",
+    "tier": "high",
+    "visibility": "private",
+    "kind": "method",
+    "change": "new",
+    "breaking": false,
+    "sig_before": "",
+    "sig_after": "private void DetachDirtyEntries()",
+    "callers": [],
+    "tests": [],
+    "untested_callers": [],
+    "caller_areas": [],
+    "more_callers": 0
+   },
+   {
+    "id": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::IsIdempotencyUniqueConstraintViolation",
+    "name": "IsIdempotencyUniqueConstraintViolation",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "line": 423,
+    "area": "Payments",
+    "tier": "high",
+    "visibility": "private",
+    "kind": "method",
+    "change": "new",
+    "breaking": false,
+    "sig_before": "",
+    "sig_after": "private static bool IsIdempotencyUniqueConstraintViolation(DbUpdateException ex)",
+    "callers": [],
+    "tests": [],
+    "untested_callers": [],
+    "caller_areas": [],
+    "more_callers": 0
+   }
+  ],
+  "nodes": {
+   "src/Bank.Api/Data/BankDbContext.cs::OnModelCreating": {
+    "id": "src/Bank.Api/Data/BankDbContext.cs::OnModelCreating",
+    "member": "OnModelCreating",
+    "file": "src/Bank.Api/Data/BankDbContext.cs",
+    "area": "Platform",
+    "tier": "high",
+    "is_test": false,
+    "hop": 0,
+    "tested": false,
+    "api": true
+   },
+   "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::PayAsync": {
+    "id": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::PayAsync",
+    "member": "PayAsync",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "area": "Payments",
+    "tier": "high",
+    "is_test": false,
+    "hop": 0,
+    "tested": false,
+    "api": true
+   },
+   "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::ForCustomerAsync": {
+    "id": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::ForCustomerAsync",
+    "member": "ForCustomerAsync",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "area": "Payments",
+    "tier": "high",
+    "is_test": false,
+    "hop": 0,
+    "tested": false,
+    "api": true
+   },
+   "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::ExecuteIdempotentPaymentAsync": {
+    "id": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::ExecuteIdempotentPaymentAsync",
+    "member": "ExecuteIdempotentPaymentAsync",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "area": "Payments",
+    "tier": "high",
+    "is_test": false,
+    "hop": 0,
+    "tested": false,
+    "api": true
+   },
+   "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::GetSqliteWriteLock": {
+    "id": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::GetSqliteWriteLock",
+    "member": "GetSqliteWriteLock",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "area": "Payments",
+    "tier": "high",
+    "is_test": false,
+    "hop": 0,
+    "tested": false,
+    "api": true
+   },
+   "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::DetachDirtyEntries": {
+    "id": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::DetachDirtyEntries",
+    "member": "DetachDirtyEntries",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "area": "Payments",
+    "tier": "high",
+    "is_test": false,
+    "hop": 0,
+    "tested": false,
+    "api": true
+   },
+   "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::IsIdempotencyUniqueConstraintViolation": {
+    "id": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs::IsIdempotencyUniqueConstraintViolation",
+    "member": "IsIdempotencyUniqueConstraintViolation",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "area": "Payments",
+    "tier": "high",
+    "is_test": false,
+    "hop": 0,
+    "tested": false,
+    "api": true
+   }
+  },
+  "edges": [],
+  "test_members": [],
+  "method": "name-based caller search at the PR head (code-graph lite); overloads and reflection are not distinguished",
+  "summary": {
+   "apis": 7,
+   "breaking": 0,
+   "signature": 0,
+   "removed": 0,
+   "new": 4,
+   "body": 3,
+   "untested_callers": 0
+  }
+ }
+}

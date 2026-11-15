@@ -1,0 +1,33 @@
+# HIDDEN ANSWER KEY (test batch 2, 14 Nov 2026) — never shown to the Builder, the Test agent or the Reviewer.
+# Test tool only: the Bug planter inserts each defect after the Builder has finished; calibration checks the outcome.
+# Batch 2 plants only 3 defects so the other 9 PRs show the reviewer's natural result:
+#   PR-2  money: a retried payment moves money twice            -> expected Fix before merge
+#   PR-7  security: an officer can approve their own loan        -> expected Fix before merge
+#   PR-12 requirement not met: a held payment never leaves the payer's account -> expected Fix before merge
+# Clean PRs (no defect on purpose): PR-1, PR-3, PR-4, PR-5, PR-6, PR-8, PR-9, PR-10, PR-11.
+# The previous key (8 defects) is kept as answer_key.v4.yaml.
+bugs:
+- id: BUG-1
+  pr: PR-2
+  category: money / idempotency
+  severity: high
+  description: 'Make PaymentService.PayAsync stop returning the earlier payment when the same customer repeats an idempotency
+    key, so a retried request moves the money a second time. Keep the rest of the payment logic.
+
+    '
+- id: BUG-2
+  pr: PR-7
+  category: business rule / four-eyes
+  severity: high
+  description: 'Remove the rule that stops a loan officer from approving their own loan (keep the rule for rejecting and keep
+    the loan-officer role check).
+
+    '
+- id: BUG-3
+  pr: PR-12
+  category: requirement not met / fraud hold
+  severity: high
+  description: 'When a payment is held for review, do NOT move the money (amount + fee) out of the payer''s account into the
+    Suspense account: only set the payment status to Held and notify the customer. On release, transfer from the payer to
+    the payee as a normal payment; on reject, just mark it Rejected. Keep the 5,000 EUR threshold, the new-payee rule, the
+    compliance-officer checks and the events. Keep everything compiling.'

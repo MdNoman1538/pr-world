@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Review Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<!--INLINE_STYLE-->
+</head>
+<body>
+<header class="top">
+  <div><h1>AI Review Dashboard</h1><div class="sub">AI reviews, a named human decides · evidence first</div></div>
+  <select id="runsel" aria-label="Review run" hidden></select>
+  <div class="spacer"></div>
+  <span class="tag" id="modetag"></span>
+</header>
+<section class="decision" id="decision"></section>
+<nav class="areas" id="areas" aria-label="Areas"></nav>
+<main>
+    <section class="card zoneA">
+      <h2><span class="z">A</span> Architecture &amp; API impact
+        <span class="tabs"><button class="tab on" data-tab="api">API call flow</button><button class="tab" data-tab="map">World map</button></span></h2>
+      <div id="apiview" class="apiview"></div>
+      <div class="mapbox" id="mapbox" hidden>
+        <svg id="map" class="lvl1" role="img" aria-label="Map of the project: business areas as countries, files as cities, calls as roads"></svg>
+        <div class="lvlbox">Zoom: <span id="lv1">Areas</span><span id="lv2">Files</span><span id="lv3">Members</span></div>
+        <div class="ctrls">
+          <button id="zin" aria-label="Zoom in">+</button>
+          <button id="zout" aria-label="Zoom out">−</button>
+          <button id="zfit" aria-label="Whole world">⤢</button>
+          <button id="zfocus" class="wide">📍 Change</button>
+        </div>
+        <div class="mapsum" id="mapsum"></div>
+      </div>
+      <div class="legend" id="maplegend" hidden>
+        <span><i class="sw" style="background:var(--hi-f);border:1px solid var(--hi)"></i>High risk</span>
+        <span><i class="sw" style="background:var(--md-f);border:1px solid var(--md)"></i>Medium</span>
+        <span><i class="sw" style="background:var(--lo-f);border:1px solid var(--lo)"></i>Low</span>
+        <span><i class="ln" style="border-color:var(--hi);border-top-style:dashed"></i>Guarded border</span>
+        <span><i class="ln" style="border-color:var(--impact)"></i>Call reaching the change</span>
+        <span><i class="ln" style="border-color:#2f7d55;border-top-style:dashed"></i>Test</span>
+        <span><i class="ln" style="border-color:#8f99a5;border-top-style:dotted"></i>☁ Untested path</span>
+        <span>📍 Changed file · ring = churn</span>
+      </div>
+    </section>
+  <div class="col">
+    <section class="card">
+      <h2><span class="z">B</span> PR ↔ requirement radar <span class="hint">every hunk traced to the requirement</span></h2>
+      <div class="body" id="radar"></div>
+    </section>
+    <section class="card">
+      <h2><span class="z">C</span> Verifiable evidence <span class="hint">what the trust is built on</span></h2>
+      <div class="body" id="evidence"></div>
+    </section>
+  </div>
+  <div class="col">
+    <section class="card">
+      <h2><span class="z">D</span> Line-anchored findings <span class="hint" id="streamhint"></span></h2>
+      <div class="filters" id="filters"></div>
+      <div class="stream" id="stream"></div>
+    </section>
+    <section class="card">
+      <h2>Sign-off <span class="hint">a named human owns the decision</span></h2>
+      <div class="body sign" id="signoff"></div>
+    </section>
+  </div>
+</main>
+<div class="tip" id="tip"></div>
+<div class="ovl" id="ovl"></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true"><div class="mh"><span id="mtitle"></span><button class="x" id="mclose" aria-label="Close">✕</button></div><pre id="mbody"></pre></div>
+<div class="toast" id="toast"></div>
+<!--BUNDLE-->
+<script src="config.js"></script>
+<script src="d3.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

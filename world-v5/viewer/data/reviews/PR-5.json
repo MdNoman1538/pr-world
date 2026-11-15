@@ -1,0 +1,256 @@
+{
+ "decision": "BLOCKED",
+ "reason": "Merge locked: Security: Safety Blocker(s) found; Tests: Tests failed; Correctness: 1 Blocker(s) Not checked: Requirement. WARNING: review-policy.yaml is not approved by a named human yet.",
+ "tier": "high",
+ "ai_error": "",
+ "findings": [
+  {
+   "id": "C01",
+   "dimension": "correctness",
+   "severity": "Blocker",
+   "title": "Class-level Customer authorization policy blocks Staff access to Authorise endpoint",
+   "claim": "CardsController is decorated with [Authorize(Policy = Policies.Customer)] at the class level, while Authorise is decorated with [Authorize(Policy = Policies.Staff)]. In ASP.NET Core, controller- and action-level authorization attributes are evaluated conjunctively (logical AND), so Authorise requires both Customer and Staff policies. Staff or card-network callers lacking the Customer policy will receive HTTP 403 Forbidden.",
+   "file": "src/Bank.Api/Modules/Cards/Api/CardsController.cs",
+   "line_start": 17,
+   "line_end": 17,
+   "evidence": "[Authorize(Policy = Policies.Customer)]",
+   "evidence_verified": true,
+   "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from the CardsController class and place [Authorize(Policy = Policies.Customer)] individually on Issue, Freeze, Unfreeze, and Cancel.",
+   "patch": "",
+   "requirement_link": "Card payment authorisation (POST api/cards/{id}/authorise, Staff policy): Calls ICardService.AuthoriseAsync(cardId, amount, merchant) with no customer ownership check.",
+   "source": "specialist:correctness",
+   "confidence": 0.98
+  },
+  {
+   "id": "S01",
+   "dimension": "safety",
+   "severity": "Blocker",
+   "title": "Class-level Customer authorization policy blocks Staff from payment authorisation",
+   "claim": "CardsController is decorated with `[Authorize(Policy = Policies.Customer)]` at class level. In ASP.NET Core, action-level Authorize attributes are additive to class-level attributes, requiring callers of `Authorise` to satisfy both Customer and Staff policies simultaneously. Staff callers and card-network callers without Customer credentials will be denied with HTTP 403 Forbidden.",
+   "file": "src/Bank.Api/Modules/Cards/Api/CardsController.cs",
+   "line_start": 17,
+   "line_end": 18,
+   "evidence": "[Authorize(Policy = Policies.Customer)]\npublic sealed class CardsController : ControllerBase",
+   "evidence_verified": true,
+   "suggested_fix": "Remove `[Authorize(Policy = Policies.Customer)]` from the controller class declaration and apply it explicitly to `Issue`, `Freeze`, `Unfreeze`, and `Cancel`, leaving `Authorise` restricted only to `Policies.Staff`.",
+   "patch": "",
+   "requirement_link": "Card payment authorisation (POST api/cards/{id}/authorise, Staff policy): Calls ICardService.AuthoriseAsync(cardId, amount, merchant) with no customer ownership check.",
+   "source": "specialist:safety",
+   "confidence": 0.95
+  },
+  {
+   "id": "A01",
+   "dimension": "architecture",
+   "severity": "ShouldFix",
+   "title": "Ad-hoc static in-memory account locking introduces memory leak and ineffective concurrency control",
+   "claim": "CardService introduces a static unbounded ConcurrentDictionary to lock account IDs during payment authorisation. This leaks SemaphoreSlim instances permanently in memory across the process lifecycle and provides no synchronization across multi-instance deployments; ledger operations should rely on database and ledger transactional guarantees.",
+   "file": "src/Bank.Api/Modules/Cards/Application/CardService.cs",
+   "line_start": 27,
+   "line_end": 27,
+   "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> AccountLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Remove AccountLocks and rely on ILedger.PostTransferAsync and database transactional/concurrency mechanisms to handle transfer concurrency.",
+   "patch": "",
+   "requirement_link": "Authorisation approval rules: When the card is Active, rounded amount is within 2000m, and the account has sufficient funds, funds move strictly via ILedger.PostTransferAsync from card.AccountId to BankAccounts.For(BankAccountKind.Suspense, account.Currency) for the rounded amount.",
+   "source": "specialist:architecture",
+   "confidence": 0.85
+  },
+  {
+   "id": "P01",
+   "dimension": "performance",
+   "severity": "ShouldFix",
+   "title": "Static AccountLocks dictionary grows indefinitely, leaking SemaphoreSlim instances",
+   "claim": "AccountLocks stores a SemaphoreSlim instance for every account processed by AuthoriseAsync in a static ConcurrentDictionary without eviction or cleanup. In a long-running service processing authorisations across many customer accounts, this dictionary grows monotonically and permanently retains SemaphoreSlim objects in memory.",
+   "file": "src/Bank.Api/Modules/Cards/Application/CardService.cs",
+   "line_start": 27,
+   "line_end": 27,
+   "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> AccountLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Remove in-memory static semaphore locks in favor of database/ledger concurrency controls, or utilize a bounded/evicting lock manager to prevent unbounded memory growth.",
+   "patch": "",
+   "requirement_link": "none",
+   "source": "specialist:performance",
+   "confidence": 0.85
+  },
+  {
+   "id": "S02",
+   "dimension": "safety",
+   "severity": "ShouldFix",
+   "title": "Debit card numbers generated using cryptographically weak PRNG",
+   "claim": "Card numbers are sensitive financial identifiers generated using `Random.Shared`. Because `Random.Shared` is a non-cryptographic PRNG, an attacker observing generated card numbers could determine internal PRNG state and predict card numbers issued to other users.",
+   "file": "src/Bank.Api/Modules/Cards/Application/CardService.cs",
+   "line_start": 180,
+   "line_end": 181,
+   "evidence": "    private static string GenerateCardNumber() =>\n        \"4\" + Random.Shared.NextInt64(0, 1_000_000_000_000_000L).ToString(\"D15\");",
+   "evidence_verified": true,
+   "suggested_fix": "Use `System.Security.Cryptography.RandomNumberGenerator.GetInt64(0, 1_000_000_000_000_000L)` instead of `Random.Shared` to generate unpredictable card numbers.",
+   "patch": "",
+   "requirement_link": "Creates an Active Card with a generated 16-digit Number annotated with [Pii]",
+   "source": "specialist:safety",
+   "confidence": 0.9
+  },
+  {
+   "id": "T01",
+   "dimension": "tests",
+   "severity": "ShouldFix",
+   "title": "CardsController and HTTP endpoints have zero test coverage",
+   "claim": "CardsController and its endpoints (Issue, Freeze, Unfreeze, Cancel, Authorise) have no test references. Route handling, status code mappings (e.g., Forbid on UnauthorizedAccessException), authorization policies (Customer vs Staff), and DTO response masking are not verified by tests.",
+   "file": "src/Bank.Api/Modules/Cards/Api/CardsController.cs",
+   "line_start": 15,
+   "line_end": 18,
+   "evidence": "[ApiController]\n[Route(\"api/cards\")]\n[Authorize(Policy = Policies.Customer)]\npublic sealed class CardsController : ControllerBase",
+   "evidence_verified": true,
+   "suggested_fix": "Add integration or controller tests verifying route mapping, policy enforcement (Customer and Staff policies), DTO responses, and HTTP status codes.",
+   "patch": "",
+   "requirement_link": "HTTP: POST api/cards, POST api/cards/{id}/freeze|unfreeze|cancel (Customer policy); POST api/cards/{id}/authorise (Staff policy, stands in for the card network)",
+   "source": "specialist:tests",
+   "confidence": 0.95
+  },
+  {
+   "id": "T02",
+   "dimension": "tests",
+   "severity": "ShouldFix",
+   "title": "Overly broad exception assertion in AuthoriseAsync negative amount test",
+   "claim": "The test asserts ThrowsAnyAsync<Exception> instead of the specific ArgumentOutOfRangeException thrown by CardService. AuthoriseAsync. This allows any unintended failure (such as NullReferenceException or KeyNotFoundException) to pass unnoticed.",
+   "file": "tests/Bank.Tests/Cards/CardTests.cs",
+   "line_start": 253,
+   "line_end": 253,
+   "evidence": "        await Assert.ThrowsAnyAsync<Exception>(() => service.AuthoriseAsync(card.Id, amount, \"Merchant\"));",
+   "evidence_verified": true,
+   "suggested_fix": "Replace Assert.ThrowsAnyAsync<Exception> with Assert.ThrowsAsync<ArgumentOutOfRangeException>.",
+   "patch": "",
+   "requirement_link": "Amounts less than or equal to 0 after rounding are rejected.",
+   "source": "specialist:tests",
+   "confidence": 0.9
+  }
+ ],
+ "areas": [
+  {
+   "area": "What",
+   "status": "human",
+   "reason": "Requirement match is partial: While domain entities, events, and CardService business logic largely match the specification, placing [Authorize(Policy = Policies.Customer)] at the CardsController class level forces Authorise to require both Customer and Staff policies, preventing Staff/network callers from accessing the authorisation endpoint. In addition, the automated test suite failed execution.",
+   "evidence": []
+  },
+  {
+   "area": "Where",
+   "status": "human",
+   "reason": "Tier HIGH → full human read and 2 sign-off(s) required",
+   "evidence": [
+    "src/Bank.Api/Data/BankDbContext.cs: area 'Platform' is high (Database schema, wiring and bank-wide settings touch every module)",
+    "src/Bank.Api/Modules/Cards/Api/CardsController.cs: area 'Cards' is high (Card payments and card numbers)",
+    "src/Bank.Api/Modules/Cards/Api/CardsController.cs: content rule 'authorization attribute changed' matched → high",
+    "src/Bank.Api/Modules/Cards/Application/CardService.cs: area 'Cards' is high (Card payments and card numbers)",
+    "src/Bank.Api/Modules/Cards/CardsModule.cs: area 'Cards' is high (Card payments and card numbers)",
+    "src/Bank.Api/Modules/Cards/Domain/Card.cs: area 'Cards' is high (Card payments and card numbers)"
+   ]
+  },
+  {
+   "area": "Why",
+   "status": "verified",
+   "reason": "Linked to a requirement",
+   "evidence": []
+  },
+  {
+   "area": "Security",
+   "status": "blocked",
+   "reason": "Safety Blocker(s) found",
+   "evidence": [
+    "S01 src/Bank.Api/Modules/Cards/Api/CardsController.cs:17"
+   ]
+  },
+  {
+   "area": "Build",
+   "status": "verified",
+   "reason": "Build succeeded",
+   "evidence": []
+  },
+  {
+   "area": "Tests",
+   "status": "blocked",
+   "reason": "Tests failed",
+   "evidence": [
+    "Failed!  - Failed:     2, Passed:   144, Skipped:     0, Total:   146, Duration: 1 s - Bank.Tests.dll (net10.0)"
+   ]
+  },
+  {
+   "area": "Correctness",
+   "status": "blocked",
+   "reason": "1 Blocker(s)",
+   "evidence": [
+    "C01 src/Bank.Api/Modules/Cards/Api/CardsController.cs:17"
+   ]
+  },
+  {
+   "area": "Architecture",
+   "status": "verified",
+   "reason": "No blocking issue; 1 ShouldFix noted (does not hold the merge)",
+   "evidence": [
+    "A01 src/Bank.Api/Modules/Cards/Application/CardService.cs:27"
+   ]
+  },
+  {
+   "area": "Maintainability",
+   "status": "verified",
+   "reason": "No blocking issue",
+   "evidence": []
+  },
+  {
+   "area": "Performance",
+   "status": "verified",
+   "reason": "No blocking issue; 1 ShouldFix noted (does not hold the merge)",
+   "evidence": [
+    "P01 src/Bank.Api/Modules/Cards/Application/CardService.cs:27"
+   ]
+  },
+  {
+   "area": "Impact",
+   "status": "verified",
+   "reason": "46 changed member(s); callers covered by tests or none",
+   "evidence": []
+  },
+  {
+   "area": "Requirement",
+   "status": "not_checked",
+   "reason": "Not checked: requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho",
+   "evidence": []
+  }
+ ],
+ "run_id": "20261114-200647-pr-5",
+ "sensors": [
+  {
+   "name": "secret_scan",
+   "result": null,
+   "summary": "No secret patterns in added lines"
+  },
+  {
+   "name": "package_check",
+   "result": null,
+   "summary": "No package references added"
+  },
+  {
+   "name": "test_integrity",
+   "result": null,
+   "summary": "No test files edited"
+  },
+  {
+   "name": "removed_guards",
+   "result": null,
+   "summary": "No validation/guard lines removed"
+  },
+  {
+   "name": "risky_code",
+   "result": null,
+   "summary": "0 pattern hit(s) in added code"
+  },
+  {
+   "name": "dotnet_build",
+   "result": null,
+   "summary": "Build succeeded"
+  },
+  {
+   "name": "dotnet_test",
+   "result": null,
+   "summary": "Tests failed (exit 1)"
+  }
+ ]
+}

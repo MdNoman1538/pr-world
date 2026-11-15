@@ -1,0 +1,10 @@
+# Team settings for test batch 2 (balanced preset). Approved by a named person.
+# Cards runs at Essential on purpose: the PR that builds Cards shows "Not checked" areas (it can never be High).
+version: '1'
+preset: balanced
+approved_by: Md Abdullah Al Noman
+approved_on: '2026-11-14'
+coverage:
+  default: essential
+  by_tier: {high: full, medium: full, low: essential}
+  by_area: {Cards: essential}

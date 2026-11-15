@@ -1,0 +1,2364 @@
+{
+ "pr": "PR-9",
+ "findings": [
+  {
+   "id": "T01",
+   "severity": "ShouldFix",
+   "title": "No behavioral tests verify the 5,000 EUR daily transfer limit enforcement",
+   "dimension": "tests"
+  },
+  {
+   "id": "T02",
+   "severity": "ShouldFix",
+   "title": "Unsupported currency test catches generic Exception instead of specific domain exception",
+   "dimension": "tests"
+  }
+ ],
+ "source": "ai",
+ "model": "gemini-4-hydrogen",
+ "headline": "Update BankSettings default currency to SEK and daily transfer limit to 5,000 EUR",
+ "summary": "Changes BankSettings.DefaultCurrency from EUR to SEK and halves BankSettings.DailyTransferLimit from 10,000 to 5,000 EUR equivalent. Account opening, payments, and related launch verification paths consume these updated settings.",
+ "business": "New accounts opened without an explicit currency now default to SEK instead of EUR. All customers face a halved daily transfer limit of 5,000 EUR equivalent.",
+ "business_impact": "high",
+ "notes": {
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "changed": "Default currency changes from EUR to SEK, so new accounts created without an explicit currency now default to SEK.",
+   "changed_facts": "Modified (lines 7).",
+   "changed_src": "ai"
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "changed": "Daily transfer limit decreases from 10,000 to 5,000 EUR equivalent for all customer transfers.",
+   "changed_facts": "Modified (lines 13).",
+   "changed_src": "ai"
+  },
+  "T:Bank.Shared.Settings.BankSettings": {
+   "changed": "Updates the shared bank configuration defaults for the Swedish launch by changing the default currency to SEK and lowering the daily transfer limit.",
+   "affected": "SupportedCurrencies is verified by LaunchSettingsTests alongside the updated settings to confirm EUR, SEK, and USD remain supported.",
+   "changed_facts": "modified DefaultCurrency, DailyTransferLimit.",
+   "changed_src": "ai",
+   "affected_facts": "1 part(s) are reached by it: SupportedCurrencies.",
+   "affected_src": "ai"
+  },
+  "module:Platform": {
+   "changed": "Classes: 1 changed (BankSettings).",
+   "affected": "2 part(s) are reached by it: SupportedCurrencies, PublishAsync."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)": {
+   "affected": "Depends on the change through BankSettings.DefaultCurrency (uses), 1 hop(s)."
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "affected": "Depends on the change through BankSettings.DailyTransferLimit (uses), 1 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)": {
+   "affected": "Depends on the change through IAccountService.OpenAsync() (calls), 3 hop(s)."
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "affected": "Depends on the change through IPaymentService.PayAsync() (calls), 3 hop(s)."
+  },
+  "P:Bank.Shared.Settings.BankSettings.SupportedCurrencies": {
+   "affected": "Reached by the change through LaunchSettingsTests.BankSettings_supported_currencies_remain_EUR_SEK_and_USD() (uses), 1 hop(s)."
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "affected": "Reached by the change through LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "affected": "Reached by the change through LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "affected": "Reached by the change through LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Kind": {
+   "affected": "Reached by the change through LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "affected": "Reached by the change through LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK() (uses), 1 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match() (calls), 1 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match() (calls), 1 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.ForOwnerAsync(System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match() (calls), 1 hop(s)."
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "affected": "Reached by the change through LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer() (calls), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "affected": "Reached by the change through AccountService.OpenAsync() (uses), 2 hop(s)."
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through ILedger.PostTransferAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IAccountOpeningRule.EnsureMayOpenAsync() (resolves), 3 hop(s)."
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IEventBus.PublishAsync() (resolves), 3 hop(s)."
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "affected": "Reached by the change through Ledger.PostTransferAsync() (uses), 3 hop(s)."
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "affected": "Reached by the change through Ledger.PostTransferAsync() (uses), 3 hop(s)."
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Id": {
+   "affected": "Reached by the change through KycAccountOpeningRule.EnsureMayOpenAsync() (uses), 4 hop(s)."
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Status": {
+   "affected": "Reached by the change through KycAccountOpeningRule.EnsureMayOpenAsync() (uses), 4 hop(s)."
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "affected": "OpenAsync reads BankSettings.DefaultCurrency when creating accounts without a currency. IsOwnerAsync, GetAsync, and ForOwnerAsync are exercised by the new SEK default account tests.",
+   "affected_facts": "1 part(s) depend on the change and 3 part(s) are reached by it: OpenAsync, IsOwnerAsync, GetAsync, ForOwnerAsync.",
+   "affected_src": "ai"
+  },
+  "module:Accounts": {
+   "affected": "2 part(s) depend on the change and 8 part(s) are reached by it: OpenAsync, Open, Currency, OwnerId…."
+  },
+  "T:Bank.Modules.Payments.Application.PaymentService": {
+   "affected": "PayAsync reads BankSettings.DailyTransferLimit to enforce the reduced 5,000 EUR equivalent daily cap on outgoing transfers.",
+   "affected_facts": "1 part(s) depend on the change: PayAsync.",
+   "affected_src": "ai"
+  },
+  "module:Payments": {
+   "affected": "2 part(s) depend on the change: PayAsync, Pay."
+  },
+  "T:Bank.Modules.Accounts.Api.AccountsController": {
+   "affected": "Open delegates account creation to IAccountService.OpenAsync, so requests omitting a currency now open SEK accounts.",
+   "affected_facts": "1 part(s) depend on the change: Open.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Payments.Api.PaymentsController": {
+   "affected": "Pay delegates transfer execution to IPaymentService.PayAsync, enforcing the lowered 5,000 EUR daily transfer limit.",
+   "affected_facts": "1 part(s) depend on the change: Pay.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Auth.Roles": {
+   "affected": "Roles.Customer is used by LaunchSettingsTests when verifying that customer account opening defaults to SEK.",
+   "affected_facts": "1 part(s) are reached by it: Customer.",
+   "affected_src": "ai"
+  },
+  "module:Auth": {
+   "affected": "1 part(s) are reached by it: Customer."
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "affected": "Currency, OwnerId, Kind, and Id are inspected in LaunchSettingsTests to confirm default-currency accounts are created in SEK.",
+   "affected_facts": "5 part(s) are reached by it: Currency, OwnerId, Kind, Id….",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+   "affected": "BankAccounts.For is called by LaunchSettingsTests when verifying SEK transactions and EUR rejection on default SEK accounts.",
+   "affected_facts": "1 part(s) are reached by it: For.",
+   "affected_src": "ai"
+  },
+  "module:Ledger": {
+   "affected": "4 part(s) are reached by it: For, PostTransferAsync, Currency, Reference."
+  },
+  "T:Bank.Modules.Ledger.Application.Ledger": {
+   "affected": "PostTransferAsync is resolved through ILedger during account and payment flows affected by the SEK default and transfer limit.",
+   "affected_facts": "1 part(s) are reached by it: PostTransferAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Customers.Application.KycAccountOpeningRule": {
+   "affected": "EnsureMayOpenAsync is resolved via IAccountOpeningRule during account opening flows affected by the SEK default currency.",
+   "affected_facts": "1 part(s) are reached by it: EnsureMayOpenAsync.",
+   "affected_src": "ai"
+  },
+  "module:Customers": {
+   "affected": "3 part(s) are reached by it: EnsureMayOpenAsync, Id, Status."
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "affected": "PublishAsync is resolved via IEventBus during flows triggered by the updated default currency and transfer limit.",
+   "affected_facts": "1 part(s) are reached by it: PublishAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+   "affected": "Currency and Reference are used by Ledger.PostTransferAsync in transfer flows affected by the updated SEK default and limit.",
+   "affected_facts": "2 part(s) are reached by it: Currency, Reference.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Customers.Domain.Customer": {
+   "affected": "Id and Status are used by KycAccountOpeningRule.EnsureMayOpenAsync during account opening flows using the updated default currency.",
+   "affected_facts": "2 part(s) are reached by it: Id, Status.",
+   "affected_src": "ai"
+  }
+ },
+ "verdict": {
+  "label": "check",
+  "reasons": [
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "No behavioral tests verify the 5,000 EUR daily transfer limit enforcement",
+    "finding": "T01",
+    "node": "M:Bank.Tests.Settings.LaunchSettingsTests.BankSettings_defaults_to_SEK_currency_and_5000_daily_transfer_limit",
+    "detail": "tests",
+    "claim": "The requirement specifies that the cumulative daily transfer limit check must enforce 5,000 EUR equivalent, allowing transfers at 5,000.00 and rejecting transfers at 5,000.01 or cumulative overruns. The test suite only asserts the property on BankSettings directly and does not test transfer limit enforcement behavior or boundary conditions.",
+    "suggested_fix": "Add integration/behavioral tests using the transfer service with BankSettings to assert that transfers up to 5,000 EUR equivalent succeed and transfers exceeding 5,000 EUR equivalent (including cumulative daily transfers) fail with daily limit validation errors.",
+    "file": "tests/Bank.Tests/Settings/LaunchSettingsTests.cs",
+    "line_start": 20,
+    "evidence": "        Assert.Equal(5_000m, settings.DailyTransferLimit);",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "Without real transfer tests, customers could bypass the new 5,000 EUR daily limit and breach compliance rules. Ask the author to add behavioral tests covering exact 5,000.00 and over-limit transfers.",
+    "say_facts": "The test suite only asserts the property on BankSettings directly and does not test transfer limit enforcement behavior or boundary conditions. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Unsupported currency test catches generic Exception instead of specific domain exception",
+    "finding": "T02",
+    "node": "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_unsupported_currency_is_rejected(System.String)",
+    "detail": "tests",
+    "claim": "Customer_opening_account_with_unsupported_currency_is_rejected uses Assert.ThrowsAnyAsync<Exception>, which risks passing on unintended runtime faults such as NullReferenceException rather than validating business rule rejection.",
+    "suggested_fix": "Replace Assert.ThrowsAnyAsync<Exception> with Assert.ThrowsAsync<TException> specifying the exact exception type thrown for unsupported currency validation.",
+    "file": "tests/Bank.Tests/Settings/LaunchSettingsTests.cs",
+    "line_start": 87,
+    "evidence": "        await Assert.ThrowsAnyAsync<Exception>(() => service.OpenAsync(unsupportedCurrency));",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "The unsupported-currency test accepts any crash instead of a proper business rejection, potentially hiding bugs during account opening. Ask to assert the specific validation error in Customer_opening_account_with_unsupported_currency_is_rejected.",
+    "say_facts": "Customer_opening_account_with_unsupported_currency_is_rejected uses Assert.ThrowsAnyAsync<Exception>, which risks passing on unintended runtime faults such as NullReferenceException rather than validating business rule rejection. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "reviewer",
+    "level": "check",
+    "text": "Reviewer asks a human to check What",
+    "detail": "Requirement match is partial: The configuration properties on BankSettings were updated correctly, but the requirement that all existing modules and tests continue to pass after updating obsolete assertions was not met, as the test suite is failing.",
+    "say": "The test suite is currently failing, meaning unrelated customer features or existing rules may be broken. Check the failing test results and ask the author to fix them before signing.",
+    "say_facts": "The reviewer is not sure the change does everything the requirement asks. Compare the change with the requirement.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "reviewer",
+    "level": "check",
+    "text": "Reviewer asks a human to check Where",
+    "detail": "Tier HIGH → full human read and 2 sign-off(s) required",
+    "say": "This change affects critical bank settings and is rated high risk, meaning customer accounts and money flows are impacted. Perform a full line-by-line review and ensure two sign-offs are recorded.",
+    "say_facts": "The change touches a sensitive part of the bank. Check that only the intended places changed.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "setting",
+    "level": "check",
+    "node": "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+    "text": "BankSettings.DefaultCurrency changes from \"EUR\" to \"SEK\"",
+    "detail": "Currency of a new account when the customer does not choose one.",
+    "say": "New customer accounts without a chosen currency will now default to SEK instead of EUR. Confirm this matches the Swedish launch plan and verify customer-facing defaults are accurate.",
+    "say_facts": "A bank-wide value changes: DefaultCurrency goes from \"EUR\" to \"SEK\". Small in code, but it affects every customer who uses it. Confirm the business owner approved this.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "setting",
+    "level": "check",
+    "node": "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+    "text": "BankSettings.DailyTransferLimit changes from 10_000m to 5_000m",
+    "detail": "Most a customer may send in outgoing payments per calendar day (UTC), in EUR equivalent.",
+    "say": "All customers will be capped at 5,000 EUR equivalent in daily outgoing payments instead of 10,000 EUR. Confirm this tighter limit is approved for all customers and support teams are notified.",
+    "say_facts": "A bank-wide value changes: DailyTransferLimit goes from 10_000m to 5_000m. Small in code, but it affects every customer who uses it. Confirm the business owner approved this.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "not_checked",
+    "level": "info",
+    "text": "Not checked at this coverage level: Requirement",
+    "say": "Not checked (switched off by the team's coverage level, or did not run): Requirement. Not counted as passed; trust cannot be High."
+   },
+   {
+    "kind": "inherited",
+    "level": "info",
+    "text": "4 failing case(s) already failed before this PR (in PR-8): not counted here",
+    "say": "4 failing test case(s) were already failing before this PR (in PR-8); they are not held against it."
+   }
+  ],
+  "risk_areas": [
+   {
+    "module": "Platform",
+    "why": "Database schema, wiring and bank-wide settings touch every module"
+   }
+  ],
+  "reviewer_gate": "BLOCKED",
+  "failures": {
+   "new": 0,
+   "broken": 0,
+   "inherited": 4,
+   "cases_failed": 4
+  }
+ },
+ "units": {
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards"
+    ],
+    "passed_n": 83,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 75f2216d-4313-41ba-ae41-cb7fd6ad97f5, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 7cada606-579e",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards"
+    ],
+    "passed_n": 76,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 75f2216d-4313-41ba-ae41-cb7fd6ad97f5, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 7cada606-579e",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Customer_opening_account_with_explicit_supported_currency_uses_requested_currency",
+     "Customer_opening_account_with_unsupported_currency_is_rejected",
+     "Customer_opening_account_without_currency_uses_default_SEK",
+     "Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+     "New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+     "New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+     "Opening_rule_rejection_prevents_creating_default_SEK_account"
+    ],
+    "passed_n": 10,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+    "uses"
+   ],
+   "direction": "depends on the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+     "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 2,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+    "uses"
+   ],
+   "direction": "depends on the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+    "calls"
+   ],
+   "direction": "depends on the change",
+   "hops": 3
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Payments.Application.IPaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+    "calls"
+   ],
+   "direction": "depends on the change",
+   "hops": 3
+  },
+  "P:Bank.Shared.Settings.BankSettings.SupportedCurrencies": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Customer_opening_account_with_explicit_supported_currency_uses_requested_currency",
+     "Customer_opening_account_with_unsupported_currency_is_rejected",
+     "Customer_opening_account_without_currency_uses_default_SEK",
+     "Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+     "New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+     "New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+     "Opening_rule_rejection_prevents_creating_default_SEK_account"
+    ],
+    "passed_n": 10,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Settings.LaunchSettingsTests.BankSettings_supported_currencies_remain_EUR_SEK_and_USD",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 77,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 75f2216d-4313-41ba-ae41-cb7fd6ad97f5, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 7cada606-579e",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards"
+    ],
+    "passed_n": 81,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 75f2216d-4313-41ba-ae41-cb7fd6ad97f5, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 7cada606-579e",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards"
+    ],
+    "passed_n": 82,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 75f2216d-4313-41ba-ae41-cb7fd6ad97f5, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 7cada606-579e",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Kind": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Customer_opening_account_without_currency_uses_default_SEK"
+    ],
+    "passed_n": 1,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards"
+    ],
+    "passed_n": 82,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 75f2216d-4313-41ba-ae41-cb7fd6ad97f5, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 7cada606-579e",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 73,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 75f2216d-4313-41ba-ae41-cb7fd6ad97f5, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 7cada606-579e",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number",
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event"
+    ],
+    "passed_n": 60,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 75f2216d-4313-41ba-ae41-cb7fd6ad97f5, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 7cada606-579e",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.ForOwnerAsync(System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_default_SEK_account_is_owned_by_current_user_and_queries_match"
+    ],
+    "passed_n": 1,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 72,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 75f2216d-4313-41ba-ae41-cb7fd6ad97f5, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 7cada606-579e",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards"
+    ],
+    "passed_n": 80,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 75f2216d-4313-41ba-ae41-cb7fd6ad97f5, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 7cada606-579e",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 72,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 75f2216d-4313-41ba-ae41-cb7fd6ad97f5, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 7cada606-579e",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Customer_opening_account_with_explicit_supported_currency_uses_requested_currency",
+     "Customer_opening_account_with_unsupported_currency_is_rejected",
+     "Customer_opening_account_without_currency_uses_default_SEK",
+     "Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+     "New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+     "New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+     "Opening_rule_rejection_prevents_creating_default_SEK_account"
+    ],
+    "passed_n": 10,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards"
+    ],
+    "passed_n": 81,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 75f2216d-4313-41ba-ae41-cb7fd6ad97f5, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 7cada606-579e",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 72,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 75f2216d-4313-41ba-ae41-cb7fd6ad97f5, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 7cada606-579e",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 73,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 75f2216d-4313-41ba-ae41-cb7fd6ad97f5, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 7cada606-579e",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_different_currencies_throws_CurrencyMismatchException",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)",
+      "cases": 1,
+      "cause": "inherited"
+     },
+     {
+      "name": "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+      "message": "Assert.Throws() Failure: Exception type was not an exact match Expected: typeof(System.UnauthorizedAccessException) Actual: typeof(System.Collections.Generic.KeyNotFoundException) ---- System.Collections.Generic.KeyNotFo",
+      "cases": 1,
+      "cause": "inherited"
+     }
+    ],
+    "inherited_n": 4,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Id": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Customer_opening_account_with_explicit_supported_currency_uses_requested_currency",
+     "Customer_opening_account_with_unsupported_currency_is_rejected",
+     "Customer_opening_account_without_currency_uses_default_SEK",
+     "Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+     "New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+     "New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+     "Opening_rule_rejection_prevents_creating_default_SEK_account"
+    ],
+    "passed_n": 10,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 4
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Status": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Customer_opening_account_with_explicit_supported_currency_uses_requested_currency",
+     "Customer_opening_account_with_unsupported_currency_is_rejected",
+     "Customer_opening_account_without_currency_uses_default_SEK",
+     "Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+     "New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+     "New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+     "Opening_rule_rejection_prevents_creating_default_SEK_account"
+    ],
+    "passed_n": 10,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 4
+  }
+ },
+ "roll": {
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "T:Bank.Shared.Settings.BankSettings": {
+   "changed": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   },
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Platform/Shared": {
+   "changed": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   },
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "module:Platform": {
+   "changed": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   },
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "pr": {
+   "changed": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   },
+   "affected": {
+    "n": 22,
+    "verified": 20,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 2,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 91,
+    "conf": 0.891,
+    "lo": 0.739,
+    "hi": 0.981
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "layer:Accounts/Application": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "module:Accounts": {
+   "changed": null,
+   "affected": {
+    "n": 10,
+    "verified": 9,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 90,
+    "conf": 0.864,
+    "lo": 0.619,
+    "hi": 0.989
+   }
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Payments.Application.PaymentService": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Payments/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "module:Payments": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 50,
+    "conf": 0.5,
+    "lo": 0.061,
+    "hi": 0.939
+   }
+  },
+  "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Accounts.Api.AccountsController": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "layer:Accounts/Api": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Payments.Api.PaymentsController": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "layer:Payments/Api": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.SupportedCurrencies": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Auth.Roles": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Auth/Wiring": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "module:Auth": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "changed": null,
+   "affected": {
+    "n": 5,
+    "verified": 5,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.917,
+    "lo": 0.621,
+    "hi": 1.0
+   }
+  },
+  "layer:Accounts/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 5,
+    "verified": 5,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.917,
+    "lo": 0.621,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Kind": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.ForOwnerAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Ledger/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "module:Ledger": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Application.Ledger": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Ledger/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Customers.Application.KycAccountOpeningRule": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Customers/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "module:Customers": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Id": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Customers.Domain.Customer": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "layer:Customers/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Status": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  }
+ },
+ "tests_ran": true,
+ "findings_at": {
+  "M:Bank.Tests.Settings.LaunchSettingsTests.BankSettings_defaults_to_SEK_currency_and_5000_daily_transfer_limit": [
+   "T01"
+  ],
+  "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_unsupported_currency_is_rejected(System.String)": [
+   "T02"
+  ]
+ },
+ "trust": {
+  "level": "medium",
+  "why": "2 of 2 changed methods verified; open items remain"
+ }
+}

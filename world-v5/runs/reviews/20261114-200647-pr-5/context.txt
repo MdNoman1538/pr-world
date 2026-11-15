@@ -1,0 +1,772 @@
+### FILE: src/Bank.Api/Data/BankDbContext.cs  (slice: leftflow)
+    1| using Bank.Modules.Accounts.Domain;
+    2| using Bank.Modules.Audit.Domain;
++   3| using Bank.Modules.Cards.Domain;
+    4| using Bank.Modules.Customers.Domain;
+    5| using Bank.Modules.Ledger.Domain;
+    6| using Bank.Modules.Payments.Domain;
+    7| using Microsoft.EntityFrameworkCore;
+    8| using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+    9| 
+     ⋮
++  23|     public DbSet<Card> Cards => Set<Card>();
+
+### FILE: src/Bank.Api/Modules/Cards/Api/CardsController.cs  (slice: leftflow)
++   1| using Bank.Modules.Auth;
++   2| using Bank.Modules.Cards.Application;
++   3| using Bank.Modules.Cards.Domain;
++   4| using Microsoft.AspNetCore.Authorization;
++   5| using Microsoft.AspNetCore.Mvc;
++   6| 
++   7| namespace Bank.Modules.Cards.Api;
++   8| 
++   9| public sealed record IssueCardRequest(Guid AccountId);
++  10| 
++  11| public sealed record AuthoriseCardRequest(decimal Amount, string Merchant);
++  12| 
++  13| public sealed record CardDto(Guid Id, Guid AccountId, string CustomerId, string Last4, CardStatus Status, decimal PerTransactionLimit);
++  14| 
++  15| [ApiController]
++  16| [Route("api/cards")]
++  17| [Authorize(Policy = Policies.Customer)]
++  18| public sealed class CardsController : ControllerBase
++  19| {
++  20|     private readonly ICardService _cards;
++  21| 
++  22|     public CardsController(ICardService cards) => _cards = cards;
++  23| 
++  24|     [HttpPost]
++  25|     public async Task<ActionResult<CardDto>> Issue(IssueCardRequest request, CancellationToken ct)
++  26|     {
++  27|         try
++  28|         {
++  29|             var card = await _cards.IssueAsync(request.AccountId, ct);
++  30|             return ToDto(card);
++  31|         }
++  32|         catch (UnauthorizedAccessException)
++  33|         {
++  34|             return Forbid();
++  35|         }
++  36|         catch (KeyNotFoundException ex)
++  37|         {
++  38|             return NotFound(ex.Message);
++  39|         }
++  40|         catch (ArgumentException ex)
++  41|         {
++  42|             return BadRequest(ex.Message);
++  43|         }
++  44|         catch (InvalidOperationException ex)
++  45|         {
++  46|             return Conflict(ex.Message);
++  47|         }
++  48|     }
++  49| 
++  50|     [HttpPost("{id:guid}/freeze")]
++  51|     public async Task<ActionResult<CardDto>> Freeze(Guid id, CancellationToken ct)
++  52|     {
++  53|         try
++  54|         {
++  55|             var card = await _cards.FreezeAsync(id, ct);
++  56|             return ToDto(card);
++  57|         }
++  58|         catch (UnauthorizedAccessException)
++  59|         {
++  60|             return Forbid();
++  61|         }
++  62|         catch (KeyNotFoundException ex)
++  63|         {
++  64|             return NotFound(ex.Message);
++  65|         }
++  66|         catch (InvalidOperationException ex)
++  67|         {
++  68|             return Conflict(ex.Message);
++  69|         }
++  70|     }
++  71| 
++  72|     [HttpPost("{id:guid}/unfreeze")]
++  73|     public async Task<ActionResult<CardDto>> Unfreeze(Guid id, CancellationToken ct)
++  74|     {
++  75|         try
++  76|         {
++  77|             var card = await _cards.UnfreezeAsync(id, ct);
++  78|             return ToDto(card);
++  79|         }
++  80|         catch (UnauthorizedAccessException)
++  81|         {
++  82|             return Forbid();
++  83|         }
++  84|         catch (KeyNotFoundException ex)
++  85|         {
++  86|             return NotFound(ex.Message);
++  87|         }
++  88|         catch (InvalidOperationException ex)
++  89|         {
++  90|             return Conflict(ex.Message);
++  91|         }
++  92|     }
++  93| 
++  94|     [HttpPost("{id:guid}/cancel")]
++  95|     public async Task<ActionResult<CardDto>> Cancel(Guid id, CancellationToken ct)
++  96|     {
++  97|         try
++  98|         {
++  99|             var card = await _cards.CancelAsync(id, ct);
++ 100|             return ToDto(card);
++ 101|         }
++ 102|         catch (UnauthorizedAccessException)
++ 103|         {
++ 104|             return Forbid();
++ 105|         }
++ 106|         catch (KeyNotFoundException ex)
++ 107|         {
++ 108|             return NotFound(ex.Message);
++ 109|         }
++ 110|         catch (InvalidOperationException ex)
++ 111|         {
++ 112|             return Conflict(ex.Message);
++ 113|         }
++ 114|     }
++ 115| 
++ 116|     [HttpPost("{id:guid}/authorise")]
++ 117|     [Authorize(Policy = Policies.Staff)]
++ 118|     public async Task<ActionResult<CardAuthorisation>> Authorise(Guid id, AuthoriseCardRequest request, CancellationToken ct)
++ 119|     {
++ 120|         try
++ 121|         {
++ 122|             var result = await _cards.AuthoriseAsync(id, request.Amount, request.Merchant, ct);
++ 123|             return Ok(result);
++ 124|         }
++ 125|         catch (KeyNotFoundException ex)
++ 126|         {
++ 127|             return NotFound(ex.Message);
++ 128|         }
++ 129|         catch (ArgumentException ex)
++ 130|         {
++ 131|             return BadRequest(ex.Message);
++ 132|         }
++ 133|         catch (InvalidOperationException ex)
++ 134|         {
++ 135|             return Conflict(ex.Message);
++ 136|         }
++ 137|     }
++ 138| 
++ 139|     private static CardDto ToDto(Card card) =>
++ 140|         new(card.Id, card.AccountId, card.CustomerId, card.Last4, card.Status, card.PerTransactionLimit);
++ 141| }
+
+### FILE: src/Bank.Api/Modules/Cards/Application/CardService.cs  (slice: leftflow)
++   1| using System.Collections.Concurrent;
++   2| using Bank.Data;
++   3| using Bank.Modules.Accounts.Application;
++   4| using Bank.Modules.Auth.Application;
++   5| using Bank.Modules.Cards.Domain;
++   6| using Bank.Modules.Ledger.Application;
++   7| using Bank.Modules.Ledger.Domain;
++   8| using Bank.Shared.Events;
++   9| using Bank.Shared.Time;
++  10| using Microsoft.EntityFrameworkCore;
++  11| 
++  12| namespace Bank.Modules.Cards.Application;
++  13| 
++  14| public sealed record CardAuthorisation(bool Approved, string? DeclineReason, Guid? TransferId);
++  15| 
++  16| public interface ICardService
++  17| {
++  18|     Task<Card> IssueAsync(Guid accountId, CancellationToken ct = default);
++  19|     Task<Card> FreezeAsync(Guid cardId, CancellationToken ct = default);
++  20|     Task<Card> UnfreezeAsync(Guid cardId, CancellationToken ct = default);
++  21|     Task<Card> CancelAsync(Guid cardId, CancellationToken ct = default);
++  22|     Task<CardAuthorisation> AuthoriseAsync(Guid cardId, decimal amount, string merchant, CancellationToken ct = default);
++  23| }
++  24| 
++  25| public sealed class CardService : ICardService
++  26| {
++  27|     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> AccountLocks = new();
++  28| 
++  29|     private readonly BankDbContext _db;
++  30|     private readonly ILedger _ledger;
++  31|     private readonly IAccountService _accounts;
++  32|     private readonly ICurrentUser _user;
++  33|     private readonly IClock _clock;
++  34|     private readonly IEventBus _bus;
++  35| 
++  36|     public CardService(
++  37|         BankDbContext db,
++  38|         ILedger ledger,
++  39|         IAccountService accounts,
++  40|         ICurrentUser user,
++  41|         IClock clock,
++  42|         IEventBus bus)
++  43|     {
++  44|         _db = db;
++  45|         _ledger = ledger;
++  46|         _accounts = accounts;
++  47|         _user = user;
++  48|         _clock = clock;
++  49|         _bus = bus;
++  50|     }
++  51| 
++  52|     public async Task<Card> IssueAsync(Guid accountId, CancellationToken ct = default)
++  53|     {
++  54|         var customerId = _user.UserId;
++  55|         if (!await _accounts.IsOwnerAsync(accountId, customerId, ct))
++  56|             throw new UnauthorizedAccessException("Account is not owned by the caller.");
++  57| 
++  58|         var number = GenerateCardNumber();
++  59|         var last4 = number[^4..];
++  60| 
++  61|         var card = new Card
++  62|         {
++  63|             AccountId = accountId,
++  64|             CustomerId = customerId,
++  65|             Number = number,
++  66|             Last4 = last4,
++  67|             PerTransactionLimit = 2000m,
++  68|         };
++  69| 
++  70|         _db.Cards.Add(card);
++  71|         await _db.SaveChangesAsync(ct);
++  72|         await _bus.PublishAsync(new CardIssued(card.Id, customerId, last4, _clock.UtcNow), ct);
++  73|         return card;
++  74|     }
++  75| 
++  76|     public async Task<Card> FreezeAsync(Guid cardId, CancellationToken ct = default)
++  77|     {
++  78|         var card = await GetOwnedCardAsync(cardId, ct);
++  79|         card.Freeze();
++  80|         await _db.SaveChangesAsync(ct);
++  81|         return card;
++  82|     }
++  83| 
++  84|     public async Task<Card> UnfreezeAsync(Guid cardId, CancellationToken ct = default)
++  85|     {
++  86|         var card = await GetOwnedCardAsync(cardId, ct);
++  87|         card.Unfreeze();
++  88|         await _db.SaveChangesAsync(ct);
++  89|         return card;
++  90|     }
++  91| 
++  92|     public async Task<Card> CancelAsync(Guid cardId, CancellationToken ct = default)
++  93|     {
++  94|         var card = await GetOwnedCardAsync(cardId, ct);
++  95|         card.Cancel();
++  96|         await _db.SaveChangesAsync(ct);
++  97|         return card;
++  98|     }
++  99| 
++ 100|     public async Task<CardAuthorisation> AuthoriseAsync(Guid cardId, decimal amount, string merchant, CancellationToken ct = default)
++ 101|     {
++ 102|         var roundedAmount = Math.Round(amount, 2, MidpointRounding.AwayFromZero);
++ 103|         if (roundedAmount <= 0m)
++ 104|             throw new ArgumentOutOfRangeException(nameof(amount), "Amount must be positive.");
++ 105| 
++ 106|         var card = await _db.Cards.FirstOrDefaultAsync(c => c.Id == cardId, ct)
++ 107|             ?? throw new KeyNotFoundException($"Card {cardId} not found.");
++ 108| 
++ 109|         if (card.Status != CardStatus.Active)
++ 110|         {
++ 111|             const string reason = "card not active";
++ 112|             await _bus.PublishAsync(new CardPaymentDeclined(card.Id, reason, _clock.UtcNow), ct);
++ 113|             return new CardAuthorisation(false, reason, null);
++ 114|         }
++ 115| 
++ 116|         if (roundedAmount > card.PerTransactionLimit)
++ 117|         {
++ 118|             const string reason = "over limit";
++ 119|             await _bus.PublishAsync(new CardPaymentDeclined(card.Id, reason, _clock.UtcNow), ct);
++ 120|             return new CardAuthorisation(false, reason, null);
++ 121|         }
++ 122| 
++ 123|         var merchantName = merchant ?? "";
++ 124|         var accountLock = AccountLocks.GetOrAdd(card.AccountId, _ => new SemaphoreSlim(1, 1));
++ 125|         Guid? transferId;
++ 126|         string currency;
++ 127| 
++ 128|         await accountLock.WaitAsync(ct);
++ 129|         try
++ 130|         {
++ 131|             var account = await _accounts.GetAsync(card.AccountId, ct)
++ 132|                 ?? throw new KeyNotFoundException($"Account {card.AccountId} not found.");
++ 133|             currency = account.Currency;
++ 134|             var suspenseAccountId = BankAccounts.For(BankAccountKind.Suspense, currency);
++ 135|             var reference = string.IsNullOrWhiteSpace(merchantName)
++ 136|                 ? $"Card payment {card.Last4}"
++ 137|                 : $"Card payment {card.Last4}: {merchantName}";
++ 138| 
++ 139|             try
++ 140|             {
++ 141|                 transferId = await _ledger.PostTransferAsync(
++ 142|                     card.AccountId,
++ 143|                     suspenseAccountId,
++ 144|                     roundedAmount,
++ 145|                     reference,
++ 146|                     ct);
++ 147|             }
++ 148|             catch (InsufficientFundsException)
++ 149|             {
++ 150|                 transferId = null;
++ 151|             }
++ 152|         }
++ 153|         finally
++ 154|         {
++ 155|             accountLock.Release();
++ 156|         }
++ 157| 
++ 158|         if (transferId is null)
++ 159|         {
++ 160|             const string reason = "insufficient funds";
++ 161|             await _bus.PublishAsync(new CardPaymentDeclined(card.Id, reason, _clock.UtcNow), ct);
++ 162|             return new CardAuthorisation(false, reason, null);
++ 163|         }
++ 164| 
++ 165|         await _bus.PublishAsync(
++ 166|             new CardPaymentAuthorised(card.Id, roundedAmount, currency, merchantName, _clock.UtcNow),
++ 167|             ct);
++ 168|         return new CardAuthorisation(true, null, transferId);
++ 169|     }
++ 170| 
++ 171|     private async Task<Card> GetOwnedCardAsync(Guid cardId, CancellationToken ct)
++ 172|     {
++ 173|         var card = await _db.Cards.FirstOrDefaultAsync(c => c.Id == cardId, ct)
++ 174|             ?? throw new KeyNotFoundException($"Card {cardId} not found.");
++ 175|         if (card.CustomerId != _user.UserId)
++ 176|             throw new UnauthorizedAccessException("Card is not owned by the caller.");
++ 177|         return card;
++ 178|     }
++ 179| 
++ 180|     private static string GenerateCardNumber() =>
++ 181|         "4" + Random.Shared.NextInt64(0, 1_000_000_000_000_000L).ToString("D15");
++ 182| }
+
+### FILE: src/Bank.Api/Modules/Cards/CardsModule.cs  (slice: leftflow)
++   1| using Bank.Modules.Cards.Application;
++   2| 
++   3| namespace Bank.Modules.Cards;
++   4| 
++   5| public static class CardsModule
++   6| {
++   7|     public static IServiceCollection AddCardsModule(this IServiceCollection services)
++   8|     {
++   9|         services.AddScoped<ICardService, CardService>();
++  10|         return services;
++  11|     }
++  12| }
+
+### FILE: src/Bank.Api/Modules/Cards/Domain/Card.cs  (slice: leftflow)
++   1| using Bank.Shared;
++   2| using Bank.Shared.Events;
++   3| 
++   4| namespace Bank.Modules.Cards.Domain;
++   5| 
++   6| public enum CardStatus
++   7| {
++   8|     Active,
++   9|     Frozen,
++  10|     Cancelled,
++  11| }
++  12| 
++  13| public sealed class Card
++  14| {
++  15|     public Card()
++  16|     {
++  17|     }
++  18| 
++  19|     public Guid Id { get; set; } = Guid.NewGuid();
++  20|     public Guid AccountId { get; set; }
++  21|     public string CustomerId { get; set; } = "";
++  22|     [Pii] public string Number { get; set; } = "";
++  23|     public string Last4 { get; set; } = "";
++  24|     public CardStatus Status { get; private set; } = CardStatus.Active;
++  25|     public decimal PerTransactionLimit { get; set; } = 2000m;
++  26| 
++  27|     public void Freeze()
++  28|     {
++  29|         if (Status == CardStatus.Cancelled)
++  30|             throw new InvalidOperationException("Cancelled card cannot be frozen.");
++  31|         Status = CardStatus.Frozen;
++  32|     }
++  33| 
++  34|     public void Unfreeze()
++  35|     {
++  36|         if (Status == CardStatus.Cancelled)
++  37|             throw new InvalidOperationException("Cancelled card cannot be unfrozen.");
++  38|         Status = CardStatus.Active;
++  39|     }
++  40| 
++  41|     public void Cancel()
++  42|     {
++  43|         if (Status == CardStatus.Cancelled)
++  44|             throw new InvalidOperationException("Card is already cancelled.");
++  45|         Status = CardStatus.Cancelled;
++  46|     }
++  47| }
++  48| 
++  49| public sealed record CardIssued(Guid CardId, string CustomerId, string Last4, DateTimeOffset OccurredAt) : IDomainEvent;
++  50| 
++  51| public sealed record CardPaymentAuthorised(Guid CardId, decimal Amount, string Currency, string Merchant, DateTimeOffset OccurredAt) : IDomainEvent;
++  52| 
++  53| public sealed record CardPaymentDeclined(Guid CardId, string Reason, DateTimeOffset OccurredAt) : IDomainEvent;
+
+### FILE: src/Bank.Api/Program.cs  (slice: leftflow)
+    1| using Bank.Data;
+    2| using Bank.Modules.Accounts;
+    3| using Bank.Modules.Audit;
+    4| using Bank.Modules.Auth;
++   5| using Bank.Modules.Cards;
+    6| using Bank.Modules.Customers;
+    7| using Bank.Modules.Fees;
+    8| using Bank.Modules.Fx;
+    9| using Bank.Modules.Ledger;
+   10| using Bank.Modules.Notifications;
+   11| using Bank.Modules.Payments;
+     ⋮
+   25| builder.Services.AddAuditModule();
+   26| builder.Services.AddNotificationsModule();
+   27| builder.Services.AddCustomersModule();
+   28| builder.Services.AddPaymentsModule();
+   29| builder.Services.AddFxModule();
+   30| builder.Services.AddFeesModule();
++  31| builder.Services.AddCardsModule();
+   32| // MODULES: register new modules above this line
+   33| 
+   34| var app = builder.Build();
+   35| using (var scope = app.Services.CreateScope())
+   36| {
+   37|     scope.ServiceProvider.GetRequiredService<BankDbContext>().Database.EnsureCreated();
+
+### FILE: tests/Bank.Tests/Cards/CardTests.cs  (slice: leftflow, truncated)
++   1| using Bank.Data;
++   2| using Bank.Modules.Accounts.Application;
++   3| using Bank.Modules.Audit.Application;
++   4| using Bank.Modules.Auth;
++   5| using Bank.Modules.Cards.Application;
++   6| using Bank.Modules.Cards.Domain;
++   7| using Bank.Modules.Ledger.Domain;
++   8| using Xunit;
++   9| 
++  10| namespace Bank.Tests.Cards;
++  11| 
++  12| public sealed class CardTests
++  13| {
++  14|     private static (BankDbContext Db, FakeUser User, FakeClock Clock, RecordingBus Bus, CardService Service) CreateSut(
++  15|         string userId = "alice",
++  16|         params string[] roles)
++  17|     {
++  18|         var db = TestKit.Db();
++  19|         var user = new FakeUser(userId, roles.Length == 0 ? [Roles.Customer] : roles);
++  20|         var clock = new FakeClock();
++  21|         var bus = new RecordingBus();
++  22|         var ledger = TestKit.Ledger(db, bus, clock);
++  23|         var accounts = new AccountService(db, user, TestKit.Settings(), clock, bus, Array.Empty<IAccountOpeningRule>());
++  24|         var service = new CardService(db, ledger, accounts, user, clock, bus);
++  25|         return (db, user, clock, bus, service);
++  26|     }
++  27| 
++  28|     [Fact]
++  29|     public async Task IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued()
++  30|     {
++  31|         var (db, _, clock, bus, service) = CreateSut("alice", Roles.Customer);
++  32|         var accountId = TestKit.Account(db, "alice", 500m);
++  33| 
++  34|         var card = await service.IssueAsync(accountId);
++  35| 
++  36|         var saved = db.Cards.Single(c => c.Id == card.Id);
++  37|         Assert.Equal(accountId, saved.AccountId);
++  38|         Assert.Equal("alice", saved.CustomerId);
++  39|         Assert.Equal(CardStatus.Active, saved.Status);
++  40|         Assert.Equal(2000m, saved.PerTransactionLimit);
++  41|         Assert.Equal(16, saved.Number.Length);
++  42|         Assert.All(saved.Number, c => Assert.True(char.IsAsciiDigit(c)));
++  43|         Assert.Equal(saved.Number[^4..], saved.Last4);
++  44| 
++  45|         var evt = Assert.Single(bus.Events.OfType<CardIssued>());
++  46|         Assert.Equal(card.Id, evt.CardId);
++  47|         Assert.Equal("alice", evt.CustomerId);
++  48|         Assert.Equal(card.Last4, evt.Last4);
++  49|         Assert.Equal(clock.UtcNow, evt.OccurredAt);
++  50|     }
++  51| 
++  52|     [Fact]
++  53|     public async Task IssueAsync_rejects_non_owner_with_UnauthorizedAccessException()
++  54|     {
++  55|         var (db, user, _, bus, service) = CreateSut("alice", Roles.Customer);
++  56|         var accountId = TestKit.Account(db, "alice", 500m);
++  57|         user.UserId = "bob";
++  58| 
++  59|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.IssueAsync(accountId));
++  60| 
++  61|         Assert.Empty(db.Cards);
++  62|         Assert.Empty(bus.Events.OfType<CardIssued>());
++  63|     }
++  64| 
++  65|     [Fact]
++  66|     public async Task IssueAsync_rejects_unknown_account_with_UnauthorizedAccessException()
++  67|     {
++  68|         var (db, _, _, bus, service) = CreateSut("alice", Roles.Customer);
++  69| 
++  70|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.IssueAsync(Guid.NewGuid()));
++  71| 
++  72|         Assert.Empty(db.Cards);
++  73|         Assert.Empty(bus.Events.OfType<CardIssued>());
++  74|     }
++  75| 
++  76|     [Fact]
++  77|     public async Task FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen()
++  78|     {
++  79|         var (db, _, _, _, service) = CreateSut("alice", Roles.Customer);
++  80|         var accountId = TestKit.Account(db, "alice", 500m);
++  81|         var card = await service.IssueAsync(accountId);
++  82| 
++  83|         var frozen = await service.FreezeAsync(card.Id);
++  84|         Assert.Equal(CardStatus.Frozen, frozen.Status);
++  85|         Assert.Equal(CardStatus.Frozen, db.Cards.Single(c => c.Id == card.Id).Status);
++  86| 
++  87|         var unfrozen = await service.UnfreezeAsync(card.Id);
++  88|         Assert.Equal(CardStatus.Active, unfrozen.Status);
++  89|         Assert.Equal(CardStatus.Active, db.Cards.Single(c => c.Id == card.Id).Status);
++  90|     }
++  91| 
++  92|     [Fact]
++  93|     public async Task CancelAsync_cancels_active_and_frozen_cards()
++  94|     {
++  95|         var (db, _, _, _, service) = CreateSut("alice", Roles.Customer);
++  96|         var accountId = TestKit.Account(db, "alice", 500m);
++  97|         var activeCard = await service.IssueAsync(accountId);
++  98|         var frozenCard = await service.IssueAsync(accountId);
++  99|         await service.FreezeAsync(frozenCard.Id);
++ 100| 
++ 101|         var cancelledFromActive = await service.CancelAsync(activeCard.Id);
++ 102|         var cancelledFromFrozen = await service.CancelAsync(frozenCard.Id);
++ 103| 
++ 104|         Assert.Equal(CardStatus.Cancelled, cancelledFromActive.Status);
++ 105|         Assert.Equal(CardStatus.Cancelled, cancelledFromFrozen.Status);
++ 106|         Assert.Equal(CardStatus.Cancelled, db.Cards.Single(c => c.Id == activeCard.Id).Status);
++ 107|         Assert.Equal(CardStatus.Cancelled, db.Cards.Single(c => c.Id == frozenCard.Id).Status);
++ 108|     }
++ 109| 
++ 110|     [Fact]
++ 111|     public async Task Lifecycle_operations_reject_non_owner_without_changing_status()
++ 112|     {
++ 113|         var (db, user, _, _, service) = CreateSut("alice", Roles.Customer);
++ 114|         var accountId = TestKit.Account(db, "alice", 500m);
++ 115|         var card = await service.IssueAsync(accountId);
++ 116| 
++ 117|         user.UserId = "bob";
++ 118|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.FreezeAsync(card.Id));
++ 119|         Assert.Equal(CardStatus.Active, db.Cards.Single(c => c.Id == card.Id).Status);
++ 120| 
++ 121|         user.UserId = "alice";
++ 122|         await service.FreezeAsync(card.Id);
++ 123| 
++ 124|         user.UserId = "bob";
++ 125|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.UnfreezeAsync(card.Id));
++ 126|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.CancelAsync(card.Id));
++ 127|         Assert.Equal(CardStatus.Frozen, db.Cards.Single(c => c.Id == card.Id).Status);
++ 128|     }
++ 129| 
++ 130|     [Fact]
++ 131|     public async Task Cancelled_is_terminal_for_service_and_domain_methods()
++ 132|     {
++ 133|         var (db, _, _, _, service) = CreateSut("alice", Roles.Customer);
++ 134|         var accountId = TestKit.Account(db, "alice", 500m);
++ 135|         var card = await service.IssueAsync(accountId);
++ 136|         await service.CancelAsync(card.Id);
++ 137| 
++ 138|         await Assert.ThrowsAsync<InvalidOperationException>(() => service.FreezeAsync(card.Id));
++ 139|         await Assert.ThrowsAsync<InvalidOperationException>(() => service.UnfreezeAsync(card.Id));
++ 140|         await Assert.ThrowsAsync<InvalidOperationException>(() => service.CancelAsync(card.Id));
++ 141| 
++ 142|         Assert.Throws<InvalidOperationException>(() => card.Freeze());
++ 143|         Assert.Throws<InvalidOperationException>(() => card.Unfreeze());
++ 144|         Assert.Throws<InvalidOperationException>(() => card.Cancel());
++ 145|         Assert.Equal(CardStatus.Cancelled, db.Cards.Single(c => c.Id == card.Id).Status);
++ 146|     }
++ 147| 
++ 148|     [Fact]
++ 149|     public async Task AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event()
++ 150|     {
++ 151|         var (db, user, clock, bus, service) = CreateSut("alice", Roles.Customer);
++ 152|         var accountId = TestKit.Account(db, "alice", 1000m, "EUR");
++ 153|         var card = await service.IssueAsync(accountId);
++ 154|         var suspenseId = BankAccounts.For(BankAccountKind.Suspense, "EUR");
++ 155|         var suspenseBefore = TestKit.Balance(db, suspenseId);
++ 156| 
++ 157|         user.UserId = "card-network";
++ 158|         clock.Advance(TimeSpan.FromMinutes(5));
++ 159| 
++ 160|         var result = await service.AuthoriseAsync(card.Id, 250m, "Coffee Shop");
++ 161| 
++ 162|         Assert.True(result.Approved);
++ 163|         Assert.Null(result.DeclineReason);
++ 164|         Assert.NotNull(result.TransferId);
++ 165|         Assert.NotEqual(Guid.Empty, result.TransferId.Value);
++ 166| 
++ 167|         Assert.Equal(750m, TestKit.Balance(db, accountId));
++ 168|         Assert.Equal(suspenseBefore + 250m, TestKit.Balance(db, suspenseId));
++ 169| 
++ 170|         var entries = db.LedgerEntries.Where(e => e.TransferId == result.TransferId.Value).ToList();
++ 171|         Assert.Equal(2, entries.Count);
++ 172|         Assert.Equal(0m, entries.Sum(e => e.Amount));
++ 173| 
++ 174|         var evt = Assert.Single(bus.Events.OfType<CardPaymentAuthorised>());
++ 175|         Assert.Equal(card.Id, evt.CardId);
++ 176|         Assert.Equal(250m, evt.Amount);
++ 177|         Assert.Equal("EUR", evt.Currency);
++ 178|         Assert.Equal("Coffee Shop", evt.Merchant);
++ 179|         Assert.Equal(clock.UtcNow, evt.OccurredAt);
++ 180|     }
++ 181| 
++ 182|     [Fact]
++ 183|     public async Task AuthoriseAsync_uses_account_currency_for_Suspense_and_event()
++ 184|     {
++ 185|         var (db, user, _, bus, service) = CreateSut("alice", Roles.Customer);
++ 186|         var accountId = TestKit.Account(db, "alice", 1000m, "SEK");
++ 187|         var card = await service.IssueAsync(accountId);
++ 188|         var sekSuspenseId = BankAccounts.For(BankAccountKind.Suspense, "SEK");
++ 189|         var eurSuspenseId = BankAccounts.For(BankAccountKind.Suspense, "EUR");
++ 190|         var sekBefore = TestKit.Balance(db, sekSuspenseId);
++ 191|         var eurBefore = TestKit.Balance(db, eurSuspenseId);
++ 192| 
++ 193|         user.UserId = "teller";
++ 194|         var result = await service.AuthoriseAsync(card.Id, 300m, "Stockholm Store");
++ 195| 
++ 196|         Assert.True(result.Approved);
++ 197|         Assert.Equal(700m, TestKit.Balance(db, accountId));
++ 198|         Assert.Equal(sekBefore + 300m, TestKit.Balance(db, sekSuspenseId));
++ 199|         Assert.Equal(eurBefore, TestKit.Balance(db, eurSuspenseId));
++ 200| 
++ 201|         var evt = Assert.Single(bus.Events.OfType<CardPaymentAuthorised>());
++ 202|         Assert.Equal("SEK", evt.Currency);
++ 203|     }
++ 204| 
++ 205|     [Fact]
++ 206|     public async Task AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance()
++ 207|     {
++ 208|         var (db, user, _, _, service) = CreateSut("alice", Roles.Customer);
++ 209|         var accountId = TestKit.Account(db, "alice", 2000m);
++ 210|         var card = await service.IssueAsync(accountId);
++ 211| 
++ 212|         user.UserId = "network";
++ 213|         var result = await service.AuthoriseAsync(card.Id, 2000.00m, "Electronics");
++ 214| 
++ 215|         Assert.True(result.Approved);
++ 216|         Assert.Null(result.DeclineReason);
++ 217|         Assert.NotNull(result.TransferId);
++ 218|         Assert.Equal(0m, TestKit.Balance(db, accountId));
++ 219|     }
++ 220| 
++ 221|     [Theory]
++ 222|     [InlineData(10.125, 10.13)]
++ 223|     [InlineData(10.124, 10.12)]
++ 224|     [InlineData(0.005, 0.01)]
++ 225|     [InlineData(2000.004, 2000.00)]
++ 226|     public async Task AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places(decimal rawAmount, decimal expectedRounded)
++ 227|     {
++ 228|         var (db, user, _, bus, service) = CreateSut("alice", Roles.Customer);
++ 229|         var accountId = TestKit.Account(db, "alice", 2500m);
++ 230|         var card = await service.IssueAsync(accountId);
++ 231| 
++ 232|         user.UserId = "network";
++ 233|         var result = await service.AuthoriseAsync(card.Id, rawAmount, "Merchant");
++ 234| 
++ 235|         Assert.True(result.Approved);
++ 236|         Assert.Equal(2500m - expectedRounded, TestKit.Balance(db, accountId));
++ 237|         var evt = Assert.Single(bus.Events.OfType<CardPaymentAuthorised>());
++ 238|         Assert.Equal(expectedRounded, evt.Amount);
++ 239|     }
++ 240| 
++ 241|     [Theory]
++ 242|     [InlineData(0)]
++ 243|     [InlineData(-10)]
++ 244|     [InlineData(0.004)] 
++ 245|     public async Task AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(decimal amount)
++ 246|     {
++ 247|         var (db, user, _, bus, service) = CreateSut("alice", Roles.Customer);
++ 248|         var accountId = TestKit.Account(db, "alice", 500m);
++ 249|         var card = await service.IssueAsync(accountId);
++ 250|         bus.Events.Clear();
++ 251| 
++ 252|         user.UserId = "network";
++ 253|         await Assert.ThrowsAnyAsync<Exception>(() => service.AuthoriseAsync(card.Id, amount, "Merchant"));
++ 254| 
++ 255|         Assert.Equal(500m, TestKit.Balance(db, accountId));
++ 256|         Assert.Empty(bus.Events);
++ 257|     }
++ 258| 
++ 259|     [Fact]
++ 260|     public async Task AuthoriseAsync_declines_frozen_card_without_moving_funds()
++ 261|     {
++ 262|         var (db, user, clock, bus, service) = CreateSut("alice", Roles.Customer);
++ 263|         var accountId = TestKit.Account(db, "alice", 500m);
++ 264|         var card = await service.IssueAsync(accountId);
++ 265|         await service.FreezeAsync(card.Id);
++ 266|         bus.Events.Clear();
++ 267| 
++ 268|         user.UserId = "network";
++ 269|         clock.Advance(TimeSpan.FromMinutes(2));
++ 270|         var result = await service.AuthoriseAsync(card.Id, 25m, "Cafe");
++ 271| 
++ 272|         Assert.False(result.Approved);
++ 273|         Assert.Equal("card not active", result.DeclineReason);
++ 274|         Assert.Null(result.TransferId);
++ 275|         Assert.Equal(500m, TestKit.Balance(db, accountId));
++ 276| 
++ 277|         var declined = Assert.Single(bus.Events.OfType<CardPaymentDeclined>());
++ 278|         Assert.Equal(card.Id, declined.CardId);
++ 279|         Assert.Equal("card not active", declined.Reason);
++ 280|         Assert.Equal(clock.UtcNow, declined.OccurredAt);
++ 281|         Assert.Empty(bus.Events.OfType<CardPaymentAuthorised>());
++ 282|     }
++ 283| 
++ 284|     [Fact]
++ 285|
+     ⋮ (truncated: change too large)
+
+
+# IMPACT
+- Cards (src/Bank.Api/Data/BankDbContext.cs): 0 caller(s) [none found]; test references: NONE
+- CardsController (src/Bank.Api/Modules/Cards/Api/CardsController.cs): 0 caller(s) [none found]; test references: NONE
+- Issue (src/Bank.Api/Modules/Cards/Api/CardsController.cs): 0 caller(s) [none found]; test references: NONE
+- Freeze (src/Bank.Api/Modules/Cards/Api/CardsController.cs): 0 caller(s) [none found]; test references: NONE
+- Unfreeze (src/Bank.Api/Modules/Cards/Api/CardsController.cs): 0 caller(s) [none found]; test references: NONE
+- Cancel (src/Bank.Api/Modules/Cards/Api/CardsController.cs): 0 caller(s) [none found]; test references: NONE
+- Authorise (src/Bank.Api/Modules/Cards/Api/CardsController.cs): 0 caller(s) [none found]; test references: NONE
+- ToDto (src/Bank.Api/Modules/Cards/Api/CardsController.cs): 0 caller(s) [none found]; test references: NONE
+- IssueAsync (src/Bank.Api/Modules/Cards/Application/CardService.cs): 0 caller(s) [none found]; test references: NONE
+- FreezeAsync (src/Bank.Api/Modules/Cards/Application/CardService.cs): 0 caller(s) [none found]; test references: NONE
+- UnfreezeAsync (src/Bank.Api/Modules/Cards/Application/CardService.cs): 0 caller(s) [none found]; test references: NONE
+- CancelAsync (src/Bank.Api/Modules/Cards/Application/CardService.cs): 0 caller(s) [none found]; test references: NONE
+- AuthoriseAsync (src/Bank.Api/Modules/Cards/Application/CardService.cs): 0 caller(s) [none found]; test references: NONE
+- CardService (src/Bank.Api/Modules/Cards/Application/CardService.cs): 0 caller(s) [none found]; test references: NONE
+- GetOwnedCardAsync (src/Bank.Api/Modules/Cards/Application/CardService.cs): 0 caller(s) [none found]; test references: NONE
+- GenerateCardNumber (src/Bank.Api/Modules/Cards/Application/CardService.cs): 0 caller(s) [none found]; test references: NONE
+- AddCardsModule (src/Bank.Api/Modules/Cards/CardsModule.cs): 0 caller(s) [none found]; test references: NONE
+- Card (src/Bank.Api/Modules/Cards/Domain/Card.cs): 0 caller(s) [none found]; test references: NONE
+- Id (src/Bank.Api/Modules/Cards/Domain/Card.cs): 0 caller(s) [none found]; test references: NONE
+- AccountId (src/Bank.Api/Modules/Cards/Domain/Card.cs): 0 caller(s) [none found]; test references: NONE
+- CustomerId (src/Bank.Api/Modules/Cards/Domain/Card.cs): 0 caller(s) [none found]; test references: NONE
+- Number (src/Bank.Api/Modules/Cards/Domain/Card.cs): 0 caller(s) [none found]; test references: NONE
+- Last4 (src/Bank.Api/Modules/Cards/Domain/Card.cs): 0 caller(s) [none found]; test references: NONE
+- Status (src/Bank.Api/Modules/Cards/Domain/Card.cs): 0 caller(s) [none found]; test references: NONE
+- PerTransactionLimit (src/Bank.Api/Modules/Cards/Domain/Card.cs): 0 caller(s) [none found]; test references: NONE
+- Freeze (src/Bank.Api/Modules/Cards/Domain/Card.cs): 0 caller(s) [none found]; test references: NONE
+- Unfreeze (src/Bank.Api/Modules/Cards/Domain/Card.cs): 0 caller(s) [none found]; test references: NONE
+- Cancel (src/Bank.Api/Modules/Cards/Domain/Card.cs): 0 caller(s) [none found]; test references: NONE
+- CreateSut (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- IssueAsync_rejects_non_owner_with_UnauthorizedAccessException (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- IssueAsync_rejects_unknown_account_with_UnauthorizedAccessException (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- CancelAsync_cancels_active_and_frozen_cards (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- Lifecycle_operations_reject_non_owner_without_changing_status (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- Cancelled_is_terminal_for_service_and_domain_methods (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- AuthoriseAsync_uses_account_currency_for_Suspense_and_event (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- AuthoriseAsync_declines_frozen_card_without_moving_funds (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- AuthoriseAsync_declines_cancelled_card_without_moving_funds (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- AuthoriseAsync_declines_when_account_has_insufficient_funds (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE
+- Domain_events_and_audit_redaction_never_expose_full_card_number (tests/Bank.Tests/Cards/CardTests.cs): 0 caller(s) [none found]; test references: NONE

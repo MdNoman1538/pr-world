@@ -1,0 +1,652 @@
+{
+ "id": "PR-3",
+ "title": "Currency exchange and cross-currency payments",
+ "type": "feature",
+ "status": "merged",
+ "branch": "pr-3",
+ "base": "98a8d8a05864b051aea65a8f1c17a24f17ea57cf",
+ "head": "f2c3b48e2972e3f994af2d7e7c3e7c7c469006ae",
+ "merged": "3bd8a5c1fda828175e79ff2e24e5359b7af914ed",
+ "issue": "# PR-3: PR-3: Currency exchange service and cross-currency payments\n\n**Story.** As a bank customer, I want to make payments between accounts in different supported currencies (EUR, SEK, USD) with consistent exchange rates and EUR-equivalent daily transfer limits, so that I can transfer money across currencies reliably.\n\n## Acceptance criteria\n- [ ] Create the Fx module under src/Bank.Api/Modules/Fx/ with Bank.Modules.Fx.Application.IFxService and sealed class FxService : IFxService (parameterless constructor), and register it via FxModule.AddFxModule in Program.cs above the // MODULES: line.\n- [ ] IFxService.Rate(fromCurrency, toCurrency) returns 1 for identical supported currencies (EUR, SEK, USD) and throws ArgumentException if either currency is null, empty, or not one of EUR, SEK, USD.\n- [ ] IFxService.Rate uses fixed base rates 1 EUR = 11.50 SEK and 1 EUR = 1.08 USD; inverse pairs use 1 / 11.50 (SEK to EUR) and 1 / 1.08 (USD to EUR); cross pairs triangulate through EUR (SEK to USD converts SEK to EUR then EUR to USD; USD to SEK converts USD to EUR then EUR to SEK).\n- [ ] IFxService.Convert(amount, fromCurrency, toCurrency) converts the amount using the pair rate (triangulating through EUR for non-EUR pairs) and rounds the final result to 2 decimal places using Math.Round(..., 2, MidpointRounding.AwayFromZero); throws ArgumentException for unknown currencies.\n- [ ] Payment entity in Bank.Modules.Payments.Domain adds public settable properties decimal CreditedAmount, string CreditedCurrency, and decimal Rate; for same-currency payments CreditedAmount equals Amount, CreditedCurrency equals payee/payer currency, and Rate equals 1.\n- [ ] PaymentService accepts IFxService as a constructor parameter immediately after BankSettings.\n- [ ] Cross-currency payments between supported currencies (EUR, SEK, USD) are allowed and no longer throw CurrencyMismatchException.\n- [ ] For a cross-currency payment, PaymentService moves funds solely via ILedger.PostTransferAsync: it debits the payer account for Amount in the payer currency to BankAccounts.For(BankAccountKind.FxClearing, payerCurrency) and credits the payee account for CreditedAmount in the payee currency from BankAccounts.For(BankAccountKind.FxClearing, payeeCurrency); Account.Balance is never modified directly.\n- [ ] For a same-currency payment, funds continue to move directly from the payer account to the payee account via ILedger.PostTransferAsync with CreditedAmount = Amount and Rate = 1.\n- [ ] Daily transfer limit enforcement (BankSettings.DailyTransferLimit) evaluates all payments in their EUR equivalent using IFxService (converting each payment's debited amount from its currency to EUR) and rejects any payment that would cause the customer's daily total in EUR to exceed DailyTransferLimit.\n- [ ] Existing security rules remain enforced: payment endpoints keep [Authorize(Policy = Policies.X)], caller identity is read only from ICurrentUser (never request body), account ownership is checked via IAccountService.IsOwnerAsync, timestamps use IClock.UtcNow, and no PII is written to logs, events, or error messages.\n- [ ] Automated xUnit tests cover FxService (same currency returning 1, EUR/SEK/USD direct and inverse pairs, SEK<->USD triangulation, half-away-from-zero rounding to 2 decimals, ArgumentException on unknown currency), cross-currency PaymentService flows (including FxClearing ledger transfers and Payment properties CreditedAmount, CreditedCurrency, Rate), and EUR-equivalent daily transfer limit enforcement.\n\n## Out of scope\n- HTTP API controller or endpoints for querying FX rates or quoting currency conversions.\n- Dynamic, external, or database-stored FX rates and admin endpoints to update exchange rates.\n- FX spreads, conversion commissions, or FeeIncome ledger postings on currency exchange.\n- Support for any currencies other than EUR, SEK, and USD.\n- Historical rate tables, FX position reporting, or revaluation of FxClearing balances.\n\n## Risks\n- Partial ledger failure between the two PostTransferAsync calls (debiting payer to FxClearing succeeding while crediting payee from FxClearing fails) could leave funds stranded in FxClearing and misstate customer balances.\n- Rounding or precision differences during EUR triangulation (such as rounding an intermediate EUR amount versus rounding only the final credited amount) could cause unexpected customer amounts or FxClearing ledger imbalances.\n- Very small cross-currency payment amounts could round CreditedAmount down to 0.00, leading to failed zero-amount ledger postings or customer confusion.\n- Inconsistent EUR conversion of prior same-day payments when computing the daily total could allow customers to bypass DailyTransferLimit or be wrongly blocked.\n- Forgetting to update the database schema or seed/test data for the new Payment properties (CreditedAmount, CreditedCurrency, Rate) could cause EF Core runtime or persistence failures.\n\n## Public contract\n```\nnamespace Bank.Modules.Fx.Application:\n  interface IFxService {\n    decimal Rate(string fromCurrency, string toCurrency);                 // same currency -> 1; unknown currency -> ArgumentException\n    decimal Convert(decimal amount, string fromCurrency, string toCurrency); }   // rounded to cents, MidpointRounding.AwayFromZero\n  sealed class FxService : IFxService     // no constructor arguments\nPayment gets: decimal CreditedAmount; string CreditedCurrency; decimal Rate   (same currency: CreditedAmount = Amount, Rate = 1)\nPaymentService gets IFxService as a constructor argument (after BankSettings): cross-currency payments no longer throw CurrencyMismatchException.\n```\n\n## Allowed scope\n- `src/Bank.Api/Modules/Fx/**`\n- `src/Bank.Api/Modules/Payments/**`\n- `src/Bank.Api/Program.cs`\n- `src/Bank.Api/Data/BankDbContext.cs`\n\n_Brief from the product owner:_ The bank holds EUR, SEK and USD. Add exchange rates: 1 EUR = 11.50 SEK and 1 EUR = 1.08 USD; other pairs go through EUR (SEK to USD = from SEK to EUR, then EUR to USD). Converted amounts are rounded to cents, half away from zero. Payments may now go between accounts in different currencies: the payer is debited in their currency, the payee is credited the converted amount, and the money passes through the bank's FxClearing account of each currency. The daily transfer limit now counts every payment in its EUR equivalent.\n",
+ "builder": {
+  "source": "model",
+  "attempts": 2,
+  "rejected_paths": [],
+  "errors": [],
+  "fallback": false,
+  "files": [
+   "src/Bank.Api/Modules/Fx/Application/FxService.cs",
+   "src/Bank.Api/Modules/Fx/FxModule.cs",
+   "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "src/Bank.Api/Modules/Payments/Domain/Payment.cs",
+   "src/Bank.Api/Program.cs"
+  ],
+  "commits": [
+   {
+    "step": 1,
+    "title": "Currency exchange and cross-currency payments",
+    "message": "Add Fx module and support cross-currency payments with EUR-equivalent daily limits",
+    "sha": "f82bc901be30a6061d1452126179ff670c65493c"
+   }
+  ],
+  "commit_message": "Add Fx module and support cross-currency payments with EUR-equivalent daily limits",
+  "notes": "Implemented Bank.Modules.Fx (IFxService, FxService, FxModule), registered FxModule in Program.cs, extended Payment with CreditedAmount/CreditedCurrency/Rate, and updated PaymentService to accept IFxService after BankSettings, route cross-currency transfers through FxClearing accounts via ILedger.PostTransferAsync, and evaluate DailyTransferLimit in EUR equivalent. Note: tests were not modified as test files are outside allowed scope.",
+  "build_ok": true
+ },
+ "tests": {
+  "ran": true,
+  "exit_code": 1,
+  "passed": 116,
+  "failed": 1,
+  "failed_tests": [
+   "Bank.Tests.Payments.PaymentTests.PayAsync_different_currencies_throws_CurrencyMismatchException"
+  ],
+  "tests": [
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"GBP\", toCurrency: \"GBP\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_triangulates_sek_and_usd_without_intermediate_rounding(amount: 1150, fromCurrency: \"SEK\", toCurrency: \"USD\", expected: 108)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.FxClearing_accounts_exist_for_eur_sek_and_usd_and_settle_cross_currency_ledger_legs",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"\", toCurrency: \"USD\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_triangulates_cross_pairs_through_eur",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(role: null)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_handles_direct_and_inverse_eur_pairs(amount: 100, fromCurrency: \"USD\", toCurrency: \"EUR\", expected: 92,590000000000003)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.LedgerTests.Bank_accounts_may_go_below_zero",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_and_reject_already_decided_customer_throw_invalid_operation",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_same_idempotency_key_for_different_customers_executes_independently",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(firstVerify: False, secondVerify: False)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_returns_1_for_identical_supported_currencies(currency: \"SEK\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"Alice Smith\", email: \"alice@example.com\", nationalId: \"   \")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"EUR\", toCurrency: null)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"EUR\", toCurrency: \"GBP\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"GBP\", toCurrency: \"EUR\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"EUR\", toCurrency: \"\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_and_reject_unknown_customer_throw_key_not_found",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: null, toCurrency: null)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_different_currencies_throws_CurrencyMismatchException",
+    "outcome": "Failed",
+    "message": "Assert.Throws() Failure: No exception was thrown\nExpected: typeof(Bank.Modules.Ledger.Application.CurrencyMismatchException)"
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_zero_or_negative_amount_throws_ArgumentException(invalidAmount: 0)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_triangulates_sek_and_usd_without_intermediate_rounding(amount: 11,5, fromCurrency: \"SEK\", toCurrency: \"USD\", expected: 1,0800000000000001)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_uses_current_user_identity_when_caller_switches",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Customer_reject_transitions_pending_to_rejected_and_sets_decided_by",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_one_cent_over_daily_transfer_limit_throws_DailyLimitExceededException",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"   \", email: \"alice@example.com\", nationalId: \"FI-123456\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_triangulates_sek_and_usd_without_intermediate_rounding(amount: 100, fromCurrency: \"SEK\", toCurrency: \"USD\", expected: 9,3900000000000006)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_allows_null_reference",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_by_compliance_officer_updates_status_persists_and_publishes_event",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"   \", toCurrency: \"EUR\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_underage_applicant_even_when_days_exceed_365_times_18",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_handles_direct_and_inverse_eur_pairs(amount: 1150, fromCurrency: \"SEK\", toCurrency: \"EUR\", expected: 100)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.LedgerTests.Entries_are_returned_for_a_period_oldest_first",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"EUR\", toCurrency: \"GBP\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: null, toCurrency: \"EUR\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.LedgerTests.Transfer_moves_money_and_writes_two_balanced_entries",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_returns_1_for_identical_supported_currencies(currency: \"EUR\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"GBP\", toCurrency: \"EUR\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_returns_same_amount_for_identical_supported_currencies(amount: 0, currency: \"EUR\", expected: 0)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: null, email: \"alice@example.com\", nationalId: \"FI-123456\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_triangulates_sek_and_usd_without_intermediate_rounding(amount: 100, fromCurrency: \"USD\", toCurrency: \"SEK\", expected: 1064,8099999999999)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_handles_direct_and_inverse_eur_pairs(amount: 108, fromCurrency: \"USD\", toCurrency: \"EUR\", expected: 100)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"GBP\", toCurrency: \"GBP\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_applicant_one_day_under_18_on_clock_date",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_exact_account_balance_succeeds",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_returns_same_amount_for_identical_supported_currencies(amount: 0,01, currency: \"USD\", expected: 0,01)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_handles_direct_and_inverse_eur_pairs(amount: 1, fromCurrency: \"EUR\", toCurrency: \"SEK\", expected: 11,5)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(role: \"admin\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"Alice Smith\", email: \"alice@example.com\", nationalId: \"\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_triangulates_sek_and_usd_without_intermediate_rounding(amount: 1,0800000000000001, fromCurrency: \"USD\", toCurrency: \"SEK\", expected: 11,5)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(firstVerify: True, secondVerify: False)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(firstVerify: True, secondVerify: True)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: null, toCurrency: \"EUR\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_daily_limit_is_isolated_per_customer",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.ForCustomerAsync_returns_only_specified_customers_payments",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(firstVerify: False, secondVerify: True)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"Alice Smith\", email: \"   \", nationalId: \"FI-123456\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(role: \"loan-officer\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"USD\", toCurrency: \"   \")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.LedgerTests.Customer_account_cannot_go_below_zero",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_when_customer_already_exists_throws_invalid_operation",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"Alice Smith\", email: \"alice@example.com\", nationalId: null)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"Alice Smith\", email: \"\", nationalId: \"FI-123456\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"   \", toCurrency: \"USD\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_handles_direct_and_inverse_eur_pairs(amount: 1, fromCurrency: \"EUR\", toCurrency: \"USD\", expected: 1,0800000000000001)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Kyc_rule_allows_verified_customer",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_daily_limit_resets_at_utc_midnight",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_zero_or_negative_amount_throws_ArgumentException(invalidAmount: -0,01)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.AccountsTests.Unsupported_currency_is_refused",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_fractional_cents_throws_ArgumentException(fractionalAmount: 1,234)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_uses_clock_rather_than_system_time_for_age_check",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_returns_same_amount_for_identical_supported_currencies(amount: 123,45, currency: \"SEK\", expected: 123,45)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_accepts_applicant_turning_18_on_clock_date",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.AccountsTests.New_account_uses_the_default_currency_and_belongs_to_the_caller",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_handles_direct_and_inverse_eur_pairs(amount: 100, fromCurrency: \"EUR\", toCurrency: \"USD\", expected: 108)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Compliance_officer_cannot_self_verify_or_self_reject",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_exactly_at_daily_transfer_limit_succeeds",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Customer_starts_with_pending_status",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_insufficient_funds_throws_InsufficientFundsException_and_persists_nothing",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.AuditTests.Personal_data_is_removed_from_the_audit_payload",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_handles_direct_and_inverse_eur_pairs(amount: 10, fromCurrency: \"USD\", toCurrency: \"EUR\", expected: 9,2599999999999998)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_returns_inverse_rates_for_pairs_to_eur",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_returns_same_amount_for_identical_supported_currencies(amount: 100, currency: \"EUR\", expected: 100)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"Alice Smith\", email: null, nationalId: \"FI-123456\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.LedgerTests.Currencies_must_match",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_returns_1_for_identical_supported_currencies(currency: \"USD\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"USD\", toCurrency: null)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_allows_transfer_between_customers_own_accounts",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_smallest_valid_amount_one_cent_succeeds",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Get_returns_customer_when_exists_and_null_when_missing",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Customer_verify_transitions_pending_to_verified_and_sets_decided_by",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(role: \"customer\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"\", email: \"alice@example.com\", nationalId: \"FI-123456\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_fractional_cents_throws_ArgumentException(fractionalAmount: 10,001)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"\", toCurrency: \"EUR\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"NOK\", toCurrency: \"USD\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_rounds_half_away_from_zero_to_two_decimal_places",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(role: \"teller\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_triangulates_sek_and_usd_without_intermediate_rounding(amount: 108, fromCurrency: \"USD\", toCurrency: \"SEK\", expected: 1150)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_handles_direct_and_inverse_eur_pairs(amount: 100, fromCurrency: \"SEK\", toCurrency: \"EUR\", expected: 8,6999999999999993)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Rate_returns_fixed_base_rates_for_eur_pairs",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_zero_or_negative_amount_throws_ArgumentException(invalidAmount: -100)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_throws_argument_exception_for_invalid_or_unknown_currencies(fromCurrency: \"SEK\", toCurrency: \"\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_handles_direct_and_inverse_eur_pairs(amount: 100, fromCurrency: \"EUR\", toCurrency: \"SEK\", expected: 1150)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_valid_transfer_moves_money_persists_completed_payment_and_publishes_event",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Payments.PaymentTests.PayAsync_fractional_cents_throws_ArgumentException(fractionalAmount: 0,005)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Fx.FxTests.Convert_triangulates_sek_and_usd_without_intermediate_rounding(amount: 0, fromCurrency: \"SEK\", toCurrency: \"USD\", expected: 0)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+    "outcome": "Passed",
+    "message": ""
+   }
+  ]
+ },
+ "tester": {
+  "source": "model",
+  "files": [
+   "tests/Bank.Tests/Fx/FxTests.cs"
+  ],
+  "dropped": false,
+  "attempts": 1
+ },
+ "review": {
+  "run_dir": "runs/reviews/20261114-195158-pr-3",
+  "run_id": "20261114-195158-pr-3",
+  "decision": "BLOCKED",
+  "reason": "Merge locked: Tests: Tests failed; Correctness: 1 Blocker(s) Not checked: Requirement. WARNING: review-policy.yaml is not approved by a named human yet.",
+  "tier": "high",
+  "ai_error": "",
+  "exit_code": 0
+ },
+ "findings": 6,
+ "planted": false,
+ "at": "2026-11-14 19:56:08"
+}

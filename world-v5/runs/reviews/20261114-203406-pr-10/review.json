@@ -1,0 +1,977 @@
+{
+  "run_id": "20261114-203406-pr-10",
+  "created_at": "2026-11-14T18:36:28+00:00",
+  "repo": "/Users/noman/Projects/junction-ai-review/world-v5/bank",
+  "base": "main",
+  "head": "pr-10",
+  "requirement_id": "PR-10",
+  "requirement_text_present": true,
+  "owner": "Md Abdullah Al Noman",
+  "policy_version": "0.2-nordbank",
+  "policy_approved_by": null,
+  "models": {
+    "specialist": "gemini/gemini-3.8-flash",
+    "validator": "gemini/gemini-3.1-pro-preview",
+    "radar": "gemini/gemini-3.1-pro-preview",
+    "fixer": "gemini/gemini-3.1-pro-preview",
+    "investigator": "gemini/gemini-3.1-pro-preview",
+    "requirement_analyst": "gemini/gemini-3.1-pro-preview",
+    "change_interpreter": "gemini/gemini-3.8-flash",
+    "requirement_judge": "gemini/gemini-3.1-pro-preview",
+    "panel": [
+      "gemini/gemini-3.1-pro-preview",
+      "gemini/gemini-3.8-flash"
+    ],
+    "parser": "tree-sitter",
+    "specialists": "gemini/gemini-3.8-flash"
+  },
+  "changed_files": [
+    "src/Bank.Api/Modules/Deposits/Application/DepositService.cs",
+    "src/Bank.Api/Modules/Fees/Application/FeeCalculator.cs",
+    "src/Bank.Api/Modules/Fx/Application/FxService.cs",
+    "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+    "src/Bank.Api/Shared/Money/MoneyMath.cs",
+    "tests/Bank.Tests/Shared/MoneyMathTests.cs"
+  ],
+  "tier": {
+    "tier": "high",
+    "reasons": [
+      "src/Bank.Api/Modules/Deposits/Application/DepositService.cs: area 'Deposits' is medium (Savings and interest)",
+      "src/Bank.Api/Modules/Fees/Application/FeeCalculator.cs: area 'Fees' is high (What the bank charges customers)",
+      "src/Bank.Api/Modules/Fx/Application/FxService.cs: area 'Fx' is high (Exchange rates decide how much money customers get)",
+      "src/Bank.Api/Modules/Loans/Application/LoanService.cs: area 'Loans' is high (Credit decisions and payouts)",
+      "src/Bank.Api/Shared/Money/MoneyMath.cs: area 'Platform' is high (Database schema, wiring and bank-wide settings touch every module)"
+    ],
+    "guarded_paths": [],
+    "out_of_plan": [],
+    "signoffs_required": 2
+  },
+  "orientation": "This pull request centralizes cent rounding into a shared static helper `MoneyMath.ToCents` in the `Bank.Shared.Money` namespace using `MidpointRounding.AwayFromZero`. It refactors inline rounding calls across Deposits, Fees, Fx, and Loans to use this helper without changing calculation order or financial amounts, and adds unit tests covering midpoint and edge cases.",
+  "requirement_alignment": "met",
+  "sensors": [
+    {
+      "name": "secret_scan",
+      "ran": true,
+      "passed": true,
+      "summary": "No secret patterns in added lines",
+      "details": [],
+      "log_file": "evidence/secret_scan.txt"
+    },
+    {
+      "name": "package_check",
+      "ran": true,
+      "passed": true,
+      "summary": "No package references added",
+      "details": [],
+      "log_file": "evidence/package_check.txt"
+    },
+    {
+      "name": "test_integrity",
+      "ran": true,
+      "passed": true,
+      "summary": "No test files edited",
+      "details": [],
+      "log_file": "evidence/test_integrity.txt"
+    },
+    {
+      "name": "removed_guards",
+      "ran": true,
+      "passed": true,
+      "summary": "No validation/guard lines removed",
+      "details": [],
+      "log_file": "evidence/removed_guards.txt"
+    },
+    {
+      "name": "risky_code",
+      "ran": true,
+      "passed": true,
+      "summary": "0 pattern hit(s) in added code",
+      "details": [],
+      "log_file": "evidence/risky_code.txt"
+    },
+    {
+      "name": "dotnet_build",
+      "ran": true,
+      "passed": true,
+      "summary": "Build succeeded",
+      "details": [
+        "Build succeeded.",
+        "    0 Warning(s)",
+        "    0 Error(s)",
+        "",
+        "Time Elapsed 00:00:06.19"
+      ],
+      "log_file": "evidence/dotnet_build.log"
+    },
+    {
+      "name": "dotnet_test",
+      "ran": true,
+      "passed": false,
+      "summary": "Tests failed (exit 1)",
+      "details": [
+        "Failed!  - Failed:     4, Passed:   249, Skipped:     0, Total:   253, Duration: 3 s - Bank.Tests.dll (net10.0)"
+      ],
+      "log_file": "evidence/dotnet_test.log"
+    }
+  ],
+  "findings": [],
+  "dropped_findings": [],
+  "refusals": [
+    {
+      "source": "specialist:correctness",
+      "topic": "Reason for dotnet_test failure",
+      "reason": "The deterministic sensor indicates test suite failure (exit 1), but execution outputs, failure logs, and stack traces are not included in the review context. It cannot be determined from the code diff whether the failure stems from pre-existing issues in other modules or a specific regression test."
+    },
+    {
+      "source": "specialist:correctness",
+      "topic": "Unchanged methods outside AST slices",
+      "reason": "Methods outside the shown context in DepositService, FeeCalculator, FxService, and LoanService cannot be checked to verify whether any other cent-rounding operations exist that were left unmodified."
+    },
+    {
+      "source": "specialist:architecture",
+      "topic": "Root cause of deterministic sensor test failure",
+      "reason": "Deterministic sensors report dotnet_test failed (exit 1), but standard output and test failure traces are not provided in the review context."
+    },
+    {
+      "source": "specialist:safety",
+      "topic": "Root cause of deterministic dotnet_test failure",
+      "reason": "Test runner logs and stack traces are not included in the review context, making it impossible to determine whether the test failure is pre-existing or caused by a specific regression."
+    },
+    {
+      "source": "specialist:tests",
+      "topic": "Root cause of dotnet_test failure",
+      "reason": "Test runner logs and stack traces are not provided in the review context, making it impossible to determine whether the failure stems from a newly introduced test or pre-existing failures in the test suite."
+    },
+    {
+      "source": "specialist:tests",
+      "topic": "Existing regression test coverage in Fx, Fees, Deposits, and Loans modules",
+      "reason": "Existing test files for Fx, Fees, Deposits, and Loans are outside the provided context, so their specific assertions and coverage for the refactored endpoints cannot be directly inspected."
+    },
+    {
+      "source": "specialist:maintainability",
+      "topic": "Reason for dotnet_test failure",
+      "reason": "The deterministic sensors report that dotnet_test failed (exit 1), but test execution logs and stack traces are outside the provided context."
+    },
+    {
+      "source": "specialist:performance",
+      "topic": "Deterministic test runner failure diagnosis",
+      "reason": "The deterministic sensor reported test failures (`dotnet_test: ran; Tests failed (exit 1)`), but compiler and test runner output/stack traces are not included in the review context."
+    }
+  ],
+  "areas": [
+    {
+      "area": "What",
+      "status": "verified",
+      "reason": "Change meets the requirement: The PR implements `MoneyMath.ToCents` exactly to specification, updates all cent-rounding points across the four specified modules without altering calculation flow, preserves error and validation semantics, and adds thorough unit tests.",
+      "evidence": []
+    },
+    {
+      "area": "Where",
+      "status": "human",
+      "reason": "Tier HIGH → full human read and 2 sign-off(s) required",
+      "evidence": [
+        "src/Bank.Api/Modules/Deposits/Application/DepositService.cs: area 'Deposits' is medium (Savings and interest)",
+        "src/Bank.Api/Modules/Fees/Application/FeeCalculator.cs: area 'Fees' is high (What the bank charges customers)",
+        "src/Bank.Api/Modules/Fx/Application/FxService.cs: area 'Fx' is high (Exchange rates decide how much money customers get)",
+        "src/Bank.Api/Modules/Loans/Application/LoanService.cs: area 'Loans' is high (Credit decisions and payouts)",
+        "src/Bank.Api/Shared/Money/MoneyMath.cs: area 'Platform' is high (Database schema, wiring and bank-wide settings touch every module)"
+      ]
+    },
+    {
+      "area": "Why",
+      "status": "verified",
+      "reason": "Linked to a requirement",
+      "evidence": []
+    },
+    {
+      "area": "Security",
+      "status": "verified",
+      "reason": "No secrets, no unverified packages, no safety findings",
+      "evidence": []
+    },
+    {
+      "area": "Build",
+      "status": "verified",
+      "reason": "Build succeeded",
+      "evidence": []
+    },
+    {
+      "area": "Tests",
+      "status": "blocked",
+      "reason": "Tests failed",
+      "evidence": [
+        "Failed!  - Failed:     4, Passed:   249, Skipped:     0, Total:   253, Duration: 3 s - Bank.Tests.dll (net10.0)"
+      ]
+    },
+    {
+      "area": "Correctness",
+      "status": "verified",
+      "reason": "No blocking issue",
+      "evidence": []
+    },
+    {
+      "area": "Architecture",
+      "status": "verified",
+      "reason": "No blocking issue",
+      "evidence": []
+    },
+    {
+      "area": "Maintainability",
+      "status": "verified",
+      "reason": "No blocking issue",
+      "evidence": []
+    },
+    {
+      "area": "Performance",
+      "status": "verified",
+      "reason": "No blocking issue",
+      "evidence": []
+    },
+    {
+      "area": "Impact",
+      "status": "verified",
+      "reason": "16 changed member(s); callers covered by tests or none",
+      "evidence": []
+    },
+    {
+      "area": "Requirement",
+      "status": "not_checked",
+      "reason": "Not checked: requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho",
+      "evidence": []
+    }
+  ],
+  "decision": "BLOCKED",
+  "decision_reason": "Merge locked: Tests: Tests failed Not checked: Requirement. WARNING: review-policy.yaml is not approved by a named human yet.",
+  "not_checked": [
+    "Scope vs approved plan (no --plan given)",
+    "Requirement radar (Radar call failed: radar: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}})"
+  ],
+  "track_record": {
+    "architecture": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 9,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    },
+    "correctness": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 14,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    },
+    "maintainability": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 3,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    },
+    "performance": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 6,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    },
+    "safety": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 9,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    },
+    "tests": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 20,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    }
+  },
+  "head_sha": "08f66c630045974742ccec4edd2a2025fd0c317a",
+  "radar": {
+    "items": [],
+    "hunks": [
+      {
+        "id": "H01",
+        "file": "src/Bank.Api/Modules/Deposits/Application/DepositService.cs",
+        "start": 9,
+        "end": 9,
+        "added": [
+          "using Bank.Shared.Money;"
+        ],
+        "removed": [],
+        "n_added": 1,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H02",
+        "file": "src/Bank.Api/Modules/Deposits/Application/DepositService.cs",
+        "start": 31,
+        "end": 31,
+        "added": [
+          "        if (MoneyMath.ToCents(principal) != principal)"
+        ],
+        "removed": [
+          "        if (decimal.Round(principal, 2) != principal)"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H03",
+        "file": "src/Bank.Api/Modules/Deposits/Application/DepositService.cs",
+        "start": 128,
+        "end": 129,
+        "added": [
+          "                var interest = MoneyMath.ToCents(",
+          "                    deposit.Principal * (deposit.AnnualRatePercent / 100m) * deposit.TermMonths / 12m);"
+        ],
+        "removed": [
+          "                var interest = Math.Round(",
+          "                    deposit.Principal * (deposit.AnnualRatePercent / 100m) * deposit.TermMonths / 12m,",
+          "                    2,",
+          "                    MidpointRounding.AwayFromZero);"
+        ],
+        "n_added": 2,
+        "n_removed": 4,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H04",
+        "file": "src/Bank.Api/Modules/Fees/Application/FeeCalculator.cs",
+        "start": 2,
+        "end": 2,
+        "added": [
+          "using Bank.Shared.Money;"
+        ],
+        "removed": [],
+        "n_added": 1,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H05",
+        "file": "src/Bank.Api/Modules/Fees/Application/FeeCalculator.cs",
+        "start": 27,
+        "end": 29,
+        "added": [
+          "        var rawFee = MoneyMath.ToCents(amount * FeeRate);",
+          "        var minFee = MoneyMath.ToCents(fx.Convert(MinFeeEur, \"EUR\", from));",
+          "        var maxFee = MoneyMath.ToCents(fx.Convert(MaxFeeEur, \"EUR\", from));"
+        ],
+        "removed": [
+          "        var rawFee = Math.Round(amount * FeeRate, 2, MidpointRounding.AwayFromZero);",
+          "        var minFee = Math.Round(fx.Convert(MinFeeEur, \"EUR\", from), 2, MidpointRounding.AwayFromZero);",
+          "        var maxFee = Math.Round(fx.Convert(MaxFeeEur, \"EUR\", from), 2, MidpointRounding.AwayFromZero);"
+        ],
+        "n_added": 3,
+        "n_removed": 3,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H06",
+        "file": "src/Bank.Api/Modules/Fx/Application/FxService.cs",
+        "start": 1,
+        "end": 2,
+        "added": [
+          "using Bank.Shared.Money;",
+          ""
+        ],
+        "removed": [],
+        "n_added": 2,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H07",
+        "file": "src/Bank.Api/Modules/Fx/Application/FxService.cs",
+        "start": 46,
+        "end": 46,
+        "added": [
+          "        return MoneyMath.ToCents(raw);"
+        ],
+        "removed": [
+          "        return Math.Round(raw, 2, MidpointRounding.AwayFromZero);"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H08",
+        "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+        "start": 11,
+        "end": 11,
+        "added": [
+          "using Bank.Shared.Money;"
+        ],
+        "removed": [],
+        "n_added": 1,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H09",
+        "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+        "start": 70,
+        "end": 70,
+        "added": [
+          "        if (MoneyMath.ToCents(application.Principal) != application.Principal)"
+        ],
+        "removed": [
+          "        if (decimal.Round(application.Principal, 2) != application.Principal)"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H10",
+        "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+        "start": 220,
+        "end": 220,
+        "added": [
+          "        return MoneyMath.ToCents(payment);"
+        ],
+        "removed": [
+          "        return Math.Round(payment, 2, MidpointRounding.AwayFromZero);"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H11",
+        "file": "src/Bank.Api/Shared/Money/MoneyMath.cs",
+        "start": 1,
+        "end": 7,
+        "added": [
+          "namespace Bank.Shared.Money;",
+          "",
+          "public static class MoneyMath",
+          "{",
+          "    public static decimal ToCents(decimal amount) =>",
+          "        Math.Round(amount, 2, MidpointRounding.AwayFromZero);",
+          "}"
+        ],
+        "removed": [],
+        "n_added": 7,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H12",
+        "file": "tests/Bank.Tests/Shared/MoneyMathTests.cs",
+        "start": 1,
+        "end": 98,
+        "added": [
+          "using Bank.Shared.Money;",
+          "using Xunit;",
+          "",
+          "namespace Bank.Tests.Shared;",
+          "",
+          "public sealed class MoneyMathTests",
+          "{",
+          "    public static IEnumerable<object[]> PositiveMidpointCases()",
+          "    {",
+          "        yield return new object[] { 2.345m, 2.35m };",
+          "        yield return new object[] { 2.355m, 2.36m };",
+          "        yield return new object[] { 0.005m, 0.01m };",
+          "        yield return new object[] { 0.015m, 0.02m };",
+          "        yield return new object[] { 1.005m, 1.01m };",
+          "        yield return new object[] { 999999999.995m, 1000000000.00m };",
+          "    }",
+          "",
+          "    public static IEnumerable<object[]> NegativeMidpointCases()",
+          "    {",
+          "        yield return new object[] { -2.345m, -2.35m };",
+          "        yield return new object[] { -2.355m, -2.36m };",
+          "        yield return new object[] { -0.005m, -0.01m };",
+          "        yield return new object[] { -0.015m, -0.02m };",
+          "        yield return new object[] { -1.005m, -1.01m };",
+          "        yield return new object[] { -999999999.995m, -1000000000.00m };",
+          "    }",
+          "",
+          "    public static IEnumerable<object[]> ExactCentAndShorterCases()",
+          "    {",
+          "        yield return new object[] { 12.34m, 12.34m };"
+        ],
+        "removed": [],
+        "n_added": 98,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      }
+    ],
+    "counts": {
+      "unclear": 12
+    },
+    "ran": false,
+    "note": "Radar call failed: radar: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}"
+  },
+  "funnel": {
+    "proposed_by_specialists": 0,
+    "evidence_verified": 0,
+    "dropped_hallucinated_evidence": 0,
+    "dropped_by_validator": 0,
+    "sensor_findings": 0,
+    "shown": 0,
+    "patches": 0
+  },
+  "familiarity": {
+    "src/Bank.Api/Modules/Deposits/Application/DepositService.cs": {
+      "recent_commits": [
+        "24a3367 2026-11-14 PR-6: Add Term Deposits module (open, mature, and early break)"
+      ],
+      "past_findings": [
+        "20261114-201352-pr-6: [ShouldFix] Static DepositLocks dictionary leaks memory over time (open)",
+        "20261114-201352-pr-6: [ShouldFix] Unbounded memory accumulation in static DepositLocks dictionary (open)",
+        "20261114-201352-pr-6: [ShouldFix] Unbounded memory growth in DepositLocks ConcurrentDictionary (open)"
+      ]
+    },
+    "src/Bank.Api/Modules/Fees/Application/FeeCalculator.cs": {
+      "recent_commits": [
+        "f31ccf6 2026-11-14 PR-4: Add Fees module, cross-currency payment fees, and pre-payment quote endpoint"
+      ],
+      "past_findings": []
+    },
+    "src/Bank.Api/Modules/Fx/Application/FxService.cs": {
+      "recent_commits": [
+        "f82bc90 2026-11-14 PR-3: Add Fx module and support cross-currency payments with EUR-equivalent daily limits"
+      ],
+      "past_findings": []
+    },
+    "src/Bank.Api/Modules/Loans/Application/LoanService.cs": {
+      "recent_commits": [
+        "398423a 2026-11-14 PR-7: Implement loan approval and rejection with four-eyes check and ledger disbursement",
+        "7f8e114 2026-11-14 PR-7: Add Loans module application, annuity calculation, entity, DbSet, and API endpoints"
+      ],
+      "past_findings": [
+        "20261114-202124-pr-7: [ShouldFix] Unbounded static dictionary for per-loan locks creates memory leak (open)",
+        "20261114-202124-pr-7: [Blocker] Missing four-eyes check allows loan officers to approve their own loans (open)",
+        "20261114-202124-pr-7: [ShouldFix] Unbounded memory retention in static LoanLocks dictionary (open)",
+        "20261114-202124-pr-7: [Blocker] Missing four-eyes check in LoanService.ApproveAsync (open)",
+        "20261114-202124-pr-7: [ShouldFix] Static LoanLocks creates an unbounded memory leak and ineffective distributed synchronization (open)"
+      ]
+    },
+    "src/Bank.Api/Shared/Money/MoneyMath.cs": {
+      "recent_commits": [],
+      "past_findings": []
+    },
+    "tests/Bank.Tests/Shared/MoneyMathTests.cs": {
+      "recent_commits": [],
+      "past_findings": []
+    }
+  },
+  "delta": {
+    "previous_run": null,
+    "summary": "First review of this branch"
+  },
+  "optimization_context": false,
+  "commit_messages": [
+    "PR-10: tests from the requirement",
+    "PR-10: Centralize cent rounding in Bank.Shared.Money.MoneyMath across Fx, Fees, Deposits, and Loans"
+  ],
+  "ai_error": "",
+  "settings": {
+    "fingerprint": "b5e52429b2df",
+    "badge": "balanced preset · default essential · Full on high-risk · 13 plugins ran · #b5e52429b2df",
+    "preset": "balanced",
+    "warnings": [
+      "6 roles share gemini/gemini-3.1-pro-preview (validator, radar, fixer, investigator, requirement_analyst, requirement_judge)."
+    ],
+    "approved_by": "Md Abdullah Al Noman",
+    "file": "/Users/noman/Projects/junction-ai-review/world-v5/plan/batch-settings.yaml"
+  },
+  "coverage": {
+    "Deposits": {
+      "tier": "medium",
+      "level": "full",
+      "on": [
+        "blind_tests",
+        "fixer",
+        "investigator",
+        "lens.apis",
+        "lens.calls",
+        "lens.data",
+        "lens.events",
+        "lens.risk",
+        "lens.security",
+        "lens.tests",
+        "provider.anthropic",
+        "provider.gemini",
+        "provider.local",
+        "provider.openai",
+        "radar",
+        "requirement_check",
+        "sensor.build_test",
+        "sensor.packages",
+        "sensor.removed_guards",
+        "sensor.risky_code",
+        "sensor.secrets",
+        "sensor.test_weakening",
+        "specialist.architecture",
+        "specialist.correctness",
+        "specialist.maintainability",
+        "specialist.performance",
+        "specialist.safety",
+        "specialist.tests",
+        "validator",
+        "validator_panel",
+        "writer"
+      ],
+      "off": {},
+      "files": [
+        "src/Bank.Api/Modules/Deposits/Application/DepositService.cs"
+      ],
+      "estimate_calls": 20
+    },
+    "Fees": {
+      "tier": "high",
+      "level": "full",
+      "on": [
+        "blind_tests",
+        "fixer",
+        "investigator",
+        "lens.apis",
+        "lens.calls",
+        "lens.data",
+        "lens.events",
+        "lens.risk",
+        "lens.security",
+        "lens.tests",
+        "provider.anthropic",
+        "provider.gemini",
+        "provider.local",
+        "provider.openai",
+        "radar",
+        "requirement_check",
+        "sensor.build_test",
+        "sensor.packages",
+        "sensor.removed_guards",
+        "sensor.risky_code",
+        "sensor.secrets",
+        "sensor.test_weakening",
+        "specialist.architecture",
+        "specialist.correctness",
+        "specialist.maintainability",
+        "specialist.performance",
+        "specialist.safety",
+        "specialist.tests",
+        "validator",
+        "validator_panel",
+        "writer"
+      ],
+      "off": {},
+      "files": [
+        "src/Bank.Api/Modules/Fees/Application/FeeCalculator.cs"
+      ],
+      "estimate_calls": 20
+    },
+    "Fx": {
+      "tier": "high",
+      "level": "full",
+      "on": [
+        "blind_tests",
+        "fixer",
+        "investigator",
+        "lens.apis",
+        "lens.calls",
+        "lens.data",
+        "lens.events",
+        "lens.risk",
+        "lens.security",
+        "lens.tests",
+        "provider.anthropic",
+        "provider.gemini",
+        "provider.local",
+        "provider.openai",
+        "radar",
+        "requirement_check",
+        "sensor.build_test",
+        "sensor.packages",
+        "sensor.removed_guards",
+        "sensor.risky_code",
+        "sensor.secrets",
+        "sensor.test_weakening",
+        "specialist.architecture",
+        "specialist.correctness",
+        "specialist.maintainability",
+        "specialist.performance",
+        "specialist.safety",
+        "specialist.tests",
+        "validator",
+        "validator_panel",
+        "writer"
+      ],
+      "off": {},
+      "files": [
+        "src/Bank.Api/Modules/Fx/Application/FxService.cs"
+      ],
+      "estimate_calls": 20
+    },
+    "Loans": {
+      "tier": "high",
+      "level": "full",
+      "on": [
+        "blind_tests",
+        "fixer",
+        "investigator",
+        "lens.apis",
+        "lens.calls",
+        "lens.data",
+        "lens.events",
+        "lens.risk",
+        "lens.security",
+        "lens.tests",
+        "provider.anthropic",
+        "provider.gemini",
+        "provider.local",
+        "provider.openai",
+        "radar",
+        "requirement_check",
+        "sensor.build_test",
+        "sensor.packages",
+        "sensor.removed_guards",
+        "sensor.risky_code",
+        "sensor.secrets",
+        "sensor.test_weakening",
+        "specialist.architecture",
+        "specialist.correctness",
+        "specialist.maintainability",
+        "specialist.performance",
+        "specialist.safety",
+        "specialist.tests",
+        "validator",
+        "validator_panel",
+        "writer"
+      ],
+      "off": {},
+      "files": [
+        "src/Bank.Api/Modules/Loans/Application/LoanService.cs"
+      ],
+      "estimate_calls": 20
+    },
+    "Platform": {
+      "tier": "high",
+      "level": "full",
+      "on": [
+        "blind_tests",
+        "fixer",
+        "investigator",
+        "lens.apis",
+        "lens.calls",
+        "lens.data",
+        "lens.events",
+        "lens.risk",
+        "lens.security",
+        "lens.tests",
+        "provider.anthropic",
+        "provider.gemini",
+        "provider.local",
+        "provider.openai",
+        "radar",
+        "requirement_check",
+        "sensor.build_test",
+        "sensor.packages",
+        "sensor.removed_guards",
+        "sensor.risky_code",
+        "sensor.secrets",
+        "sensor.test_weakening",
+        "specialist.architecture",
+        "specialist.correctness",
+        "specialist.maintainability",
+        "specialist.performance",
+        "specialist.safety",
+        "specialist.tests",
+        "validator",
+        "validator_panel",
+        "writer"
+      ],
+      "off": {},
+      "files": [
+        "src/Bank.Api/Shared/Money/MoneyMath.cs"
+      ],
+      "estimate_calls": 20
+    },
+    "Tests": {
+      "tier": "low",
+      "level": "essential",
+      "on": [
+        "blind_tests",
+        "lens.apis",
+        "lens.calls",
+        "lens.data",
+        "lens.events",
+        "lens.risk",
+        "lens.security",
+        "lens.tests",
+        "provider.anthropic",
+        "provider.gemini",
+        "provider.local",
+        "provider.openai",
+        "sensor.build_test",
+        "sensor.packages",
+        "sensor.removed_guards",
+        "sensor.risky_code",
+        "sensor.secrets",
+        "sensor.test_weakening",
+        "specialist.correctness",
+        "specialist.safety",
+        "validator",
+        "writer"
+      ],
+      "off": {
+        "specialist.tests": "not part of Essential coverage",
+        "specialist.architecture": "not part of Essential coverage",
+        "specialist.maintainability": "not part of Essential coverage",
+        "specialist.performance": "not part of Essential coverage",
+        "validator_panel": "not part of Essential coverage",
+        "investigator": "not part of Essential coverage",
+        "requirement_check": "not part of Essential coverage",
+        "radar": "not part of Essential coverage",
+        "fixer": "not part of Essential coverage"
+      },
+      "files": [
+        "tests/Bank.Tests/Shared/MoneyMathTests.cs"
+      ],
+      "estimate_calls": 6
+    }
+  },
+  "plugins_run": [
+    "sensor.build_test",
+    "sensor.packages",
+    "sensor.removed_guards",
+    "sensor.risky_code",
+    "sensor.secrets",
+    "sensor.test_weakening",
+    "specialist.architecture",
+    "specialist.correctness",
+    "specialist.maintainability",
+    "specialist.performance",
+    "specialist.safety",
+    "specialist.tests",
+    "validator"
+  ],
+  "not_checked_plugins": [
+    {
+      "plugin": "specialist.tests",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "specialist.architecture",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "specialist.maintainability",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "specialist.performance",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "validator_panel",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "investigator",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "requirement_check",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "radar",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "fixer",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "requirement_check",
+      "area": "(all touched)",
+      "reason": "requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho"
+    }
+  ],
+  "requirement_check": {
+    "ran": false,
+    "reason": "requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho"
+  },
+  "panel": null,
+  "investigations": null,
+  "cost": {
+    "calls": 9,
+    "cost_eur": 0.0,
+    "usage": {
+      "prompt_tokens": 189594,
+      "output_tokens": 8858
+    },
+    "by_role": {
+      "change_interpreter": {
+        "calls": 1,
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "cost_eur": 0.0
+      },
+      "specialist": {
+        "calls": 6,
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "cost_eur": 0.0
+      }
+    },
+    "budget": {
+      "max_calls": 40,
+      "max_cost_eur": 5.0
+    },
+    "refused_for_budget": [],
+    "local_only_active": false
+  },
+  "integrations": []
+}

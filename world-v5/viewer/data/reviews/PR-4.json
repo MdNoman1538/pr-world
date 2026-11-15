@@ -1,0 +1,272 @@
+{
+ "decision": "BLOCKED",
+ "reason": "Merge locked: Tests: Tests failed; Correctness: 2 Blocker(s) Not checked: Requirement. WARNING: review-policy.yaml is not approved by a named human yet.",
+ "tier": "high",
+ "ai_error": "",
+ "findings": [
+  {
+   "id": "C01",
+   "dimension": "correctness",
+   "severity": "Blocker",
+   "title": "PaymentService.QuoteAsync returns unrounded CreditedAmount",
+   "claim": "The requirement specifies that Quote/QuoteAsync must return a rounded CreditedAmount. In QuoteAsync, cross-currency creditedAmount is assigned the raw output of _fx.Convert without rounding to 2 decimal places using MidpointRounding.AwayFromZero.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 114,
+   "line_end": 116,
+   "evidence": "        var creditedAmount = sameCurrency\n            ? amount\n            : _fx.Convert(amount, fromAccount.Currency, toAccount.Currency);",
+   "evidence_verified": true,
+   "suggested_fix": "Round the converted amount to two decimal places: var creditedAmount = sameCurrency ? amount : Math.Round(_fx.Convert(amount, fromAccount.Currency, toAccount.Currency), 2, MidpointRounding.AwayFromZero);",
+   "patch": "",
+   "requirement_link": "PaymentQuote(decimal Amount, string Currency, decimal Fee, decimal CreditedAmount, string CreditedCurrency, decimal Rate) is added to Bank.Modules.Payments.Application, and IPaymentService exposes Quote / QuoteAsync(Guid fromAccountId, Guid toAccountId, decimal amount) returning the fee, FX rate (1m for same-currency), and rounded CreditedAmount without modifying balances or persisting a Payment.",
+   "source": "specialist:correctness",
+   "confidence": 0.95
+  },
+  {
+   "id": "C02",
+   "dimension": "correctness",
+   "severity": "Blocker",
+   "title": "Payer balance validation bypasses accounts where AllowOverdraft is true",
+   "claim": "PaymentService.PayAsync checks !fromAccount.AllowOverdraft before verifying balance < request.Amount + fee.Amount. If AllowOverdraft is true, the check is skipped, allowing payments when balance < amount + fee contrary to acceptance criteria.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 190,
+   "line_end": 191,
+   "evidence": "            if (!fromAccount.AllowOverdraft && fromAccount.Balance < request.Amount + fee.Amount)\n                throw new InsufficientFundsException(request.FromAccountId);",
+   "evidence_verified": true,
+   "suggested_fix": "Remove !fromAccount.AllowOverdraft and check balance unconditionally: if (fromAccount.Balance < request.Amount + fee.Amount) throw new InsufficientFundsException(request.FromAccountId);",
+   "patch": "",
+   "requirement_link": "When executing a payment, PaymentService checks that the payer account balance is at least amount + fee before posting any ledger transfers; if balance < amount + fee, the payment fails with insufficient funds, no Payment is completed, and zero transfers are posted to either the recipient, FxClearing, or FeeIncome.",
+   "source": "specialist:correctness",
+   "confidence": 0.9
+  },
+  {
+   "id": "A01",
+   "dimension": "architecture",
+   "severity": "ShouldFix",
+   "title": "Redundant constructor tightly couples PaymentService to concrete FeeCalculator",
+   "claim": "PaymentService defines an unrequested constructor overload that directly instantiates new FeeCalculator(fx). This bypasses dependency injection and tightly couples the Payments module directly to a concrete class in the Fees module rather than depending solely on the IFeeCalculator abstraction.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 73,
+   "line_end": 84,
+   "evidence": "    public PaymentService(\n        BankDbContext db,\n        ILedger ledger,\n        IAccountService accounts,\n        ICurrentUser user,\n        IClock clock,\n        BankSettings settings,\n        IFxService fx,\n        IEventBus bus)\n        : this(db, ledger, accounts, user, clock, settings, fx, new FeeCalculator(fx), bus)\n    {\n    }",
+   "evidence_verified": true,
+   "suggested_fix": "Remove the overloaded 8-parameter constructor in PaymentService and require IFeeCalculator to be supplied via the primary 9-parameter constructor.",
+   "patch": "",
+   "requirement_link": "Payment entity adds a decimal Fee property persisted in BankDbContext, and PaymentService accepts IFeeCalculator in its constructor immediately after IFxService.",
+   "source": "specialist:architecture",
+   "confidence": 0.95
+  },
+  {
+   "id": "C03",
+   "dimension": "correctness",
+   "severity": "ShouldFix",
+   "title": "Redundant constructor tightly couples PaymentService to concrete FeeCalculator",
+   "claim": "An unrequested 8-parameter PaymentService constructor instantiates concrete FeeCalculator directly via new FeeCalculator(fx). This bypasses DI abstraction and introduces redundant constructor overloads.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 73,
+   "line_end": 84,
+   "evidence": "    public PaymentService(\n        BankDbContext db,\n        ILedger ledger,\n        IAccountService accounts,\n        ICurrentUser user,\n        IClock clock,\n        BankSettings settings,\n        IFxService fx,\n        IEventBus bus)\n        : this(db, ledger, accounts, user, clock, settings, fx, new FeeCalculator(fx), bus)\n    {\n    }",
+   "evidence_verified": true,
+   "suggested_fix": "Remove the redundant 8-parameter constructor and let DI resolve IFeeCalculator through the primary 9-parameter constructor.",
+   "patch": "",
+   "requirement_link": "Payment entity adds a decimal Fee property persisted in BankDbContext, and PaymentService accepts IFeeCalculator in its constructor immediately after IFxService.",
+   "source": "specialist:correctness",
+   "confidence": 0.85
+  },
+  {
+   "id": "M01",
+   "dimension": "maintainability",
+   "severity": "ShouldFix",
+   "title": "Redundant constructor tightly couples PaymentService to concrete FeeCalculator",
+   "claim": "PaymentService introduces an overloaded constructor that directly instantiates 'new FeeCalculator(fx)'. This bypasses dependency injection and tightly couples the service to a concrete implementation, contradicting the requirement to inject IFeeCalculator.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 73,
+   "line_end": 84,
+   "evidence": "    public PaymentService(\n        BankDbContext db,\n        ILedger ledger,\n        IAccountService accounts,\n        ICurrentUser user,\n        IClock clock,\n        BankSettings settings,\n        IFxService fx,\n        IEventBus bus)\n        : this(db, ledger, accounts, user, clock, settings, fx, new FeeCalculator(fx), bus)\n    {\n    }",
+   "evidence_verified": true,
+   "suggested_fix": "Remove the 8-parameter constructor that instantiates new FeeCalculator(fx) and ensure callers supply IFeeCalculator via the primary 9-parameter constructor.",
+   "patch": "",
+   "requirement_link": "Payment entity adds a decimal Fee property persisted in BankDbContext, and PaymentService accepts IFeeCalculator in its constructor immediately after IFxService.",
+   "source": "specialist:maintainability",
+   "confidence": 0.95
+  },
+  {
+   "id": "T03",
+   "dimension": "tests",
+   "severity": "ShouldFix",
+   "title": "Insufficient funds check covering amount plus fee and fee transfer posting are untested",
+   "claim": "PaymentService.PayAsync checks that balance >= amount + fee and posts a fee transfer to FeeIncome on cross-currency payments, but no tests verify that payments fail when balance covers amount but not amount + fee, or that FeeIncome is credited upon success.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 190,
+   "line_end": 191,
+   "evidence": "            if (!fromAccount.AllowOverdraft && fromAccount.Balance < request.Amount + fee.Amount)\n                throw new InsufficientFundsException(request.FromAccountId);",
+   "evidence_verified": true,
+   "suggested_fix": "Add test cases in payment test suite verifying that a payment fails with InsufficientFundsException when balance < amount + fee, and that fee transfer to FeeIncome is executed when successful.",
+   "patch": "",
+   "requirement_link": "When executing a payment, PaymentService checks that the payer account balance is at least amount + fee before posting any ledger transfers; if balance < amount + fee, the payment fails with insufficient funds, no Payment is completed, and zero transfers are posted to either the recipient, FxClearing, or FeeIncome.",
+   "source": "specialist:tests",
+   "confidence": 0.9
+  },
+  {
+   "id": "T01",
+   "dimension": "tests",
+   "severity": "ShouldFix",
+   "title": "FeeCalculator calculation and clamping logic has no test coverage",
+   "claim": "FeeTests only asserts on a manually created Fee record rather than invoking FeeCalculator.Quote. Core business rules—including 0.2% fee calculation, EUR 0.50 min and EUR 20.00 max FX conversion and clamping, rounding AwayFromZero, same-currency 0 fees, and non-positive amount rejection—are completely untested.",
+   "file": "tests/Bank.Tests/Fees/FeeTests.cs",
+   "line_start": 24,
+   "line_end": 30,
+   "evidence": "    public void Fee_record_allows_zero_fee_for_same_currency()\n    {\n        var fee = new Fee(0m, \"SEK\");\n\n        Assert.Equal(0m, fee.Amount);\n        Assert.Equal(\"SEK\", fee.Currency);\n    }",
+   "evidence_verified": true,
+   "suggested_fix": "Add unit tests exercising FeeCalculator.Quote with a mock or real IFxService to verify same-currency zero fee, cross-currency fee calculation, min/max clamping, rounding, and negative/zero amount validation.",
+   "patch": "",
+   "requirement_link": "IFeeCalculator.Quote(amount, fromCurrency, toCurrency) returns Fee(0m, fromCurrency) when fromCurrency equals toCurrency (case-insensitive).",
+   "source": "specialist:tests",
+   "confidence": 0.95
+  },
+  {
+   "id": "T02",
+   "dimension": "tests",
+   "severity": "ShouldFix",
+   "title": "QuoteAsync and quote endpoint behavior are not tested",
+   "claim": "PaymentQuote_record_preserves_all_fields_and_value_equality tests only record constructor properties rather than IPaymentService.QuoteAsync or PaymentsController.Quote. Behavior such as caller account ownership checks, 404 on missing account, currency rate lookups, and non-persistence of quotes is unverified.",
+   "file": "tests/Bank.Tests/Fees/FeeTests.cs",
+   "line_start": 33,
+   "line_end": 45,
+   "evidence": "    public void PaymentQuote_record_preserves_all_fields_and_value_equality()\n    {\n        var quote = new PaymentQuote(1000m, \"EUR\", 2.00m, 11400.00m, \"SEK\", 11.40m);\n        var same = new PaymentQuote(1000m, \"EUR\", 2.00m, 11400.00m, \"SEK\", 11.40m);\n\n        Assert.Equal(1000m, quote.Amount);\n        Assert.Equal(\"EUR\", quote.Currency);\n        Assert.Equal(2.00m, quote.Fee);\n        Assert.Equal(11400.00m, quote.CreditedAmount);\n        Assert.Equal(\"SEK\", quote.CreditedCurrency);\n        Assert.Equal(11.40m, quote.Rate);\n        Assert.Equal(quote, same);\n    }",
+   "evidence_verified": true,
+   "suggested_fix": "Add unit and integration tests covering PaymentService.QuoteAsync and GET api/payments/quote for valid quotes, non-owner 403, and missing account 404 responses.",
+   "patch": "",
+   "requirement_link": "PaymentQuote(decimal Amount, string Currency, decimal Fee, decimal CreditedAmount, string CreditedCurrency, decimal Rate) is added to Bank.Modules.Payments.Application, and IPaymentService exposes Quote / QuoteAsync(Guid fromAccountId, Guid toAccountId, decimal amount) returning the fee, FX rate (1m for same-currency), and rounded CreditedAmount without modifying balances or persisting a Payment.",
+   "source": "specialist:tests",
+   "confidence": 0.9
+  }
+ ],
+ "areas": [
+  {
+   "area": "What",
+   "status": "human",
+   "reason": "Requirement match is partial: While the core Fees module and quote API structure are implemented, PaymentService.QuoteAsync fails to round CreditedAmount as required, and the balance check before payment execution bypasses accounts that allow overdraft instead of strictly verifying that balance >= amount + fee.",
+   "evidence": []
+  },
+  {
+   "area": "Where",
+   "status": "human",
+   "reason": "Tier HIGH → full human read and 2 sign-off(s) required",
+   "evidence": [
+    "src/Bank.Api/Modules/Fees/Application/Fee.cs: area 'Fees' is high (What the bank charges customers)",
+    "src/Bank.Api/Modules/Fees/Application/FeeCalculator.cs: area 'Fees' is high (What the bank charges customers)",
+    "src/Bank.Api/Modules/Fees/Application/IFeeCalculator.cs: area 'Fees' is high (What the bank charges customers)",
+    "src/Bank.Api/Modules/Fees/FeesModule.cs: area 'Fees' is high (What the bank charges customers)",
+    "src/Bank.Api/Modules/Payments/Api/PaymentsController.cs: area 'Payments' is high (Customer money leaves the account)",
+    "src/Bank.Api/Modules/Payments/Api/PaymentsController.cs: content rule 'authorization attribute changed' matched → high"
+   ]
+  },
+  {
+   "area": "Why",
+   "status": "verified",
+   "reason": "Linked to a requirement",
+   "evidence": []
+  },
+  {
+   "area": "Security",
+   "status": "verified",
+   "reason": "No secrets, no unverified packages, no safety findings",
+   "evidence": []
+  },
+  {
+   "area": "Build",
+   "status": "verified",
+   "reason": "Build succeeded",
+   "evidence": []
+  },
+  {
+   "area": "Tests",
+   "status": "blocked",
+   "reason": "Tests failed",
+   "evidence": [
+    "Failed!  - Failed:     2, Passed:   121, Skipped:     0, Total:   123, Duration: 1 s - Bank.Tests.dll (net10.0)"
+   ]
+  },
+  {
+   "area": "Correctness",
+   "status": "blocked",
+   "reason": "2 Blocker(s)",
+   "evidence": [
+    "C01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:114",
+    "C02 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:190"
+   ]
+  },
+  {
+   "area": "Architecture",
+   "status": "verified",
+   "reason": "No blocking issue; 1 ShouldFix noted (does not hold the merge)",
+   "evidence": [
+    "A01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:73"
+   ]
+  },
+  {
+   "area": "Maintainability",
+   "status": "verified",
+   "reason": "No blocking issue; 1 ShouldFix noted (does not hold the merge)",
+   "evidence": [
+    "M01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:73"
+   ]
+  },
+  {
+   "area": "Performance",
+   "status": "verified",
+   "reason": "No blocking issue",
+   "evidence": []
+  },
+  {
+   "area": "Impact",
+   "status": "verified",
+   "reason": "14 changed member(s); callers covered by tests or none",
+   "evidence": []
+  },
+  {
+   "area": "Requirement",
+   "status": "not_checked",
+   "reason": "Not checked: requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho",
+   "evidence": []
+  }
+ ],
+ "run_id": "20261114-195905-pr-4",
+ "sensors": [
+  {
+   "name": "secret_scan",
+   "result": null,
+   "summary": "No secret patterns in added lines"
+  },
+  {
+   "name": "package_check",
+   "result": null,
+   "summary": "No package references added"
+  },
+  {
+   "name": "test_integrity",
+   "result": null,
+   "summary": "No test files edited"
+  },
+  {
+   "name": "removed_guards",
+   "result": null,
+   "summary": "No validation/guard lines removed"
+  },
+  {
+   "name": "risky_code",
+   "result": null,
+   "summary": "0 pattern hit(s) in added code"
+  },
+  {
+   "name": "dotnet_build",
+   "result": null,
+   "summary": "Build succeeded"
+  },
+  {
+   "name": "dotnet_test",
+   "result": null,
+   "summary": "Tests failed (exit 1)"
+  }
+ ]
+}

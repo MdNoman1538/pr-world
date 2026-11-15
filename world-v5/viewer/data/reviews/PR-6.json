@@ -1,0 +1,290 @@
+{
+ "decision": "BLOCKED",
+ "reason": "Merge locked: Security: Safety Blocker(s) found; Tests: Tests failed; Correctness: 1 Blocker(s) Not checked: Requirement. WARNING: review-policy.yaml is not approved by a named human yet.",
+ "tier": "high",
+ "ai_error": "",
+ "findings": [
+  {
+   "id": "C01",
+   "dimension": "correctness",
+   "severity": "Blocker",
+   "title": "Controller-level Customer policy prevents Staff from calling mature endpoint",
+   "claim": "DepositsController is annotated with [Authorize(Policy = Policies.Customer)] at the class level, which ASP.NET Core applies conjunctively with the action-level [Authorize(Policy = Policies.Staff)] on the Mature endpoint. Consequently, Staff users who do not have the Customer role receive a 403 Forbidden response when attempting to mature deposits.",
+   "file": "src/Bank.Api/Modules/Deposits/Api/DepositsController.cs",
+   "line_start": 26,
+   "line_end": 26,
+   "evidence": "[Authorize(Policy = Policies.Customer)]",
+   "evidence_verified": true,
+   "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from the DepositsController class declaration. The Open and Break endpoints already declare [Authorize(Policy = Policies.Customer)] on their respective actions.",
+   "patch": "",
+   "requirement_link": "Maturing a deposit via POST api/deposits/{id}/mature (Policies.Staff) or IDepositService.MatureAsync performs no owner check and throws InvalidOperationException if the deposit is not Open or if clock.UtcNow < MaturesAt.",
+   "source": "specialist:correctness",
+   "confidence": 0.98
+  },
+  {
+   "id": "S01",
+   "dimension": "safety",
+   "severity": "Blocker",
+   "title": "Controller-level Customer policy blocks Staff access to Mature endpoint",
+   "claim": "In ASP.NET Core, [Authorize] attributes are evaluated additively across class and action levels. Because DepositsController is decorated with [Authorize(Policy = Policies.Customer)], the Mature action decorated with [Authorize(Policy = Policies.Staff)] requires callers to satisfy both policies, returning HTTP 403 Forbidden to staff accounts and preventing staff execution.",
+   "file": "src/Bank.Api/Modules/Deposits/Api/DepositsController.cs",
+   "line_start": 26,
+   "line_end": 26,
+   "evidence": "[Authorize(Policy = Policies.Customer)]",
+   "evidence_verified": true,
+   "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from the class declaration (or replace it with [Authorize] without policy), as Open, Mature, and Break already specify their respective Customer and Staff policies on each action method.",
+   "patch": "",
+   "requirement_link": "Maturing a deposit via POST api/deposits/{id}/mature (Policies.Staff) or IDepositService.MatureAsync performs no owner check and throws InvalidOperationException if the deposit is not Open or if clock.UtcNow < MaturesAt.",
+   "source": "specialist:safety",
+   "confidence": 0.95
+  },
+  {
+   "id": "A01",
+   "dimension": "architecture",
+   "severity": "ShouldFix",
+   "title": "Controller-level Customer authorization policy blocks Staff from mature endpoint",
+   "claim": "In ASP.NET Core, authorization attributes combine additively. Because `[Authorize(Policy = Policies.Customer)]` is declared on DepositsController, the `Mature` action requires both `Policies.Customer` and `Policies.Staff`, which prevents pure Staff users from maturing deposits.",
+   "file": "src/Bank.Api/Modules/Deposits/Api/DepositsController.cs",
+   "line_start": 26,
+   "line_end": 26,
+   "evidence": "[Authorize(Policy = Policies.Customer)]",
+   "evidence_verified": true,
+   "suggested_fix": "Remove `[Authorize(Policy = Policies.Customer)]` from the controller class level (or replace with bare `[Authorize]`), keeping explicit policy checks on individual actions (`Open` and `Break` already specify `Policies.Customer`).",
+   "patch": "",
+   "requirement_link": "Maturing a deposit via POST api/deposits/{id}/mature (Policies.Staff) or IDepositService.MatureAsync performs no owner check and throws InvalidOperationException if the deposit is not Open or if clock.UtcNow < MaturesAt.",
+   "source": "specialist:architecture",
+   "confidence": 0.95
+  },
+  {
+   "id": "C02",
+   "dimension": "correctness",
+   "severity": "ShouldFix",
+   "title": "Unbounded memory growth in DepositLocks ConcurrentDictionary",
+   "claim": "DepositLocks stores a SemaphoreSlim for each deposit ID processed in MatureAsync and BreakAsync but never removes entries. Over the lifetime of the application, this static collection will grow unbounded as term deposits are matured or broken.",
+   "file": "src/Bank.Api/Modules/Deposits/Application/DepositService.cs",
+   "line_start": 24,
+   "line_end": 24,
+   "evidence": "private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> DepositLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Clean up unused semaphores using TryRemove once the lock is released and no other threads are waiting, or use a size-bounded eviction cache.",
+   "patch": "",
+   "requirement_link": "none",
+   "source": "specialist:correctness",
+   "confidence": 0.9
+  },
+  {
+   "id": "P01",
+   "dimension": "performance",
+   "severity": "ShouldFix",
+   "title": "Unbounded memory accumulation in static DepositLocks dictionary",
+   "claim": "DepositLocks stores a SemaphoreSlim instance for every deposit ID passed to MatureAsync or BreakAsync without an eviction or cleanup mechanism. Because entries are added before confirming whether the deposit exists and are never pruned, this results in continuous memory growth over time and creates a potential resource exhaustion vector.",
+   "file": "src/Bank.Api/Modules/Deposits/Application/DepositService.cs",
+   "line_start": 24,
+   "line_end": 24,
+   "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> DepositLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Use keyed lock striping or a size-bounded/sliding cache with eviction, or rely on database-level row locking / concurrency tokens rather than an unbounded static dictionary.",
+   "patch": "",
+   "requirement_link": "none",
+   "source": "specialist:performance",
+   "confidence": 0.95
+  },
+  {
+   "id": "S02",
+   "dimension": "safety",
+   "severity": "ShouldFix",
+   "title": "Static DepositLocks dictionary leaks memory over time",
+   "claim": "DepositService allocates a SemaphoreSlim for each deposit ID into a static ConcurrentDictionary that is never pruned. Every deposit that is matured or broken leaves an entry in memory indefinitely, causing unbounded resource consumption over the application's lifetime.",
+   "file": "src/Bank.Api/Modules/Deposits/Application/DepositService.cs",
+   "line_start": 24,
+   "line_end": 24,
+   "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> DepositLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Rely on database transaction concurrency control (such as concurrency tokens or row versioning) rather than an unbounded in-memory static dictionary, or evict lock entries once transitions complete.",
+   "patch": "",
+   "requirement_link": "Double-payout or race condition: concurrent MatureAsync and BreakAsync calls (or repeated calls) on the same Open deposit could pay out principal or interest twice if state transitions and persistence are not strictly guarded.",
+   "source": "specialist:safety",
+   "confidence": 0.85
+  },
+  {
+   "id": "T02",
+   "dimension": "tests",
+   "severity": "ShouldFix",
+   "title": "DepositsController endpoints and authorization policies have zero test coverage",
+   "claim": "DepositsController defines endpoints with class-level Policies.Customer and action-level Policies.Staff, but has zero test references across the test suite. The combination of class-level Customer policy with action-level Staff policy on Mature risks rejecting Staff callers unless explicitly verified by tests.",
+   "file": "src/Bank.Api/Modules/Deposits/Api/DepositsController.cs",
+   "line_start": 26,
+   "line_end": 27,
+   "evidence": "[Authorize(Policy = Policies.Customer)]\npublic sealed class DepositsController : ControllerBase",
+   "evidence_verified": true,
+   "suggested_fix": "Add controller tests covering Open, Mature, and Break endpoints and verify the correct policies and status codes.",
+   "patch": "",
+   "requirement_link": "Maturing a deposit via POST api/deposits/{id}/mature (Policies.Staff) or IDepositService.MatureAsync performs no owner check and throws InvalidOperationException if the deposit is not Open or if clock.UtcNow < MaturesAt.",
+   "source": "specialist:tests",
+   "confidence": 0.9
+  },
+  {
+   "id": "T03",
+   "dimension": "tests",
+   "severity": "ShouldFix",
+   "title": "No test coverage for non-EUR multi-currency deposit lifecycle",
+   "claim": "All test fixtures hardcode EUR accounts and verify ledger balances only in EUR. The requirement highlights multi-currency ledger routing to DepositHolding and InterestExpense as an operational risk, but non-EUR flows are unexercised.",
+   "file": "tests/Bank.Tests/Deposits/DepositTests.cs",
+   "line_start": 33,
+   "line_end": 33,
+   "evidence": "        var accountId = TestKit.Account(db, \"alice\", 1000m, \"EUR\");",
+   "evidence_verified": true,
+   "suggested_fix": "Add a test scenario creating and maturing a deposit with a non-EUR account (such as USD) to verify multi-currency holding and expense account routing.",
+   "patch": "",
+   "requirement_link": "OpenAsync derives CustomerId from ICurrentUser.UserId and Currency from the source account, transfers principal from accountId to BankAccounts.For(BankAccountKind.DepositHolding, currency) via ILedger.PostTransferAsync",
+   "source": "specialist:tests",
+   "confidence": 0.85
+  },
+  {
+   "id": "T01",
+   "dimension": "tests",
+   "severity": "ShouldFix",
+   "title": "Staff-only maturity enforcement required by acceptance criteria is not tested",
+   "claim": "The acceptance criteria mandate automated xUnit tests verifying Staff-only maturity enforcement. Existing tests only invoke IDepositService.MatureAsync directly using a caller that still has the Customer role, without asserting that non-Staff callers are rejected.",
+   "file": "tests/Bank.Tests/Deposits/DepositTests.cs",
+   "line_start": 185,
+   "line_end": 185,
+   "evidence": "    public async Task Mature_succeeds_without_owner_check_when_called_by_different_user()",
+   "evidence_verified": true,
+   "suggested_fix": "Add an integration or controller test verifying that POST api/deposits/{id}/mature permits Staff callers and returns Forbid or Unauthorized for Customer callers.",
+   "patch": "",
+   "requirement_link": "Automated xUnit tests verify: 3/6/12-month rate mapping and interest rounding half away from zero, principal < 500 and invalid term rejection, owner enforcement on open and break, Staff-only maturity enforcement, rejection of premature maturity, rejection of breaking or maturing an already closed deposit, and ledger balances across Customer, DepositHolding, and InterestExpense accounts.",
+   "source": "specialist:tests",
+   "confidence": 0.95
+  }
+ ],
+ "areas": [
+  {
+   "area": "What",
+   "status": "human",
+   "reason": "Requirement match is partial: While domain logic and service layer operations align well with the specification, the HTTP controller applies Policies.Customer at the class level. In ASP.NET Core, class-level authorization applies conjunctively with action-level authorization, preventing Staff users from calling the Staff-only POST api/deposits/{id}/mature endpoint unless they also have Customer credentials. This also explains test failures on staff maturity enforcement.",
+   "evidence": []
+  },
+  {
+   "area": "Where",
+   "status": "human",
+   "reason": "Tier HIGH → full human read and 2 sign-off(s) required",
+   "evidence": [
+    "src/Bank.Api/Data/BankDbContext.cs: area 'Platform' is high (Database schema, wiring and bank-wide settings touch every module)",
+    "src/Bank.Api/Modules/Deposits/Api/DepositsController.cs: area 'Deposits' is medium (Savings and interest)",
+    "src/Bank.Api/Modules/Deposits/Api/DepositsController.cs: content rule 'authorization attribute changed' matched → high",
+    "src/Bank.Api/Modules/Deposits/Application/DepositService.cs: area 'Deposits' is medium (Savings and interest)",
+    "src/Bank.Api/Modules/Deposits/DepositsModule.cs: area 'Deposits' is medium (Savings and interest)",
+    "src/Bank.Api/Modules/Deposits/Domain/TermDeposit.cs: area 'Deposits' is medium (Savings and interest)"
+   ]
+  },
+  {
+   "area": "Why",
+   "status": "verified",
+   "reason": "Linked to a requirement",
+   "evidence": []
+  },
+  {
+   "area": "Security",
+   "status": "blocked",
+   "reason": "Safety Blocker(s) found",
+   "evidence": [
+    "S01 src/Bank.Api/Modules/Deposits/Api/DepositsController.cs:26"
+   ]
+  },
+  {
+   "area": "Build",
+   "status": "verified",
+   "reason": "Build succeeded",
+   "evidence": []
+  },
+  {
+   "area": "Tests",
+   "status": "blocked",
+   "reason": "Tests failed",
+   "evidence": [
+    "Failed!  - Failed:     2, Passed:   171, Skipped:     0, Total:   173, Duration: 1 s - Bank.Tests.dll (net10.0)"
+   ]
+  },
+  {
+   "area": "Correctness",
+   "status": "blocked",
+   "reason": "1 Blocker(s)",
+   "evidence": [
+    "C01 src/Bank.Api/Modules/Deposits/Api/DepositsController.cs:26"
+   ]
+  },
+  {
+   "area": "Architecture",
+   "status": "verified",
+   "reason": "No blocking issue; 1 ShouldFix noted (does not hold the merge)",
+   "evidence": [
+    "A01 src/Bank.Api/Modules/Deposits/Api/DepositsController.cs:26"
+   ]
+  },
+  {
+   "area": "Maintainability",
+   "status": "verified",
+   "reason": "No blocking issue",
+   "evidence": []
+  },
+  {
+   "area": "Performance",
+   "status": "verified",
+   "reason": "No blocking issue; 1 ShouldFix noted (does not hold the merge)",
+   "evidence": [
+    "P01 src/Bank.Api/Modules/Deposits/Application/DepositService.cs:24"
+   ]
+  },
+  {
+   "area": "Impact",
+   "status": "verified",
+   "reason": "39 changed member(s); callers covered by tests or none",
+   "evidence": []
+  },
+  {
+   "area": "Requirement",
+   "status": "not_checked",
+   "reason": "Not checked: requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho",
+   "evidence": []
+  }
+ ],
+ "run_id": "20261114-201352-pr-6",
+ "sensors": [
+  {
+   "name": "secret_scan",
+   "result": null,
+   "summary": "No secret patterns in added lines"
+  },
+  {
+   "name": "package_check",
+   "result": null,
+   "summary": "No package references added"
+  },
+  {
+   "name": "test_integrity",
+   "result": null,
+   "summary": "No test files edited"
+  },
+  {
+   "name": "removed_guards",
+   "result": null,
+   "summary": "No validation/guard lines removed"
+  },
+  {
+   "name": "risky_code",
+   "result": null,
+   "summary": "0 pattern hit(s) in added code"
+  },
+  {
+   "name": "dotnet_build",
+   "result": null,
+   "summary": "Build succeeded"
+  },
+  {
+   "name": "dotnet_test",
+   "result": null,
+   "summary": "Tests failed (exit 1)"
+  }
+ ]
+}

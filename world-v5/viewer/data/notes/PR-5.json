@@ -1,0 +1,3411 @@
+{
+ "pr": "PR-5",
+ "findings": [
+  {
+   "id": "C01",
+   "severity": "Blocker",
+   "title": "Class-level Customer authorization policy blocks Staff access to Authorise endpoint",
+   "dimension": "correctness"
+  },
+  {
+   "id": "S01",
+   "severity": "Blocker",
+   "title": "Class-level Customer authorization policy blocks Staff from payment authorisation",
+   "dimension": "safety"
+  },
+  {
+   "id": "A01",
+   "severity": "ShouldFix",
+   "title": "Ad-hoc static in-memory account locking introduces memory leak and ineffective concurrency control",
+   "dimension": "architecture"
+  },
+  {
+   "id": "P01",
+   "severity": "ShouldFix",
+   "title": "Static AccountLocks dictionary grows indefinitely, leaking SemaphoreSlim instances",
+   "dimension": "performance"
+  },
+  {
+   "id": "S02",
+   "severity": "ShouldFix",
+   "title": "Debit card numbers generated using cryptographically weak PRNG",
+   "dimension": "safety"
+  },
+  {
+   "id": "T01",
+   "severity": "ShouldFix",
+   "title": "CardsController and HTTP endpoints have zero test coverage",
+   "dimension": "tests"
+  },
+  {
+   "id": "T02",
+   "severity": "ShouldFix",
+   "title": "Overly broad exception assertion in AuthoriseAsync negative amount test",
+   "dimension": "tests"
+  }
+ ],
+ "source": "ai",
+ "model": "gemini-4-hydrogen",
+ "headline": "Implements the Debit Cards module for card issuance, lifecycle management, and payment authorisation.",
+ "summary": "Adds the Cards module with API endpoints, CardService business logic, Card domain entity and events, database table, and DI registration. Customers can issue, freeze, unfreeze, and cancel their cards, while staff can authorise card payments against status, a 2000 per-transaction limit, and account funds via the ledger.",
+ "business": "Customers gain debit card issuance and self-service freeze, unfreeze, and cancellation controls with masked card numbers in responses. Staff can authorise card payments up to a fixed 2000 limit per transaction, rounding amounts away from zero and moving authorised funds into a Suspense account.",
+ "business_impact": "high",
+ "notes": {
+  "P:Bank.Data.BankDbContext.Cards": {
+   "changed": "Adds the Cards dataset to BankDbContext so debit card records persist in the database.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Cards.Api.IssueCardRequest": {
+   "changed": "API input payload containing the account ID for card issuance.",
+   "changed_facts": "New record with 2 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Api.IssueCardRequest.#ctor(System.Guid)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Cards.Api.IssueCardRequest.AccountId": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Cards.Api.AuthoriseCardRequest": {
+   "changed": "API input payload containing the payment amount and merchant name for authorisation.",
+   "changed_facts": "New record with 3 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Api.AuthoriseCardRequest.#ctor(System.Decimal,System.String)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Cards.Api.AuthoriseCardRequest.Amount": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Api.AuthoriseCardRequest.Merchant": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Cards.Api.CardDto": {
+   "changed": "API output payload exposing card ID, account, customer, last four digits, status, and transaction limit.",
+   "changed_facts": "New record with 7 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Api.CardDto.#ctor(System.Guid,System.Guid,System.String,System.String,Bank.Modules.Cards.Domain.CardStatus,System.Decimal)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Cards.Api.CardDto.Id": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Api.CardDto.AccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Api.CardDto.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Api.CardDto.Last4": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Api.CardDto.Status": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Api.CardDto.PerTransactionLimit": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Cards.Api.CardsController": {
+   "changed": "Provides HTTP endpoints for debit card issuance, status changes, and payment authorisation.",
+   "changed_facts": "New class with 13 member(s).",
+   "changed_src": "ai"
+  },
+  "F:Bank.Modules.Cards.Api.CardsController._cards": {
+   "changed": "New field."
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.#ctor(Bank.Modules.Cards.Application.ICardService)": {
+   "changed": "New ctor."
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)": {
+   "changed": "Issues a debit card for the requested account and maps domain or ownership errors to HTTP status codes.",
+   "changed_facts": "New method. Now calls CardsController.ToDto(), calls ICardService.IssueAsync().",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "Freezes the requested card and returns its masked DTO representation.",
+   "changed_facts": "New method. Now calls CardsController.ToDto(), calls ICardService.FreezeAsync().",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "Unfreezes the requested card and returns its masked DTO representation.",
+   "changed_facts": "New method. Now calls CardsController.ToDto(), calls ICardService.UnfreezeAsync().",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Cancel(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "Cancels the requested card and returns its masked DTO representation.",
+   "changed_facts": "New method. Now calls CardsController.ToDto(), calls ICardService.CancelAsync().",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Authorise(System.Guid,Bank.Modules.Cards.Api.AuthoriseCardRequest,System.Threading.CancellationToken)": {
+   "changed": "Staff-only endpoint that authorises a payment against a card and returns the authorisation result.",
+   "changed_facts": "New method. Now calls ICardService.AuthoriseAsync().",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)": {
+   "changed": "Maps a Card entity to CardDto, returning only the last four digits instead of the full card number.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Cards.Application.CardAuthorisation": {
+   "changed": "Response record indicating payment approval, optional decline reason, and optional ledger transfer ID.",
+   "changed_facts": "New record with 4 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Application.CardAuthorisation.#ctor(System.Boolean,System.String,System.Nullable{System.Guid})": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Cards.Application.CardAuthorisation.Approved": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Application.CardAuthorisation.DeclineReason": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Application.CardAuthorisation.TransferId": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Cards.Application.ICardService": {
+   "changed": "Service contract for issuing, freezing, unfreezing, cancelling, and authorising payments on debit cards.",
+   "changed_facts": "New interface with 5 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Application.ICardService.IssueAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Cards.Application.ICardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Cards.Application.ICardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Cards.Application.ICardService.CancelAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Cards.Application.ICardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Cards.Application.CardService": {
+   "changed": "New class with 15 member(s)."
+  },
+  "F:Bank.Modules.Cards.Application.CardService.AccountLocks": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Cards.Application.CardService._db": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Cards.Application.CardService._ledger": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Cards.Application.CardService._accounts": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Cards.Application.CardService._user": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Cards.Application.CardService._clock": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Cards.Application.CardService._bus": {
+   "changed": "New field."
+  },
+  "M:Bank.Modules.Cards.Application.CardService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": {
+   "changed": "New ctor."
+  },
+  "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "Verifies account ownership, creates an active card with a 2000 limit, saves it, and publishes CardIssued.",
+   "changed_facts": "New method. Now calls IAccountService.IsOwnerAsync(), calls CardService.GenerateCardNumber(), calls IEventBus.PublishAsync(), publishes CardIssued….",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Application.CardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "Verifies card ownership, freezes the card, and persists the updated status.",
+   "changed_facts": "New method. Now calls CardService.GetOwnedCardAsync(), calls Card.Freeze().",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Application.CardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "Verifies card ownership, reactivates the card, and persists the updated status.",
+   "changed_facts": "New method. Now calls CardService.GetOwnedCardAsync(), calls Card.Unfreeze().",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Application.CardService.CancelAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "Verifies card ownership, permanently cancels the card, and persists the updated status.",
+   "changed_facts": "New method. Now calls CardService.GetOwnedCardAsync(), calls Card.Cancel().",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "changed": "Rounds positive amounts, declines inactive or over-limit cards with events, and posts a ledger transfer to Suspense under an account lock.",
+   "changed_facts": "New method. Now calls IAccountService.GetAsync(), calls ILedger.PostTransferAsync(), calls BankAccounts.For(), calls IEventBus.PublishAsync()….",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Application.CardService.GetOwnedCardAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "Loads a card by ID and rejects callers who do not own it.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Application.CardService.GenerateCardNumber": {
+   "changed": "Generates a 16-digit card number starting with 4 using random digits.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Cards.CardsModule": {
+   "changed": "New class with 1 member(s)."
+  },
+  "M:Bank.Modules.Cards.CardsModule.AddCardsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "changed": "Registers CardService as the scoped implementation of ICardService.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Cards.Domain.CardStatus": {
+   "changed": "Defines the Active, Frozen, and Cancelled states for a debit card.",
+   "changed_facts": "New enum with 3 member(s).",
+   "changed_src": "ai"
+  },
+  "F:Bank.Modules.Cards.Domain.CardStatus.Active": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Cards.Domain.CardStatus.Frozen": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Cards.Domain.CardStatus.Cancelled": {
+   "changed": "New field."
+  },
+  "T:Bank.Modules.Cards.Domain.Card": {
+   "changed": "Defines the debit card entity holding account, customer, card number, last four digits, status, and transaction limit.",
+   "changed_facts": "New class with 11 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Domain.Card.#ctor": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Cards.Domain.Card.Id": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.Card.AccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.Card.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.Card.Number": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.Card.Last4": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.Card.Status": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.Card.PerTransactionLimit": {
+   "changed": "New property."
+  },
+  "M:Bank.Modules.Cards.Domain.Card.Freeze": {
+   "changed": "Moves a non-cancelled card to Frozen status and rejects attempts on cancelled cards.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Domain.Card.Unfreeze": {
+   "changed": "Restores a non-cancelled card to Active status and rejects attempts on cancelled cards.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Domain.Card.Cancel": {
+   "changed": "Permanently sets card status to Cancelled and rejects repeated cancellation.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Cards.Domain.CardIssued": {
+   "changed": "Domain event emitted with card ID, customer ID, last four digits, and timestamp on issuance.",
+   "changed_facts": "New record with 5 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Domain.CardIssued.#ctor(System.Guid,System.String,System.String,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Cards.Domain.CardIssued.CardId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.CardIssued.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.CardIssued.Last4": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.CardIssued.OccurredAt": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Cards.Domain.CardPaymentAuthorised": {
+   "changed": "Domain event recording an approved payment's card ID, amount, currency, merchant, and timestamp.",
+   "changed_facts": "New record with 6 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Domain.CardPaymentAuthorised.#ctor(System.Guid,System.Decimal,System.String,System.String,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Cards.Domain.CardPaymentAuthorised.CardId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.CardPaymentAuthorised.Amount": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.CardPaymentAuthorised.Currency": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.CardPaymentAuthorised.Merchant": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.CardPaymentAuthorised.OccurredAt": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Cards.Domain.CardPaymentDeclined": {
+   "changed": "Domain event recording a declined payment's card ID, decline reason, and timestamp.",
+   "changed_facts": "New record with 4 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Cards.Domain.CardPaymentDeclined.#ctor(System.Guid,System.String,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Cards.Domain.CardPaymentDeclined.CardId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.CardPaymentDeclined.Reason": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Cards.Domain.CardPaymentDeclined.OccurredAt": {
+   "changed": "New property."
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "changed": "Registers the Cards module services in the application host startup pipeline.",
+   "changed_facts": "Modified (lines 5, 31).",
+   "changed_src": "ai"
+  },
+  "table:Cards.Id": {
+   "changed": "New column."
+  },
+  "table:Cards.AccountId": {
+   "changed": "New column."
+  },
+  "table:Cards.CustomerId": {
+   "changed": "New column."
+  },
+  "table:Cards.Number": {
+   "changed": "New column."
+  },
+  "table:Cards.Last4": {
+   "changed": "New column."
+  },
+  "table:Cards.Status": {
+   "changed": "New column."
+  },
+  "table:Cards.PerTransactionLimit": {
+   "changed": "New column."
+  },
+  "endpoint:POST /api/cards": {
+   "changed": "HTTP endpoint to issue a debit card for an account.",
+   "changed_facts": "New endpoint.",
+   "changed_src": "ai"
+  },
+  "endpoint:POST /api/cards/{id:guid}/freeze": {
+   "changed": "HTTP endpoint to freeze an existing debit card.",
+   "changed_facts": "New endpoint.",
+   "changed_src": "ai"
+  },
+  "endpoint:POST /api/cards/{id:guid}/unfreeze": {
+   "changed": "HTTP endpoint to unfreeze a frozen debit card.",
+   "changed_facts": "New endpoint.",
+   "changed_src": "ai"
+  },
+  "endpoint:POST /api/cards/{id:guid}/cancel": {
+   "changed": "HTTP endpoint to permanently cancel a debit card.",
+   "changed_facts": "New endpoint.",
+   "changed_src": "ai"
+  },
+  "endpoint:POST /api/cards/{id:guid}/authorise": {
+   "changed": "Staff-protected HTTP endpoint to authorise a debit card payment.",
+   "changed_facts": "New endpoint.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Data.BankDbContext": {
+   "changed": "added Cards."
+  },
+  "module:Platform": {
+   "changed": "Classes: 2 changed (BankDbContext, Program).",
+   "affected": "3 part(s) are reached by it: PublishAsync, DefaultCurrency, DailyTransferLimit."
+  },
+  "module:Cards": {
+   "changed": "Classes: 13 new (IssueCardRequest, AuthoriseCardRequest, CardDto, CardsController…)."
+  },
+  "T:Program": {
+   "changed": "modified <Main>$."
+  },
+  "table:Cards": {
+   "changed": "New database table storing debit card identities, full and masked numbers, status, and transaction limits.",
+   "changed_facts": "added Id, AccountId, CustomerId, Number, Last4.",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "affected": "Reached by the change through CardService.AuthoriseAsync() (calls), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "affected": "Reached by the change through CardService.AuthoriseAsync() (uses), 1 hop(s)."
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "affected": "Reached by the change through CardTests.CreateSut() (uses), 1 hop(s)."
+  },
+  "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)": {
+   "affected": "Reached by the change through CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number() (calls), 1 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IAccountService.IsOwnerAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IEventBus.PublishAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IAccountService.GetAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through ILedger.PostTransferAsync() (resolves), 2 hop(s)."
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "affected": "Reached by the change through TestKit.Settings() (uses), 2 hop(s)."
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "affected": "Reached by the change through TestKit.Settings() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "affected": "Reached by the change through TestKit.Account() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "affected": "Reached by the change through TestKit.Account() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "affected": "Reached by the change through TestKit.Account() (uses), 2 hop(s)."
+  },
+  "M:Bank.Modules.Audit.Application.AuditLog.IsPiiParameter(System.Type,System.String)": {
+   "affected": "Reached by the change through AuditLog.Redact() (calls), 2 hop(s)."
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "affected": "Reached by the change through Ledger.PostTransferAsync() (uses), 3 hop(s)."
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "affected": "Reached by the change through Ledger.PostTransferAsync() (uses), 3 hop(s)."
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IEventHandler.HandleAsync() (resolves), 4 hop(s)."
+  },
+  "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+   "affected": "Reached via CardService.AuthoriseAsync calling BankAccounts.For to resolve the currency-specific Suspense account.",
+   "affected_facts": "1 part(s) are reached by it: For.",
+   "affected_src": "ai"
+  },
+  "module:Ledger": {
+   "affected": "4 part(s) are reached by it: For, PostTransferAsync, Currency, Reference."
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "affected": "Account currency is read during card payment authorisation and account fields are used by test setup.",
+   "affected_facts": "4 part(s) are reached by it: Currency, OwnerId, Iban, Id.",
+   "affected_src": "ai"
+  },
+  "module:Accounts": {
+   "affected": "6 part(s) are reached by it: Currency, IsOwnerAsync, GetAsync, OwnerId…."
+  },
+  "T:Bank.Modules.Auth.Roles": {
+   "affected": "Customer role is referenced by the card module test setup.",
+   "affected_facts": "1 part(s) are reached by it: Customer.",
+   "affected_src": "ai"
+  },
+  "module:Auth": {
+   "affected": "1 part(s) are reached by it: Customer."
+  },
+  "T:Bank.Modules.Audit.Application.AuditLog": {
+   "affected": "Reached by card tests verifying PII parameter redaction on full card numbers.",
+   "affected_facts": "2 part(s) are reached by it: Redact, IsPiiParameter.",
+   "affected_src": "ai"
+  },
+  "module:Audit": {
+   "affected": "3 part(s) are reached by it: Redact, IsPiiParameter, HandleAsync."
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "affected": "Invoked via IAccountService to check account ownership during issuance and load account details during authorisation.",
+   "affected_facts": "2 part(s) are reached by it: IsOwnerAsync, GetAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "affected": "Invoked via IEventBus when CardService publishes CardIssued and CardPaymentDeclined events.",
+   "affected_facts": "1 part(s) are reached by it: PublishAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Ledger.Application.Ledger": {
+   "affected": "Invoked via ILedger when CardService.AuthoriseAsync posts payment transfers to Suspense.",
+   "affected_facts": "1 part(s) are reached by it: PostTransferAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Shared.Settings.BankSettings": {
+   "affected": "Default currency and transfer limit settings are referenced by card test helpers.",
+   "affected_facts": "2 part(s) are reached by it: DefaultCurrency, DailyTransferLimit.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+   "affected": "Entry currency and payment reference are populated through Ledger.PostTransferAsync during card authorisation.",
+   "affected_facts": "2 part(s) are reached by it: Currency, Reference.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+   "affected": "Resolved via IEventHandler when card domain events are dispatched through the event bus.",
+   "affected_facts": "1 part(s) are reached by it: HandleAsync.",
+   "affected_src": "ai"
+  }
+ },
+ "verdict": {
+  "label": "fix",
+  "reasons": [
+   {
+    "kind": "critical",
+    "level": "fix",
+    "text": "Class-level Customer authorization policy blocks Staff access to Authorise endpoint",
+    "finding": "C01",
+    "node": "T:Bank.Modules.Cards.Api.CardsController",
+    "detail": "no failing test reaches it",
+    "tests": [],
+    "claim": "CardsController is decorated with [Authorize(Policy = Policies.Customer)] at the class level, while Authorise is decorated with [Authorize(Policy = Policies.Staff)]. In ASP.NET Core, controller- and action-level authorization attributes are evaluated conjunctively (logical AND), so Authorise requires both Customer and Staff policies. Staff or card-network callers lacking the Customer policy will receive HTTP 403 Forbidden.",
+    "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from the CardsController class and place [Authorize(Policy = Policies.Customer)] individually on Issue, Freeze, Unfreeze, and Cancel.",
+    "file": "src/Bank.Api/Modules/Cards/Api/CardsController.cs",
+    "line_start": 17,
+    "evidence": "[Authorize(Policy = Policies.Customer)]",
+    "evidence_verified": true,
+    "dimension": "correctness",
+    "severity": "Blocker",
+    "say": "Staff and card-network payment authorisations will be rejected as forbidden because the controller requires both customer and staff permissions at once. Ask the author to move customer-only permissions onto individual endpoints.",
+    "say_facts": "Staff or card-network callers lacking the Customer policy will receive HTTP 403 Forbidden. Ask for a fix before merging.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "critical",
+    "level": "fix",
+    "text": "Class-level Customer authorization policy blocks Staff from payment authorisation",
+    "finding": "S01",
+    "node": "T:Bank.Modules.Cards.Api.CardsController",
+    "detail": "no failing test reaches it",
+    "tests": [],
+    "claim": "CardsController is decorated with `[Authorize(Policy = Policies.Customer)]` at class level. In ASP.NET Core, action-level Authorize attributes are additive to class-level attributes, requiring callers of `Authorise` to satisfy both Customer and Staff policies simultaneously. Staff callers and card-network callers without Customer credentials will be denied with HTTP 403 Forbidden.",
+    "suggested_fix": "Remove `[Authorize(Policy = Policies.Customer)]` from the controller class declaration and apply it explicitly to `Issue`, `Freeze`, `Unfreeze`, and `Cancel`, leaving `Authorise` restricted only to `Policies.Staff`.",
+    "file": "src/Bank.Api/Modules/Cards/Api/CardsController.cs",
+    "line_start": 17,
+    "evidence": "[Authorize(Policy = Policies.Customer)]\npublic sealed class CardsController : ControllerBase",
+    "evidence_verified": true,
+    "dimension": "safety",
+    "severity": "Blocker",
+    "say": "Payment authorisation requests from staff or card networks will fail with forbidden errors because callers are forced to hold both customer and staff roles. Verify permissions are separated per endpoint.",
+    "say_facts": "Staff callers and card-network callers without Customer credentials will be denied with HTTP 403 Forbidden. Ask for a fix before merging.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "business",
+    "level": "check",
+    "text": "High business impact",
+    "detail": "Customers gain debit card issuance and self-service freeze, unfreeze, and cancellation controls with masked card numbers in responses. Staff can authorise card payments up to a fixed 2000 limit per transaction, rounding amounts away from zero and moving authorised funds into a Suspense account.",
+    "say": "Customers can now issue, freeze, unfreeze, and cancel debit cards, while staff can authorise payments up to 2,000 into suspense. Confirm these limits, rounding, and card masking match bank policy.",
+    "say_facts": "This change has a high impact on customers or money: Customers gain debit card issuance and self-service freeze, unfreeze, and cancellation controls with masked card numbers in responses. Staff can authorise card payments up to a fixed 2000 limit per transaction, rounding amounts away from zero and moving authorised funds into a Suspense account. Confirm the business owner agrees.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Ad-hoc static in-memory account locking introduces memory leak and ineffective concurrency control",
+    "finding": "A01",
+    "node": "F:Bank.Modules.Cards.Application.CardService.AccountLocks",
+    "detail": "architecture",
+    "claim": "CardService introduces a static unbounded ConcurrentDictionary to lock account IDs during payment authorisation. This leaks SemaphoreSlim instances permanently in memory across the process lifecycle and provides no synchronization across multi-instance deployments; ledger operations should rely on database and ledger transactional guarantees.",
+    "suggested_fix": "Remove AccountLocks and rely on ILedger.PostTransferAsync and database transactional/concurrency mechanisms to handle transfer concurrency.",
+    "file": "src/Bank.Api/Modules/Cards/Application/CardService.cs",
+    "line_start": 27,
+    "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> AccountLocks = new();",
+    "evidence_verified": true,
+    "dimension": "architecture",
+    "severity": "ShouldFix",
+    "say": "In-memory locking leaks memory over time and fails to prevent double-spending across multiple server instances. Ask the author to rely on database and ledger transactions instead of in-memory locks in CardService.",
+    "say_facts": "This leaks SemaphoreSlim instances permanently in memory across the process lifecycle and provides no synchronization across multi-instance deployments; ledger operations should rely on database and ledger transactional guarantees. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Static AccountLocks dictionary grows indefinitely, leaking SemaphoreSlim instances",
+    "finding": "P01",
+    "node": "F:Bank.Modules.Cards.Application.CardService.AccountLocks",
+    "detail": "performance",
+    "claim": "AccountLocks stores a SemaphoreSlim instance for every account processed by AuthoriseAsync in a static ConcurrentDictionary without eviction or cleanup. In a long-running service processing authorisations across many customer accounts, this dictionary grows monotonically and permanently retains SemaphoreSlim objects in memory.",
+    "suggested_fix": "Remove in-memory static semaphore locks in favor of database/ledger concurrency controls, or utilize a bounded/evicting lock manager to prevent unbounded memory growth.",
+    "file": "src/Bank.Api/Modules/Cards/Application/CardService.cs",
+    "line_start": 27,
+    "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> AccountLocks = new();",
+    "evidence_verified": true,
+    "dimension": "performance",
+    "severity": "ShouldFix",
+    "say": "Storing an uncleaned lock per account in CardService causes memory usage to grow endlessly, risking service crashes during busy payment periods. Ask how locks will be evicted or removed.",
+    "say_facts": "In a long-running service processing authorisations across many customer accounts, this dictionary grows monotonically and permanently retains SemaphoreSlim objects in memory. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Debit card numbers generated using cryptographically weak PRNG",
+    "finding": "S02",
+    "node": "M:Bank.Modules.Cards.Application.CardService.GenerateCardNumber",
+    "detail": "safety",
+    "claim": "Card numbers are sensitive financial identifiers generated using `Random.Shared`. Because `Random.Shared` is a non-cryptographic PRNG, an attacker observing generated card numbers could determine internal PRNG state and predict card numbers issued to other users.",
+    "suggested_fix": "Use `System.Security.Cryptography.RandomNumberGenerator.GetInt64(0, 1_000_000_000_000_000L)` instead of `Random.Shared` to generate unpredictable card numbers.",
+    "file": "src/Bank.Api/Modules/Cards/Application/CardService.cs",
+    "line_start": 180,
+    "evidence": "    private static string GenerateCardNumber() =>\n        \"4\" + Random.Shared.NextInt64(0, 1_000_000_000_000_000L).ToString(\"D15\");",
+    "evidence_verified": true,
+    "dimension": "safety",
+    "severity": "ShouldFix",
+    "say": "Using a predictable number generator could let attackers guess other customers' debit card numbers and steal funds. Ask the author to switch to a cryptographically secure random generator.",
+    "say_facts": "Because `Random.Shared` is a non-cryptographic PRNG, an attacker observing generated card numbers could determine internal PRNG state and predict card numbers issued to other users. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "CardsController and HTTP endpoints have zero test coverage",
+    "finding": "T01",
+    "node": "T:Bank.Modules.Cards.Api.CardsController",
+    "detail": "tests",
+    "claim": "CardsController and its endpoints (Issue, Freeze, Unfreeze, Cancel, Authorise) have no test references. Route handling, status code mappings (e.g., Forbid on UnauthorizedAccessException), authorization policies (Customer vs Staff), and DTO response masking are not verified by tests.",
+    "suggested_fix": "Add integration or controller tests verifying route mapping, policy enforcement (Customer and Staff policies), DTO responses, and HTTP status codes.",
+    "file": "src/Bank.Api/Modules/Cards/Api/CardsController.cs",
+    "line_start": 15,
+    "evidence": "[ApiController]\n[Route(\"api/cards\")]\n[Authorize(Policy = Policies.Customer)]\npublic sealed class CardsController : ControllerBase",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "Card HTTP endpoints have no tests, leaving routing, card-number masking, and access controls unverified for customers and staff. Ask the author to add endpoint tests covering permissions and responses.",
+    "say_facts": "Route handling, status code mappings (e.g., Forbid on UnauthorizedAccessException), authorization policies (Customer vs Staff), and DTO response masking are not verified by tests. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Overly broad exception assertion in AuthoriseAsync negative amount test",
+    "finding": "T02",
+    "node": "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(System.Decimal)",
+    "detail": "tests",
+    "claim": "The test asserts ThrowsAnyAsync<Exception> instead of the specific ArgumentOutOfRangeException thrown by CardService. AuthoriseAsync. This allows any unintended failure (such as NullReferenceException or KeyNotFoundException) to pass unnoticed.",
+    "suggested_fix": "Replace Assert.ThrowsAnyAsync<Exception> with Assert.ThrowsAsync<ArgumentOutOfRangeException>.",
+    "file": "tests/Bank.Tests/Cards/CardTests.cs",
+    "line_start": 253,
+    "evidence": "        await Assert.ThrowsAnyAsync<Exception>(() => service.AuthoriseAsync(card.Id, amount, \"Merchant\"));",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "The negative-amount payment test accepts any error, so real bugs could slip into production unnoticed. Ask the author to assert the exact expected validation error in that test.",
+    "say_facts": "This allows any unintended failure (such as NullReferenceException or KeyNotFoundException) to pass unnoticed. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "untested",
+    "level": "check",
+    "text": "12 changed method(s) have no usable test evidence",
+    "nodes": [
+     "M:Bank.Modules.Cards.Api.CardsController.#ctor(Bank.Modules.Cards.Application.ICardService)",
+     "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Cards.Api.CardsController.Cancel(System.Guid,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Cards.Api.CardsController.Authorise(System.Guid,Bank.Modules.Cards.Api.AuthoriseCardRequest,System.Threading.CancellationToken)"
+    ],
+    "detail": "CardsController.CardsController(), CardsController.Issue(), CardsController.Freeze(), CardsController.Unfreeze()",
+    "say": "Twelve changed methods, including card issuance, freeze, and unfreeze endpoints in CardsController, lack test evidence. Ask for test coverage proving customer actions and access rules behave safely.",
+    "say_facts": "12 changed parts of the code are not covered by any working test. Read them yourself or ask for tests.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "reviewer",
+    "level": "check",
+    "text": "Reviewer asks a human to check What",
+    "detail": "Requirement match is partial: While domain entities, events, and CardService business logic largely match the specification, placing [Authorize(Policy = Policies.Customer)] at the CardsController class level forces Authorise to require both Customer and Staff policies, preventing Staff/network callers from accessing the authorisation endpoint. In addition, the automated test suite failed execution",
+    "say": "Authorisation permissions block staff from approving payments and the automated test suite failed to run. Check that endpoint permissions are fixed and confirm all tests pass before signing.",
+    "say_facts": "The reviewer is not sure the change does everything the requirement asks. Compare the change with the requirement.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "reviewer",
+    "level": "check",
+    "text": "Reviewer asks a human to check Where",
+    "detail": "Tier HIGH → full human read and 2 sign-off(s) required",
+    "say": "This high-risk payment change requires a full code read and two human sign-offs before merging. Ensure a second reviewer completes a thorough check of the card and ledger flows.",
+    "say_facts": "The change touches a sensitive part of the bank. Check that only the intended places changed.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "not_checked",
+    "level": "info",
+    "text": "Not checked at this coverage level: Requirement",
+    "say": "Not checked (switched off by the team's coverage level, or did not run): Requirement. Not counted as passed; trust cannot be High."
+   },
+   {
+    "kind": "inherited",
+    "level": "info",
+    "text": "2 failing case(s) already failed before this PR (in PR-4): not counted here",
+    "say": "2 failing test case(s) were already failing before this PR (in PR-4); they are not held against it."
+   }
+  ],
+  "risk_areas": [
+   {
+    "module": "Cards",
+    "why": "Card payments and card numbers"
+   },
+   {
+    "module": "Platform",
+    "why": "Database schema, wiring and bank-wide settings touch every module"
+   }
+  ],
+  "reviewer_gate": "BLOCKED",
+  "failures": {
+   "new": 0,
+   "broken": 0,
+   "inherited": 2,
+   "cases_failed": 2
+  }
+ },
+ "units": {
+  "M:Bank.Modules.Cards.Api.CardsController.#ctor(Bank.Modules.Cards.Application.ICardService)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Cancel(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Authorise(System.Guid,Bank.Modules.Cards.Api.AuthoriseCardRequest,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "F:Bank.Modules.Cards.Application.CardService.AccountLocks": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [
+    {
+     "id": "A01",
+     "severity": "ShouldFix",
+     "title": "Ad-hoc static in-memory account locking introduces memory leak and ineffective concurrency control",
+     "file": "src/Bank.Api/Modules/Cards/Application/CardService.cs",
+     "line_start": 27,
+     "dimension": "architecture"
+    },
+    {
+     "id": "P01",
+     "severity": "ShouldFix",
+     "title": "Static AccountLocks dictionary grows indefinitely, leaking SemaphoreSlim instances",
+     "file": "src/Bank.Api/Modules/Cards/Application/CardService.cs",
+     "line_start": 27,
+     "dimension": "performance"
+    }
+   ],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Application.CardService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Application.CardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+     "Lifecycle_operations_reject_non_owner_without_changing_status"
+    ],
+    "passed_n": 5,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Application.CardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+     "Lifecycle_operations_reject_non_owner_without_changing_status"
+    ],
+    "passed_n": 3,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Application.CardService.CancelAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Lifecycle_operations_reject_non_owner_without_changing_status"
+    ],
+    "passed_n": 4,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 10,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Application.CardService.GetOwnedCardAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+     "Lifecycle_operations_reject_non_owner_without_changing_status"
+    ],
+    "passed_n": 6,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Application.CardService.GenerateCardNumber": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [
+    {
+     "id": "S02",
+     "severity": "ShouldFix",
+     "title": "Debit card numbers generated using cryptographically weak PRNG",
+     "file": "src/Bank.Api/Modules/Cards/Application/CardService.cs",
+     "line_start": 180,
+     "dimension": "safety"
+    }
+   ],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.CardsModule.AddCardsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Domain.Card.#ctor": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Cards.Domain.Card.Id": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Cards.Domain.Card.CustomerId": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Cards.Domain.Card.Number": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Cards.Domain.Card.Last4": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Cards.Domain.Card.Status": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 15,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Cards.Domain.Card.PerTransactionLimit": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Domain.Card.Freeze": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+     "Lifecycle_operations_reject_non_owner_without_changing_status"
+    ],
+    "passed_n": 5,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Domain.Card.Unfreeze": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+     "Lifecycle_operations_reject_non_owner_without_changing_status"
+    ],
+    "passed_n": 3,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Cards.Domain.Card.Cancel": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Lifecycle_operations_reject_non_owner_without_changing_status"
+    ],
+    "passed_n": 4,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 16,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 16,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 1,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 10,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 16,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 16,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Audit.Application.AuditLog.IsPiiParameter(System.Type,System.String)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 1,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 16,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 16,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+     "AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+     "AuthoriseAsync_declines_frozen_card_without_moving_funds",
+     "AuthoriseAsync_declines_when_account_has_insufficient_funds",
+     "AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit",
+     "AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding",
+     "AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places",
+     "AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+     "AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+     "CancelAsync_cancels_active_and_frozen_cards",
+     "Cancelled_is_terminal_for_service_and_domain_methods",
+     "Domain_events_and_audit_redaction_never_expose_full_card_number"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 4
+  }
+ },
+ "roll": {
+  "M:Bank.Modules.Cards.Api.CardsController.#ctor(Bank.Modules.Cards.Application.ICardService)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.#ctor(Bank.Modules.Cards.Application.ICardService)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Cards.Api.CardsController": {
+   "changed": {
+    "n": 7,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 7,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.#ctor(Bank.Modules.Cards.Application.ICardService)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.062,
+    "lo": 0.0,
+    "hi": 0.292
+   },
+   "affected": null
+  },
+  "layer:Cards/Api": {
+   "changed": {
+    "n": 7,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 7,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.#ctor(Bank.Modules.Cards.Application.ICardService)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.062,
+    "lo": 0.0,
+    "hi": 0.292
+   },
+   "affected": null
+  },
+  "module:Cards": {
+   "changed": {
+    "n": 27,
+    "verified": 16,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 11,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.#ctor(Bank.Modules.Cards.Application.ICardService)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 59,
+    "conf": 0.589,
+    "lo": 0.406,
+    "hi": 0.761
+   },
+   "affected": null
+  },
+  "pr": {
+   "changed": {
+    "n": 28,
+    "verified": 16,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 12,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.#ctor(Bank.Modules.Cards.Application.ICardService)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 57,
+    "conf": 0.569,
+    "lo": 0.389,
+    "hi": 0.74
+   },
+   "affected": {
+    "n": 17,
+    "verified": 17,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.972,
+    "lo": 0.865,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Cancel(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Cancel(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.Authorise(System.Guid,Bank.Modules.Cards.Api.AuthoriseCardRequest,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.Authorise(System.Guid,Bank.Modules.Cards.Api.AuthoriseCardRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "F:Bank.Modules.Cards.Application.CardService.AccountLocks": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "F:Bank.Modules.Cards.Application.CardService.AccountLocks",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Cards.Application.CardService": {
+   "changed": {
+    "n": 9,
+    "verified": 7,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 2,
+    "weakest": [
+     [
+      "F:Bank.Modules.Cards.Application.CardService.AccountLocks",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Cards.Application.CardService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 78,
+    "conf": 0.75,
+    "lo": 0.456,
+    "hi": 0.951
+   },
+   "affected": null
+  },
+  "layer:Cards/Application": {
+   "changed": {
+    "n": 9,
+    "verified": 7,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 2,
+    "weakest": [
+     [
+      "F:Bank.Modules.Cards.Application.CardService.AccountLocks",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Cards.Application.CardService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 78,
+    "conf": 0.75,
+    "lo": 0.456,
+    "hi": 0.951
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Application.CardService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Application.CardService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Application.CardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Application.CardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Application.CardService.CancelAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Application.CardService.GetOwnedCardAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Application.CardService.GenerateCardNumber": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.CardsModule.AddCardsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.CardsModule.AddCardsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Cards.CardsModule": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.CardsModule.AddCardsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "layer:Cards/Wiring": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.CardsModule.AddCardsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Domain.Card.#ctor": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Domain.Card.#ctor",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Cards.Domain.Card": {
+   "changed": {
+    "n": 10,
+    "verified": 9,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Domain.Card.#ctor",
+      "none"
+     ]
+    ],
+    "pct": 90,
+    "conf": 0.864,
+    "lo": 0.619,
+    "hi": 0.989
+   },
+   "affected": null
+  },
+  "layer:Cards/Domain": {
+   "changed": {
+    "n": 10,
+    "verified": 9,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Cards.Domain.Card.#ctor",
+      "none"
+     ]
+    ],
+    "pct": 90,
+    "conf": 0.864,
+    "lo": 0.619,
+    "hi": 0.989
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Cards.Domain.Card.Id": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Cards.Domain.Card.CustomerId": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Cards.Domain.Card.Number": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Cards.Domain.Card.Last4": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Cards.Domain.Card.Status": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Cards.Domain.Card.PerTransactionLimit": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Domain.Card.Freeze": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Domain.Card.Unfreeze": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Cards.Domain.Card.Cancel": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Program": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "layer:Platform/Host": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "module:Platform": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Ledger/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "module:Ledger": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "layer:Accounts/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "module:Accounts": {
+   "changed": null,
+   "affected": {
+    "n": 6,
+    "verified": 6,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.929,
+    "lo": 0.67,
+    "hi": 1.0
+   }
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Auth.Roles": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Auth/Wiring": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "module:Auth": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Audit.Application.AuditLog": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "layer:Audit/Application": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "module:Audit": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "layer:Accounts/Application": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Platform/Shared": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Application.Ledger": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Ledger/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Shared.Settings.BankSettings": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Audit.Application.AuditLog.IsPiiParameter(System.Type,System.String)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  }
+ },
+ "tests_ran": true,
+ "findings_at": {
+  "T:Bank.Modules.Cards.Api.CardsController": [
+   "C01",
+   "S01",
+   "T01"
+  ],
+  "F:Bank.Modules.Cards.Application.CardService.AccountLocks": [
+   "A01",
+   "P01"
+  ],
+  "M:Bank.Modules.Cards.Application.CardService.GenerateCardNumber": [
+   "S02"
+  ],
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(System.Decimal)": [
+   "T02"
+  ]
+ },
+ "trust": {
+  "level": "low",
+  "why": "the PR is labelled Fix before merge"
+ }
+}

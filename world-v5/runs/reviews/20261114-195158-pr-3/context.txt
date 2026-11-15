@@ -1,0 +1,503 @@
+### FILE: src/Bank.Api/Modules/Fx/Application/FxService.cs  (slice: leftflow)
++   1| namespace Bank.Modules.Fx.Application;
++   2| 
++   3| public interface IFxService
++   4| {
++   5|     decimal Rate(string fromCurrency, string toCurrency);
++   6|     decimal Convert(decimal amount, string fromCurrency, string toCurrency);
++   7| }
++   8| 
++   9| public sealed class FxService : IFxService
++  10| {
++  11|     private const decimal EurToSek = 11.50m;
++  12|     private const decimal EurToUsd = 1.08m;
++  13| 
++  14|     public decimal Rate(string fromCurrency, string toCurrency)
++  15|     {
++  16|         var from = NormalizeAndValidate(fromCurrency, nameof(fromCurrency));
++  17|         var to = NormalizeAndValidate(toCurrency, nameof(toCurrency));
++  18| 
++  19|         if (from == to)
++  20|             return 1m;
++  21| 
++  22|         if (from == "EUR")
++  23|             return FromEur(to);
++  24| 
++  25|         if (to == "EUR")
++  26|             return 1m / FromEur(from);
++  27| 
++  28|         return (1m / FromEur(from)) * FromEur(to);
++  29|     }
++  30| 
++  31|     public decimal Convert(decimal amount, string fromCurrency, string toCurrency)
++  32|     {
++  33|         var from = NormalizeAndValidate(fromCurrency, nameof(fromCurrency));
++  34|         var to = NormalizeAndValidate(toCurrency, nameof(toCurrency));
++  35| 
++  36|         var raw = (from, to) switch
++  37|         {
++  38|             _ when from == to => amount,
++  39|             ("EUR", _) => amount * FromEur(to),
++  40|             (_, "EUR") => amount / FromEur(from),
++  41|             _ => (amount / FromEur(from)) * FromEur(to),
++  42|         };
++  43| 
++  44|         return Math.Round(raw, 2, MidpointRounding.AwayFromZero);
++  45|     }
++  46| 
++  47|     private static string NormalizeAndValidate(string currency, string paramName)
++  48|     {
++  49|         if (string.IsNullOrWhiteSpace(currency))
++  50|             throw new ArgumentException("Currency must not be null or empty.", paramName);
++  51| 
++  52|         var normalized = currency.ToUpperInvariant();
++  53|         if (normalized is not ("EUR" or "SEK" or "USD"))
++  54|             throw new ArgumentException($"Currency {currency} is not supported.", paramName);
++  55| 
++  56|         return normalized;
++  57|     }
++  58| 
++  59|     private static decimal FromEur(string currency) => currency switch
++  60|     {
++  61|         "SEK" => EurToSek,
++  62|         "USD" => EurToUsd,
++  63|         _ => throw new ArgumentException($"Currency {currency} is not supported.", nameof(currency)),
++  64|     };
++  65| }
+
+### FILE: src/Bank.Api/Modules/Fx/FxModule.cs  (slice: leftflow)
++   1| using Bank.Modules.Fx.Application;
++   2| 
++   3| namespace Bank.Modules.Fx;
++   4| 
++   5| public static class FxModule
++   6| {
++   7|     public static IServiceCollection AddFxModule(this IServiceCollection services)
++   8|     {
++   9|         services.AddScoped<IFxService, FxService>();
++  10|         return services;
++  11|     }
++  12| }
+
+### FILE: src/Bank.Api/Modules/Payments/Application/PaymentService.cs  (slice: leftflow)
+    1| using Bank.Data;
+    2| using Bank.Modules.Accounts.Application;
+    3| using Bank.Modules.Auth.Application;
++   4| using Bank.Modules.Fx.Application;
+    5| using Bank.Modules.Ledger.Application;
++   6| using Bank.Modules.Ledger.Domain;
+    7| using Bank.Modules.Payments.Domain;
+    8| using Bank.Shared.Events;
+    9| using Bank.Shared.Settings;
+   10| using Bank.Shared.Time;
+   11| using Microsoft.EntityFrameworkCore;
+   12| using Microsoft.EntityFrameworkCore.Storage;
+     ⋮
+   37|     private readonly BankDbContext _db;
+   38|     private readonly ILedger _ledger;
+   39|     private readonly IAccountService _accounts;
+   40|     private readonly ICurrentUser _user;
+   41|     private readonly IClock _clock;
+   42|     private readonly BankSettings _settings;
++  43|     private readonly IFxService _fx;
+   44|     private readonly IEventBus _bus;
+   45| 
+   46|     public PaymentService(
+   47|         BankDbContext db,
+   48|         ILedger ledger,
+   49|         IAccountService accounts,
+   50|         ICurrentUser user,
+   51|         IClock clock,
+   52|         BankSettings settings,
++  53|         IFxService fx,
+   54|         IEventBus bus)
+   55|     {
+   56|         _db = db;
+   57|         _ledger = ledger;
+   58|         _accounts = accounts;
+   59|         _user = user;
+   60|         _clock = clock;
+   61|         _settings = settings;
++  62|         _fx = fx;
+   63|         _bus = bus;
+   64|     }
+     ⋮
++  66|     public PaymentService(
++  67|         BankDbContext db,
++  68|         ILedger ledger,
++  69|         IAccountService accounts,
++  70|         ICurrentUser user,
++  71|         IClock clock,
++  72|         BankSettings settings,
++  73|         IEventBus bus)
++  74|         : this(db, ledger, accounts, user, clock, settings, new FxService(), bus)
++  75|     {
++  76|     }
++  77| 
+   78|     public async Task<Payment> PayAsync(PaymentRequest request, CancellationToken ct = default)
+   79|     {
+   80|         ArgumentNullException.ThrowIfNull(request);
+   81|         if (string.IsNullOrWhiteSpace(request.IdempotencyKey))
+   82|             throw new ArgumentException("Idempotency key is required.", nameof(request));
+   83|         if (request.Amount <= 0m)
+   84|             throw new ArgumentException("Amount must be positive.", nameof(request));
+   85|         if (request.Amount != Math.Round(request.Amount, 2, MidpointRounding.AwayFromZero))
+   86|             throw new ArgumentException("Amount must be whole cents.", nameof(request));
+   87| 
+   88|         var customerId = _user.UserId;
+   89| 
+   90|         if (!await _accounts.IsOwnerAsync(request.FromAccountId, customerId, ct))
+   91|             throw new UnauthorizedAccessException("Source account is not owned by the caller.");
+   92| 
+   93|         var fromAccount = await _accounts.GetAsync(request.FromAccountId, ct)
+   94|             ?? throw new KeyNotFoundException($"Account {request.FromAccountId} not found.");
+   95|         var toAccount = await _accounts.GetAsync(request.ToAccountId, ct)
+   96|             ?? throw new KeyNotFoundException($"Account {request.ToAccountId} not found.");
+-  80|         if (!string.Equals(fromAccount.Currency, toAccount.Currency, StringComparison.OrdinalIgnoreCase))
+-  81|             throw new CurrencyMismatchException(fromAccount.Currency, toAccount.Currency);
++  97| 
++  98|         var existing = await _db.Payments.FirstOrDefaultAsync(
++  99|             p => p.CustomerId == customerId && p.IdempotencyKey == request.IdempotencyKey,
++ 100|             ct);
++ 101|         if (existing is not null)
++ 102|             return existing;
++ 103| 
++ 104|         var sameCurrency = string.Equals(fromAccount.Currency, toAccount.Currency, StringComparison.OrdinalIgnoreCase);
++ 105|         var rate = sameCurrency ? 1m : _fx.Rate(fromAccount.Currency, toAccount.Currency);
++ 106|         var creditedAmount = sameCurrency
++ 107|             ? request.Amount
++ 108|             : _fx.Convert(request.Amount, fromAccount.Currency, toAccount.Currency);
++ 109|         var creditedCurrency = toAccount.Currency;
++ 110| 
++ 111|         if (creditedAmount <= 0m)
++ 112|             throw new ArgumentException("Converted amount must be positive.", nameof(request));
+  113| 
+  114|         var now = _clock.UtcNow;
+  115|         var dayStart = new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero);
+  116|         var dayEnd = dayStart.AddDays(1);
+  117| 
+  118|         Payment payment;
+  119|         IDbContextTransaction? transaction = null;
+  120|         if (_db.Database.IsRelational() && _db.Database.CurrentTransaction is null)
+  121|             transaction = await _db.Database.BeginTransactionAsync(ct);
+  122| 
+  123|         try
+  124|         {
+-  94|             var todayAmounts = await _db.Payments
++ 125|             var todayPayments = await _db.Payments
+  126|                 .Where(p => p.CustomerId == customerId
+  127|                     && p.Status == PaymentStatus.Completed
+  128|                     && p.CreatedAt >= dayStart
+  129|                     && p.CreatedAt < dayEnd)
+-  99|                 .Select(p => p.Amount)
++ 130|                 .Select(p => new { p.Amount, p.Currency })
+  131|                 .ToListAsync(ct);
+  132| 
+- 102|             if (todayAmounts.Sum() + request.Amount > _settings.DailyTransferLimit)
++ 133|             var todayTotalEur = todayPayments.Sum(p => _fx.Convert(p.Amount, p.Currency, "EUR"));
++ 134|             var requestAmountEur = _fx.Convert(request.Amount, fromAccount.Currency, "EUR");
++ 135| 
++ 136|             if (todayTotalEur + requestAmountEur > _settings.DailyTransferLimit)
+  137|                 throw new DailyLimitExceededException();
+  138| 
+- 105|             var transferId = await _ledger.PostTransferAsync(
+- 106|                 request.FromAccountId,
+- 107|                 request.ToAccountId,
+- 108|                 request.Amount,
+- 109|                 request.Reference ?? "",
+- 110|                 ct);
++ 139|             var reference = request.Reference ?? "";
++ 140|             Guid transferId;
++ 141|             if (sameCurrency)
++ 142|             {
++ 143|                 transferId = await _ledger.PostTransferAsync(
++ 144|                     request.FromAccountId,
++ 145|                     request.ToAccountId,
++ 146|                     request.Amount,
++ 147|                     reference,
++ 148|                     ct);
++ 149|             }
++ 150|             else
++ 151|             {
++ 152|                 var fxClearingFrom = BankAccounts.For(BankAccountKind.FxClearing, fromAccount.Currency);
++ 153|                 var fxClearingTo = BankAccounts.For(BankAccountKind.FxClearing, toAccount.Currency);
++ 154| 
++ 155|                 await _ledger.PostTransferAsync(
++ 156|                     request.FromAccountId,
++ 157|                     fxClearingFrom,
++ 158|                     request.Amount,
++ 159|                     reference,
++ 160|                     ct);
++ 161| 
++ 162|                 transferId = await _ledger.PostTransferAsync(
++ 163|                     fxClearingTo,
++ 164|                     request.ToAccountId,
++ 165|                     creditedAmount,
++ 166|                     reference,
++ 167|                     ct);
++ 168|             }
+  169| 
+  170|             payment = new Payment
+  171|             {
+  172|                 IdempotencyKey = request.IdempotencyKey,
+  173|                 CustomerId = customerId,
+  174|                 FromAccountId = request.FromAccountId,
+  175|                 ToAccountId = request.ToAccountId,
+  176|                 Amount = request.Amount,
+  177|                 Currency = fromAccount.Currency,
++ 178|                 CreditedAmount = creditedAmount,
++ 179|                 CreditedCurrency = creditedCurrency,
++ 180|                 Rate = rate,
+  181|                 Reference = request.Reference,
+  182|                 CreatedAt = now,
+  183|             };
+  184|             payment.Complete(transferId);
+  185| 
+  186|             _db.Payments.Add(payment);
+  187|             await _db.SaveChangesAsync(ct);
+  188| 
+  189|             if (transaction is not null)
+  190|                 await transaction.CommitAsync(ct);
+  191|         }
+  192|         catch (DbUpdateException)
+  193|         {
+  194|             if (transaction is not null)
+  195|                 await transaction.RollbackAsync(ct);
+  196| 
+  197|             foreach (var entry in _db.ChangeTracker.Entries<Payment>().Where(e => e.State == EntityState.Added).ToList())
+  198|                 entry.State = EntityState.Detached;
+  199| 
+  200|             var concurrent = await _db.Payments.AsNoTracking().FirstOrDefaultAsync(
+     ⋮
+  225|     }
+
+### FILE: src/Bank.Api/Modules/Payments/Domain/Payment.cs  (slice: leftflow)
++  25|     public decimal CreditedAmount { get; set; }
++  26|     public string CreditedCurrency { get; set; } = "EUR";
++  27|     public decimal Rate { get; set; } = 1m;
+
+### FILE: src/Bank.Api/Program.cs  (slice: leftflow)
+    1| using Bank.Data;
+    2| using Bank.Modules.Accounts;
+    3| using Bank.Modules.Audit;
+    4| using Bank.Modules.Auth;
+    5| using Bank.Modules.Customers;
++   6| using Bank.Modules.Fx;
+    7| using Bank.Modules.Ledger;
+    8| using Bank.Modules.Notifications;
+    9| using Bank.Modules.Payments;
+   10| using Bank.Shared;
+   11| using Bank.Shared.Events;
+   12| using Microsoft.EntityFrameworkCore;
+     ⋮
+   21| builder.Services.AddAccountsModule();
+   22| builder.Services.AddLedgerModule();
+   23| builder.Services.AddAuditModule();
+   24| builder.Services.AddNotificationsModule();
+   25| builder.Services.AddCustomersModule();
+   26| builder.Services.AddPaymentsModule();
++  27| builder.Services.AddFxModule();
+   28| // MODULES: register new modules above this line
+   29| 
+   30| var app = builder.Build();
+   31| using (var scope = app.Services.CreateScope())
+   32| {
+   33|     scope.ServiceProvider.GetRequiredService<BankDbContext>().Database.EnsureCreated();
+
+### FILE: tests/Bank.Tests/Fx/FxTests.cs  (slice: leftflow)
++   1| using Bank.Modules.Fx.Application;
++   2| using Bank.Modules.Ledger.Domain;
++   3| using Xunit;
++   4| 
++   5| namespace Bank.Tests.Fx;
++   6| 
++   7| public sealed class FxTests
++   8| {
++   9|     [Theory]
++  10|     [InlineData("EUR")]
++  11|     [InlineData("SEK")]
++  12|     [InlineData("USD")]
++  13|     public void Rate_returns_1_for_identical_supported_currencies(string currency)
++  14|     {
++  15|         IFxService fx = new FxService();
++  16| 
++  17|         var rate = fx.Rate(currency, currency);
++  18| 
++  19|         Assert.Equal(1m, rate);
++  20|     }
++  21| 
++  22|     [Fact]
++  23|     public void Rate_returns_fixed_base_rates_for_eur_pairs()
++  24|     {
++  25|         IFxService fx = new FxService();
++  26| 
++  27|         Assert.Equal(11.50m, fx.Rate("EUR", "SEK"));
++  28|         Assert.Equal(1.08m, fx.Rate("EUR", "USD"));
++  29|     }
++  30| 
++  31|     [Fact]
++  32|     public void Rate_returns_inverse_rates_for_pairs_to_eur()
++  33|     {
++  34|         IFxService fx = new FxService();
++  35| 
++  36|         Assert.Equal(1m / 11.50m, fx.Rate("SEK", "EUR"), 18);
++  37|         Assert.Equal(1m / 1.08m, fx.Rate("USD", "EUR"), 18);
++  38|     }
++  39| 
++  40|     [Fact]
++  41|     public void Rate_triangulates_cross_pairs_through_eur()
++  42|     {
++  43|         IFxService fx = new FxService();
++  44| 
++  45|         Assert.Equal((1m / 11.50m) * 1.08m, fx.Rate("SEK", "USD"), 18);
++  46|         Assert.Equal((1m / 1.08m) * 11.50m, fx.Rate("USD", "SEK"), 18);
++  47|     }
++  48| 
++  49|     [Theory]
++  50|     [InlineData("GBP", "EUR")]
++  51|     [InlineData("EUR", "GBP")]
++  52|     [InlineData("GBP", "GBP")]
++  53|     [InlineData("NOK", "USD")]
++  54|     [InlineData("", "EUR")]
++  55|     [InlineData("EUR", "")]
++  56|     [InlineData("   ", "USD")]
++  57|     [InlineData("USD", "   ")]
++  58|     [InlineData(null, "EUR")]
++  59|     [InlineData("EUR", null)]
++  60|     [InlineData(null, null)]
++  61|     public void Rate_throws_argument_exception_for_invalid_or_unknown_currencies(string? fromCurrency, string? toCurrency)
++  62|     {
++  63|         IFxService fx = new FxService();
++  64| 
++  65|         Assert.ThrowsAny<ArgumentException>(() => fx.Rate(fromCurrency!, toCurrency!));
++  66|     }
++  67| 
++  68|     [Theory]
++  69|     [InlineData(100.00, "EUR", 100.00)]
++  70|     [InlineData(123.45, "SEK", 123.45)]
++  71|     [InlineData(0.01, "USD", 0.01)]
++  72|     [InlineData(0.00, "EUR", 0.00)]
++  73|     public void Convert_returns_same_amount_for_identical_supported_currencies(double amount, string currency, double expected)
++  74|     {
++  75|         IFxService fx = new FxService();
++  76| 
++  77|         var converted = fx.Convert((decimal)amount, currency, currency);
++  78| 
++  79|         Assert.Equal((decimal)expected, converted);
++  80|     }
++  81| 
++  82|     [Theory]
++  83|     [InlineData(100, "EUR", "SEK", 1150.00)]
++  84|     [InlineData(1, "EUR", "SEK", 11.50)]
++  85|     [InlineData(100, "EUR", "USD", 108.00)]
++  86|     [InlineData(1, "EUR", "USD", 1.08)]
++  87|     [InlineData(1150, "SEK", "EUR", 100.00)]
++  88|     [InlineData(100, "SEK", "EUR", 8.70)]
++  89|     [InlineData(108, "USD", "EUR", 100.00)]
++  90|     [InlineData(100, "USD", "EUR", 92.59)]
++  91|     [InlineData(10, "USD", "EUR", 9.26)]
++  92|     public void Convert_handles_direct_and_inverse_eur_pairs(double amount, string fromCurrency, string toCurrency, double expected)
++  93|     {
++  94|         IFxService fx = new FxService();
++  95| 
++  96|         var converted = fx.Convert((decimal)amount, fromCurrency, toCurrency);
++  97| 
++  98|         Assert.Equal((decimal)expected, converted);
++  99|     }
++ 100| 
++ 101|     [Theory]
++ 102|     [InlineData(1150, "SEK", "USD", 108.00)]
++ 103|     [InlineData(11.50, "SEK", "USD", 1.08)]
++ 104|     [InlineData(108, "USD", "SEK", 1150.00)]
++ 105|     [InlineData(1.08, "USD", "SEK", 11.50)]
++ 106|     [InlineData(100, "SEK", "USD", 9.39)]
++ 107|     [InlineData(100, "USD", "SEK", 1064.81)]
++ 108|     [InlineData(0, "SEK", "USD", 0.00)]
++ 109|     public void Convert_triangulates_sek_and_usd_without_intermediate_rounding(double amount, string fromCurrency, string toCurrency, double expected)
++ 110|     {
++ 111|         IFxService fx = new FxService();
++ 112| 
++ 113|         var converted = fx.Convert((decimal)amount, fromCurrency, toCurrency);
++ 114| 
++ 115|         Assert.Equal((decimal)expected, converted);
++ 116|     }
++ 117| 
++ 118|     [Fact]
++ 119|     public void Convert_rounds_half_away_from_zero_to_two_decimal_places()
++ 120|     {
++ 121|         IFxService fx = new FxService();
++ 122| 
++ 123|         Assert.Equal(11.85m, fx.Convert(1.03m, "EUR", "SEK"));
++ 124|         Assert.Equal(0.35m, fx.Convert(0.03m, "EUR", "SEK"));
++ 125|         Assert.Equal(0.41m, fx.Convert(0.375m, "EUR", "USD"));
++ 126|         Assert.Equal(0.03m, fx.Convert(0.027m, "USD", "EUR"));
++ 127|         Assert.Equal(0.23m, fx.Convert(0.243m, "USD", "EUR"));
++ 128|         Assert.Equal(10.01m, fx.Convert(10.005m, "EUR", "EUR"));
++ 129|     }
++ 130| 
++ 131|     [Theory]
++ 132|     [InlineData("GBP", "EUR")]
++ 133|     [InlineData("EUR", "GBP")]
++ 134|     [InlineData("GBP", "GBP")]
++ 135|     [InlineData("", "USD")]
++ 136|     [InlineData("SEK", "")]
++ 137|     [InlineData("   ", "EUR")]
++ 138|     [InlineData(null, "EUR")]
++ 139|     [InlineData("USD", null)]
++ 140|     public void Convert_throws_argument_exception_for_invalid_or_unknown_currencies(string? fromCurrency, string? toCurrency)
++ 141|     {
++ 142|         IFxService fx = new FxService();
++ 143| 
++ 144|         Assert.ThrowsAny<ArgumentException>(() => fx.Convert(100m, fromCurrency!, toCurrency!));
++ 145|     }
++ 146| 
++ 147|     [Fact]
++ 148|     public async Task FxClearing_accounts_exist_for_eur_sek_and_usd_and_settle_cross_currency_ledger_legs()
++ 149|     {
++ 150|         using var db = TestKit.Db();
++ 151|         IFxService fx = new FxService();
++ 152|         var ledger = TestKit.Ledger(db);
++ 153|         var aliceEur = TestKit.Account(db, "alice", 100m, "EUR");
++ 154|         var bobSek = TestKit.Account(db, "bob", 0m, "SEK");
++ 155|         var carolUsd = TestKit.Account(db, "carol", 0m, "USD");
++ 156| 
++ 157|         var sekAmount = fx.Convert(100m, "EUR", "SEK");
++ 158|         await ledger.PostTransferAsync(aliceEur, BankAccounts.For(BankAccountKind.FxClearing, "EUR"), 100m, "fx-debit");
++ 159|         await ledger.PostTransferAsync(BankAccounts.For(BankAccountKind.FxClearing, "SEK"), bobSek, sekAmount, "fx-credit");
++ 160| 
++ 161|         var usdAmount = fx.Convert(100m, "SEK", "USD");
++ 162|         await ledger.PostTransferAsync(bobSek, BankAccounts.For(BankAccountKind.FxClearing, "SEK"), 100m, "fx-debit-2");
++ 163|         await ledger.PostTransferAsync(BankAccounts.For(BankAccountKind.FxClearing, "USD"), carolUsd, usdAmount, "fx-credit-2");
++ 164| 
++ 165|         Assert.Equal(0m, TestKit.Balance(db, aliceEur));
++ 166|         Assert.Equal(1050.00m, TestKit.Balance(db, bobSek));
++ 167|         Assert.Equal(9.39m, TestKit.Balance(db, carolUsd));
++ 168|         Assert.Equal(100m, TestKit.Balance(db, BankAccounts.For(BankAccountKind.FxClearing, "EUR")));
++ 169|         Assert.Equal(-1050.00m, TestKit.Balance(db, BankAccounts.For(BankAccountKind.FxClearing, "SEK")));
++ 170|         Assert.Equal(-9.39m, TestKit.Balance(db, BankAccounts.For(BankAccountKind.FxClearing, "USD")));
++ 171|     }
++ 172| }
+
+
+# IMPACT
+- Rate (src/Bank.Api/Modules/Fx/Application/FxService.cs): 0 caller(s) [none found]; test references: NONE
+- Convert (src/Bank.Api/Modules/Fx/Application/FxService.cs): 0 caller(s) [none found]; test references: NONE
+- NormalizeAndValidate (src/Bank.Api/Modules/Fx/Application/FxService.cs): 0 caller(s) [none found]; test references: NONE
+- FromEur (src/Bank.Api/Modules/Fx/Application/FxService.cs): 0 caller(s) [none found]; test references: NONE
+- AddFxModule (src/Bank.Api/Modules/Fx/FxModule.cs): 0 caller(s) [none found]; test references: NONE
+- PaymentService (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- CreditedAmount (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- CreditedCurrency (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- Rate (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- Rate_returns_1_for_identical_supported_currencies (tests/Bank.Tests/Fx/FxTests.cs): 0 caller(s) [none found]; test references: NONE
+- Rate_returns_fixed_base_rates_for_eur_pairs (tests/Bank.Tests/Fx/FxTests.cs): 0 caller(s) [none found]; test references: NONE
+- Rate_returns_inverse_rates_for_pairs_to_eur (tests/Bank.Tests/Fx/FxTests.cs): 0 caller(s) [none found]; test references: NONE
+- Rate_triangulates_cross_pairs_through_eur (tests/Bank.Tests/Fx/FxTests.cs): 0 caller(s) [none found]; test references: NONE
+- Rate_throws_argument_exception_for_invalid_or_unknown_currencies (tests/Bank.Tests/Fx/FxTests.cs): 0 caller(s) [none found]; test references: NONE
+- Convert_returns_same_amount_for_identical_supported_currencies (tests/Bank.Tests/Fx/FxTests.cs): 0 caller(s) [none found]; test references: NONE
+- Convert_handles_direct_and_inverse_eur_pairs (tests/Bank.Tests/Fx/FxTests.cs): 0 caller(s) [none found]; test references: NONE
+- Convert_triangulates_sek_and_usd_without_intermediate_rounding (tests/Bank.Tests/Fx/FxTests.cs): 0 caller(s) [none found]; test references: NONE
+- Convert_rounds_half_away_from_zero_to_two_decimal_places (tests/Bank.Tests/Fx/FxTests.cs): 0 caller(s) [none found]; test references: NONE
+- Convert_throws_argument_exception_for_invalid_or_unknown_currencies (tests/Bank.Tests/Fx/FxTests.cs): 0 caller(s) [none found]; test references: NONE
+- FxClearing_accounts_exist_for_eur_sek_and_usd_and_settle_cross_currency_ledger_legs (tests/Bank.Tests/Fx/FxTests.cs): 0 caller(s) [none found]; test references: NONE

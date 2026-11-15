@@ -1,0 +1,507 @@
+{
+ "decision": "BLOCKED",
+ "reason": "Merge locked: Security: Safety Blocker(s) found; Tests: Tests failed; Correctness: 5 Blocker(s) Not checked: Requirement. WARNING: review-policy.yaml is not approved by a named human yet.",
+ "tier": "high",
+ "ai_error": "",
+ "findings": [
+  {
+   "id": "C05",
+   "dimension": "correctness",
+   "severity": "Blocker",
+   "title": "Compliance review endpoints require Customer authorization policy",
+   "claim": "PaymentsController has [Authorize(Policy = Policies.Customer)] on the class level. In ASP.NET Core, action-level [Authorize] attributes are evaluated alongside class-level attributes, meaning compliance officers without the Customer role will receive HTTP 403 Forbidden on held, release, and reject endpoints.",
+   "file": "src/Bank.Api/Modules/Payments/Api/PaymentsController.cs",
+   "line_start": 104,
+   "line_end": 106,
+   "evidence": "    [HttpGet(\"held\")]\n    [Authorize(Policy = Policies.Compliance)]\n    public async Task<ActionResult<IEnumerable<PaymentDto>>> Held(CancellationToken ct)",
+   "evidence_verified": true,
+   "suggested_fix": "Move the compliance endpoints to a separate dedicated controller (e.g., PaymentReviewController) protected with [Authorize(Policy = Policies.Compliance)], or remove the class-level [Authorize(Policy = Policies.Customer)] attribute from PaymentsController and apply it per-action.",
+   "patch": "",
+   "requirement_link": "HTTP endpoints GET api/payments/held, POST api/payments/{id}/release, and POST api/payments/{id}/reject are protected with [Authorize(Policy = Policies.Compliance)], use ICurrentUser rather than request-body user IDs, and use IClock.UtcNow for all timestamps.",
+   "source": "specialist:correctness",
+   "confidence": 0.95
+  },
+  {
+   "id": "C02",
+   "dimension": "correctness",
+   "severity": "Blocker",
+   "title": "ReleaseAsync transfers funds from payer account instead of Suspense account",
+   "claim": "In ReleaseAsync, funds are transferred from payment.FromAccountId directly to the payee and FeeIncome accounts instead of transferring from BankAccounts.For(BankAccountKind.Suspense, currency). This bypasses the Suspense account and attempts to debit the customer account a second time.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs",
+   "line_start": 71,
+   "line_end": 76,
+   "evidence": "                    transferId = await ledger.PostTransferAsync(\n                        payment.FromAccountId,\n                        payment.ToAccountId,\n                        Math.Round(payment.Amount, 2, MidpointRounding.AwayFromZero),\n                        reference,\n                        ct);",
+   "evidence_verified": true,
+   "suggested_fix": "Use BankAccounts.For(BankAccountKind.Suspense, payment.Currency) as the source account for both payee transfer and fee transfer in ReleaseAsync.",
+   "patch": "",
+   "requirement_link": "On ReleaseAsync, ILedger.PostTransferAsync transfers amount from BankAccounts.For(BankAccountKind.Suspense, currency) to the payee's account and (if fee > 0) transfers fee from Suspense to BankAccounts.For(BankAccountKind.FeeIncome, currency), transitions the payment status from Held to Completed, publishes PaymentReleased(PaymentId, user.UserId, clock.UtcNow), and notifies the customer via INotifier.",
+   "source": "specialist:correctness",
+   "confidence": 1.0
+  },
+  {
+   "id": "C03",
+   "dimension": "correctness",
+   "severity": "Blocker",
+   "title": "RejectAsync does not return funds from Suspense account to payer",
+   "claim": "RejectAsync updates the payment status to Rejected but never executes a ledger transfer. Funds held in Suspense for the rejected payment are never refunded to the payer's account.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs",
+   "line_start": 177,
+   "line_end": 178,
+   "evidence": "                payment.Reject();\n                await db.SaveChangesAsync(ct);",
+   "evidence_verified": true,
+   "suggested_fix": "In RejectAsync, invoke ledger.PostTransferAsync transferring (amount + fee) from BankAccounts.For(BankAccountKind.Suspense, payment.Currency) to payment.FromAccountId before saving and committing.",
+   "patch": "",
+   "requirement_link": "On RejectAsync, ILedger.PostTransferAsync transfers (amount + fee) from BankAccounts.For(BankAccountKind.Suspense, currency) back to the payer's account, transitions the payment status from Held to Rejected, publishes PaymentRejected(PaymentId, user.UserId, clock.UtcNow), and notifies the customer via INotifier without exposing PII.",
+   "source": "specialist:correctness",
+   "confidence": 1.0
+  },
+  {
+   "id": "C04",
+   "dimension": "correctness",
+   "severity": "Blocker",
+   "title": "Payment.Hold() is called unconditionally for all payments",
+   "claim": "All payments are transitioned to Held and saved to the database prior to evaluating if the payment should actually be held. If an error occurs prior to completion or if concurrent queries inspect the database, normal payments are incorrectly recorded and exposed as Held.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 341,
+   "line_end": 344,
+   "evidence": "            payment.Hold();\n\n            _db.Payments.Add(payment);\n            await _db.SaveChangesAsync(ct);",
+   "evidence_verified": true,
+   "suggested_fix": "Only call payment.Hold() when shouldHold is true. For normal payments, leave status as Pending until payment.Complete(transferId) is called.",
+   "patch": "",
+   "requirement_link": "Payments under 5,000.00 EUR equivalent, or payments to an account the customer has previously completed a payment to, are not held and execute normally.",
+   "source": "specialist:correctness",
+   "confidence": 0.95
+  },
+  {
+   "id": "C01",
+   "dimension": "correctness",
+   "severity": "Blocker",
+   "title": "Held payments do not transfer funds to the Suspense account",
+   "claim": "When a payment qualifies for review (shouldHold is true), the code skips the standard transfer block but never posts a transfer to move (amount + fee) from the payer to the Suspense account. Payer funds remain in their account unreserved while the payment is held.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 346,
+   "line_end": 347,
+   "evidence": "            if (!shouldHold)\n            {",
+   "evidence_verified": true,
+   "suggested_fix": "Add an else branch when shouldHold is true that calls ledger.PostTransferAsync transferring (amount + fee.Amount) from request.FromAccountId to BankAccounts.For(BankAccountKind.Suspense, fromAccount.Currency).",
+   "patch": "",
+   "requirement_link": "When a payment is held, ILedger.PostTransferAsync transfers (amount + fee) in the payment's currency from the payer's account to BankAccounts.For(BankAccountKind.Suspense, currency); no funds are transferred to the payee or FeeIncome while Held.",
+   "source": "specialist:correctness",
+   "confidence": 1.0
+  },
+  {
+   "id": "S02",
+   "dimension": "safety",
+   "severity": "Blocker",
+   "title": "Releasing a held payment transfers from payer account instead of Suspense",
+   "claim": "ReleaseAsync transfers payment.Amount and payment.Fee from payment.FromAccountId rather than the Suspense account. If funds had been held in Suspense, this would double-debit the customer and leave Suspense funds stranded.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs",
+   "line_start": 71,
+   "line_end": 76,
+   "evidence": "                    transferId = await ledger.PostTransferAsync(\n                        payment.FromAccountId,\n                        payment.ToAccountId,\n                        Math.Round(payment.Amount, 2, MidpointRounding.AwayFromZero),\n                        reference,\n                        ct);",
+   "evidence_verified": true,
+   "suggested_fix": "Use BankAccounts.For(BankAccountKind.Suspense, payment.Currency) as the source account for both the payee transfer and the fee income transfer.",
+   "patch": "",
+   "requirement_link": "On ReleaseAsync, ILedger.PostTransferAsync transfers amount from BankAccounts.For(BankAccountKind.Suspense, currency) to the payee's account and (if fee > 0) transfers fee from Suspense to BankAccounts.For(BankAccountKind.FeeIncome, currency)",
+   "source": "specialist:safety",
+   "confidence": 1.0
+  },
+  {
+   "id": "S03",
+   "dimension": "safety",
+   "severity": "Blocker",
+   "title": "Rejecting a held payment does not refund funds from Suspense to payer",
+   "claim": "RejectAsync marks the payment status as Rejected but fails to post any ledger transfer. Funds sequestered in the Suspense account are never returned to the customer's account.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs",
+   "line_start": 177,
+   "line_end": 178,
+   "evidence": "                payment.Reject();\n                await db.SaveChangesAsync(ct);",
+   "evidence_verified": true,
+   "suggested_fix": "Call ledger.PostTransferAsync in RejectAsync to transfer (payment.Amount + payment.Fee) from BankAccounts.For(BankAccountKind.Suspense, payment.Currency) back to payment.FromAccountId.",
+   "patch": "",
+   "requirement_link": "On RejectAsync, ILedger.PostTransferAsync transfers (amount + fee) from BankAccounts.For(BankAccountKind.Suspense, currency) back to the payer's account, transitions the payment status from Held to Rejected, publishes PaymentRejected(PaymentId, user.UserId, clock.UtcNow), and notifies the customer via INotifier without exposing PII.",
+   "source": "specialist:safety",
+   "confidence": 1.0
+  },
+  {
+   "id": "S01",
+   "dimension": "safety",
+   "severity": "Blocker",
+   "title": "Held payments do not transfer funds to the Suspense account",
+   "claim": "When a payment qualifies for compliance hold, PaymentService marks it as Held but completely skips calling ILedger.PostTransferAsync. The customer's funds remain in their account instead of being sequestered in Suspense, allowing the customer to withdraw or spend the money during review.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 346,
+   "line_end": 347,
+   "evidence": "            if (!shouldHold)\n            {",
+   "evidence_verified": true,
+   "suggested_fix": "Add an else branch when shouldHold is true to invoke ledger.PostTransferAsync transferring (amount + fee) from request.FromAccountId to BankAccounts.For(BankAccountKind.Suspense, fromAccount.Currency).",
+   "patch": "",
+   "requirement_link": "When a payment is held, ILedger.PostTransferAsync transfers (amount + fee) in the payment's currency from the payer's account to BankAccounts.For(BankAccountKind.Suspense, currency); no funds are transferred to the payee or FeeIncome while Held.",
+   "source": "specialist:safety",
+   "confidence": 1.0
+  },
+  {
+   "id": "A04",
+   "dimension": "architecture",
+   "severity": "ShouldFix",
+   "title": "Class-level Customer authorization policy blocks Compliance endpoints",
+   "claim": "In ASP.NET Core, authorization attributes combine additively. Because PaymentsController is decorated with [Authorize(Policy = Policies.Customer)] at the class level, adding [Authorize(Policy = Policies.Compliance)] on Held, Release, and Reject requires callers to satisfy both policies, rejecting compliance officers with 403 Forbidden.",
+   "file": "src/Bank.Api/Modules/Payments/Api/PaymentsController.cs",
+   "line_start": 31,
+   "line_end": 32,
+   "evidence": "[Authorize(Policy = Policies.Customer)]\npublic sealed class PaymentsController : ControllerBase",
+   "evidence_verified": true,
+   "suggested_fix": "Move the compliance endpoints to a dedicated controller (e.g. PaymentReviewController) or apply [Authorize(Policy = Policies.Customer)] only to customer-facing actions.",
+   "patch": "",
+   "requirement_link": "HTTP endpoints GET api/payments/held, POST api/payments/{id}/release, and POST api/payments/{id}/reject are protected with [Authorize(Policy = Policies.Compliance)], use ICurrentUser rather than request-body user IDs, and use IClock.UtcNow for all timestamps.",
+   "source": "specialist:architecture",
+   "confidence": 0.95
+  },
+  {
+   "id": "A05",
+   "dimension": "architecture",
+   "severity": "ShouldFix",
+   "title": "Unbounded static ConcurrentDictionary leaks SemaphoreSlim instances",
+   "claim": "PaymentLocks stores a SemaphoreSlim per Guid payment ID but never removes entries after completion or failure. In a long-running process, this dictionary grows without bound.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs",
+   "line_start": 25,
+   "line_end": 25,
+   "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> PaymentLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Rely on database-level row locking or remove the semaphore key when lock count reaches zero to avoid unbounded memory growth.",
+   "patch": "",
+   "requirement_link": "none",
+   "source": "specialist:architecture",
+   "confidence": 0.85
+  },
+  {
+   "id": "A02",
+   "dimension": "architecture",
+   "severity": "ShouldFix",
+   "title": "ReleaseAsync debits payer account instead of Suspense account",
+   "claim": "ReleaseAsync transfers money from payment.FromAccountId directly to the payee and FeeIncome. Under the Suspense accounting model, the customer's funds were already debited upon hold, so releasing must transfer amount and fee out of the Suspense account.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs",
+   "line_start": 71,
+   "line_end": 76,
+   "evidence": "                    transferId = await ledger.PostTransferAsync(\n                        payment.FromAccountId,\n                        payment.ToAccountId,\n                        Math.Round(payment.Amount, 2, MidpointRounding.AwayFromZero),\n                        reference,\n                        ct);",
+   "evidence_verified": true,
+   "suggested_fix": "Use BankAccounts.For(BankAccountKind.Suspense, payment.Currency) as the source account for ledger transfers in ReleaseAsync.",
+   "patch": "",
+   "requirement_link": "On ReleaseAsync, ILedger.PostTransferAsync transfers amount from BankAccounts.For(BankAccountKind.Suspense, currency) to the payee's account and (if fee > 0) transfers fee from Suspense to BankAccounts.For(BankAccountKind.FeeIncome, currency)",
+   "source": "specialist:architecture",
+   "confidence": 0.99
+  },
+  {
+   "id": "A03",
+   "dimension": "architecture",
+   "severity": "ShouldFix",
+   "title": "RejectAsync omits required ledger refund from Suspense account",
+   "claim": "RejectAsync transitions the payment status to Rejected in the database but executes no ledger transfer whatsoever. The held funds (amount + fee) are never returned to the payer's account.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs",
+   "line_start": 177,
+   "line_end": 178,
+   "evidence": "                payment.Reject();\n                await db.SaveChangesAsync(ct);",
+   "evidence_verified": true,
+   "suggested_fix": "In RejectAsync, post a ledger transfer of (payment.Amount + payment.Fee) from BankAccounts.For(BankAccountKind.Suspense, payment.Currency) to payment.FromAccountId before saving.",
+   "patch": "",
+   "requirement_link": "On RejectAsync, ILedger.PostTransferAsync transfers (amount + fee) from BankAccounts.For(BankAccountKind.Suspense, currency) back to the payer's account, transitions the payment status from Held to Rejected, publishes PaymentRejected(PaymentId, user.UserId, clock.UtcNow), and notifies the customer via INotifier without exposing PII.",
+   "source": "specialist:architecture",
+   "confidence": 0.99
+  },
+  {
+   "id": "A01",
+   "dimension": "architecture",
+   "severity": "ShouldFix",
+   "title": "Held payments bypass Suspense account in hold workflow",
+   "claim": "When shouldHold is true, PaymentService marks the payment as Held but completely skips posting any ledger transfer. The requirement specifies that (amount + fee) must be transferred from the payer's account to the bank's Suspense account upon hold.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 346,
+   "line_end": 347,
+   "evidence": "            if (!shouldHold)\n            {",
+   "evidence_verified": true,
+   "suggested_fix": "When shouldHold is true, call ILedger.PostTransferAsync to transfer amount + fee from request.FromAccountId to BankAccounts.For(BankAccountKind.Suspense, fromAccount.Currency).",
+   "patch": "",
+   "requirement_link": "When a payment is held, ILedger.PostTransferAsync transfers (amount + fee) in the payment's currency from the payer's account to BankAccounts.For(BankAccountKind.Suspense, currency); no funds are transferred to the payee or FeeIncome while Held.",
+   "source": "specialist:architecture",
+   "confidence": 0.99
+  },
+  {
+   "id": "M02",
+   "dimension": "maintainability",
+   "severity": "ShouldFix",
+   "title": "Manual JSON stream reading bypasses ASP.NET Core model binding",
+   "claim": "The controller introduces ReadOptionalJsonBodyAsync to manually read Request.Body with a StreamReader and deserialize RejectPaymentRequest. This reinvents standard MVC model binding, introduces unnecessary custom plumbing, and increases controller maintenance overhead.",
+   "file": "src/Bank.Api/Modules/Payments/Api/PaymentsController.cs",
+   "line_start": 174,
+   "line_end": 174,
+   "evidence": "    private async Task<T?> ReadOptionalJsonBodyAsync<T>(CancellationToken ct)",
+   "evidence_verified": true,
+   "suggested_fix": "Replace ReadOptionalJsonBodyAsync with standard ASP.NET Core model binding using [FromBody] RejectPaymentRequest? request in the Reject action signature.",
+   "patch": "",
+   "requirement_link": "HTTP endpoints GET api/payments/held, POST api/payments/{id}/release, and POST api/payments/{id}/reject are protected with [Authorize(Policy = Policies.Compliance)], use ICurrentUser rather than request-body user IDs, and use IClock.UtcNow for all timestamps.",
+   "source": "specialist:maintainability",
+   "confidence": 0.9
+  },
+  {
+   "id": "M01",
+   "dimension": "maintainability",
+   "severity": "ShouldFix",
+   "title": "Unconditional call to payment.Hold() misrepresents domain lifecycle",
+   "claim": "Every new payment is transitioned to Held status and saved to the database regardless of whether it meets hold criteria. Only after saving is shouldHold checked to conditionally complete the payment, which distorts the domain lifecycle and introduces redundant database round-trips for normal payments.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 341,
+   "line_end": 341,
+   "evidence": "            payment.Hold();",
+   "evidence_verified": true,
+   "suggested_fix": "Only call payment.Hold() when shouldHold evaluates to true; otherwise, keep the payment in its initial state and complete it directly.",
+   "patch": "",
+   "requirement_link": "When a customer initiates a payment whose amount in EUR equivalent is 5,000.00 EUR or more ... to a destination account that the customer has no prior Completed payment to, PaymentService sets the payment status to Held via a domain state-transition method on Payment (with a private setter on status).",
+   "source": "specialist:maintainability",
+   "confidence": 0.95
+  },
+  {
+   "id": "P01",
+   "dimension": "performance",
+   "severity": "ShouldFix",
+   "title": "Unbounded memory growth from static SemaphoreSlim dictionary",
+   "claim": "PaymentLocks retains a SemaphoreSlim for every payment ID passed to ReleaseAsync or RejectAsync without any eviction or removal mechanism. In long-running processes, this causes continuous memory accumulation.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs",
+   "line_start": 25,
+   "line_end": 25,
+   "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> PaymentLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Use a bounded cache, clean up keys after releasing the lock if no waiters remain, or rely on database-level row locking/optimistic concurrency rather than an unbounded static dictionary.",
+   "patch": "",
+   "requirement_link": "none",
+   "source": "specialist:performance",
+   "confidence": 0.95
+  },
+  {
+   "id": "S04",
+   "dimension": "safety",
+   "severity": "ShouldFix",
+   "title": "Class-level Customer authorization policy blocks Compliance endpoints",
+   "claim": "In ASP.NET Core, Authorize attributes at the class and action level combine additively. Because PaymentsController is decorated with [Authorize(Policy = Policies.Customer)], compliance officers accessing Held, Release, or Reject must satisfy both Customer and Compliance policies, resulting in HTTP 403 Forbidden for officers without Customer role permissions.",
+   "file": "src/Bank.Api/Modules/Payments/Api/PaymentsController.cs",
+   "line_start": 31,
+   "line_end": 32,
+   "evidence": "[Authorize(Policy = Policies.Customer)]\npublic sealed class PaymentsController : ControllerBase",
+   "evidence_verified": true,
+   "suggested_fix": "Move the compliance endpoints to a separate controller (e.g. PaymentReviewController) protected only with [Authorize(Policy = Policies.Compliance)], or apply Customer policy to specific customer action methods rather than the entire controller class.",
+   "patch": "",
+   "requirement_link": "HTTP endpoints GET api/payments/held, POST api/payments/{id}/release, and POST api/payments/{id}/reject are protected with [Authorize(Policy = Policies.Compliance)], use ICurrentUser rather than request-body user IDs, and use IClock.UtcNow for all timestamps.",
+   "source": "specialist:safety",
+   "confidence": 0.95
+  },
+  {
+   "id": "S05",
+   "dimension": "safety",
+   "severity": "ShouldFix",
+   "title": "Static PaymentLocks dictionary grows without bound",
+   "claim": "PaymentReviewService creates and stores a SemaphoreSlim in a static ConcurrentDictionary for every reviewed paymentId without ever removing entries, introducing unbounded memory growth over the lifetime of the application.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs",
+   "line_start": 25,
+   "line_end": 25,
+   "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> PaymentLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Clean up locks when no longer contested or use a bounded cache/evicting lock store.",
+   "patch": "",
+   "requirement_link": "none",
+   "source": "specialist:safety",
+   "confidence": 0.9
+  },
+  {
+   "id": "T01",
+   "dimension": "tests",
+   "severity": "ShouldFix",
+   "title": "No test coverage for payment hold evaluation or Suspense transfer in PaymentService",
+   "claim": "The test suite in FraudHoldTests tests only IPaymentReviewService guard paths and contains no unit or integration tests for PaymentService.PayAsync. Consequently, critical requirements—holding payments >= 5,000 EUR to new payees, routing funds to Suspense, and allowing smaller or repeat payments through—are completely unverified.",
+   "file": "tests/Bank.Tests/Payments/FraudHoldTests.cs",
+   "line_start": 11,
+   "line_end": 11,
+   "evidence": "public sealed class FraudHoldTests",
+   "evidence_verified": true,
+   "suggested_fix": "Add unit tests for PaymentService.PayAsync asserting that payments >= 5,000 EUR to new payees transition to Held, post transfers to the Suspense account, publish PaymentHeld, and leave regular or repeat payments in Completed.",
+   "patch": "",
+   "requirement_link": "When a customer initiates a payment whose amount in EUR equivalent is 5,000.00 EUR or more (calculated using decimal arithmetic and rounded with Math.Round(x, 2, MidpointRounding.AwayFromZero)) to a destination account that the customer has no prior Completed payment to, PaymentService sets the payment status to Held via a domain state-transition method on Payment (with a private setter on status).",
+   "source": "specialist:tests",
+   "confidence": 1.0
+  },
+  {
+   "id": "T02",
+   "dimension": "tests",
+   "severity": "ShouldFix",
+   "title": "Missing tests for successful execution of ReleaseAsync and RejectAsync",
+   "claim": "FraudHoldTests only checks exception handling for missing payments, wrong roles, and blank rejection reasons. There are zero tests asserting that ReleaseAsync and RejectAsync successfully complete transfers from Suspense, update payment status to Completed/Rejected, and publish domain events.",
+   "file": "tests/Bank.Tests/Payments/FraudHoldTests.cs",
+   "line_start": 65,
+   "line_end": 65,
+   "evidence": "    public async Task ReleaseAsync_throws_UnauthorizedAccessException_for_non_compliance_roles(string role)",
+   "evidence_verified": true,
+   "suggested_fix": "Add tests for successful ReleaseAsync and RejectAsync flows asserting that ledger transfers source funds from Suspense, payment statuses update appropriately, and domain events/notifications are dispatched.",
+   "patch": "",
+   "requirement_link": "On ReleaseAsync, ILedger.PostTransferAsync transfers amount from BankAccounts.For(BankAccountKind.Suspense, currency) to the payee's account and (if fee > 0) transfers fee from Suspense to BankAccounts.For(BankAccountKind.FeeIncome, currency), transitions the payment status from Held to Completed, publishes PaymentReleased(PaymentId, user.UserId, clock.UtcNow), and notifies the customer via INotifier.",
+   "source": "specialist:tests",
+   "confidence": 1.0
+  },
+  {
+   "id": "T03",
+   "dimension": "tests",
+   "severity": "ShouldFix",
+   "title": "Missing negative tests for self-decision and non-Held status checks",
+   "claim": "The requirement mandates that an officer attempting to release or reject their own payment throws UnauthorizedAccessException, and attempting to release or reject non-Held payments throws InvalidOperationException. FraudHoldTests omits tests for these validation branches.",
+   "file": "tests/Bank.Tests/Payments/FraudHoldTests.cs",
+   "line_start": 65,
+   "line_end": 65,
+   "evidence": "    public async Task ReleaseAsync_throws_UnauthorizedAccessException_for_non_compliance_roles(string role)",
+   "evidence_verified": true,
+   "suggested_fix": "Add test cases covering self-release/self-rejection by matching customer ID with current user ID, as well as attempting release/rejection on Pending, Completed, or Rejected payments.",
+   "patch": "",
+   "requirement_link": "ReleaseAsync verifies the payment exists (throwing KeyNotFoundException if not), verifies the payment status is Held (throwing InvalidOperationException otherwise), and verifies payment.CustomerId is not equal to ICurrentUser.UserId (throwing UnauthorizedAccessException if an officer attempts to release their own payment).",
+   "source": "specialist:tests",
+   "confidence": 0.95
+  }
+ ],
+ "areas": [
+  {
+   "area": "What",
+   "status": "human",
+   "reason": "Requirement match is partial: While domain events, review service interfaces, and HTTP endpoints were added, the core suspense accounting mechanism is missing: funds are never transferred to Suspense when payments are held, ReleaseAsync transfers from the payer rather than Suspense, RejectAsync does not refund funds from Suspense to the payer, and payments are unconditionally marked as Held before checking the hold condition.",
+   "evidence": []
+  },
+  {
+   "area": "Where",
+   "status": "human",
+   "reason": "Tier HIGH → full human read and 2 sign-off(s) required",
+   "evidence": [
+    "src/Bank.Api/Modules/Payments/Api/PaymentsController.cs: area 'Payments' is high (Customer money leaves the account)",
+    "src/Bank.Api/Modules/Payments/Api/PaymentsController.cs: content rule 'authorization attribute changed' matched → high",
+    "src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs: area 'Payments' is high (Customer money leaves the account)",
+    "src/Bank.Api/Modules/Payments/Application/PaymentService.cs: area 'Payments' is high (Customer money leaves the account)",
+    "src/Bank.Api/Modules/Payments/Domain/Payment.cs: area 'Payments' is high (Customer money leaves the account)",
+    "src/Bank.Api/Modules/Payments/PaymentsModule.cs: area 'Payments' is high (Customer money leaves the account)"
+   ]
+  },
+  {
+   "area": "Why",
+   "status": "verified",
+   "reason": "Linked to a requirement",
+   "evidence": []
+  },
+  {
+   "area": "Security",
+   "status": "blocked",
+   "reason": "Safety Blocker(s) found",
+   "evidence": [
+    "S02 src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs:71",
+    "S03 src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs:177",
+    "S01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:346"
+   ]
+  },
+  {
+   "area": "Build",
+   "status": "verified",
+   "reason": "Build succeeded",
+   "evidence": []
+  },
+  {
+   "area": "Tests",
+   "status": "blocked",
+   "reason": "Tests failed",
+   "evidence": [
+    "Failed!  - Failed:     4, Passed:   269, Skipped:     0, Total:   273, Duration: 1 s - Bank.Tests.dll (net10.0)"
+   ]
+  },
+  {
+   "area": "Correctness",
+   "status": "blocked",
+   "reason": "5 Blocker(s)",
+   "evidence": [
+    "C05 src/Bank.Api/Modules/Payments/Api/PaymentsController.cs:104",
+    "C02 src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs:71",
+    "C03 src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs:177",
+    "C04 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:341",
+    "C01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:346"
+   ]
+  },
+  {
+   "area": "Architecture",
+   "status": "verified",
+   "reason": "No blocking issue; 5 ShouldFix noted (does not hold the merge)",
+   "evidence": [
+    "A04 src/Bank.Api/Modules/Payments/Api/PaymentsController.cs:31",
+    "A05 src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs:25",
+    "A02 src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs:71",
+    "A03 src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs:177",
+    "A01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:346"
+   ]
+  },
+  {
+   "area": "Maintainability",
+   "status": "verified",
+   "reason": "No blocking issue; 2 ShouldFix noted (does not hold the merge)",
+   "evidence": [
+    "M02 src/Bank.Api/Modules/Payments/Api/PaymentsController.cs:174",
+    "M01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:341"
+   ]
+  },
+  {
+   "area": "Performance",
+   "status": "verified",
+   "reason": "No blocking issue; 1 ShouldFix noted (does not hold the merge)",
+   "evidence": [
+    "P01 src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs:25"
+   ]
+  },
+  {
+   "area": "Impact",
+   "status": "verified",
+   "reason": "27 changed member(s); callers covered by tests or none",
+   "evidence": []
+  },
+  {
+   "area": "Requirement",
+   "status": "not_checked",
+   "reason": "Not checked: requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho",
+   "evidence": []
+  }
+ ],
+ "run_id": "20261114-205346-pr-12",
+ "sensors": [
+  {
+   "name": "secret_scan",
+   "result": null,
+   "summary": "No secret patterns in added lines"
+  },
+  {
+   "name": "package_check",
+   "result": null,
+   "summary": "No package references added"
+  },
+  {
+   "name": "test_integrity",
+   "result": null,
+   "summary": "No test files edited"
+  },
+  {
+   "name": "removed_guards",
+   "result": null,
+   "summary": "No validation/guard lines removed"
+  },
+  {
+   "name": "risky_code",
+   "result": null,
+   "summary": "0 pattern hit(s) in added code"
+  },
+  {
+   "name": "dotnet_build",
+   "result": null,
+   "summary": "Build succeeded"
+  },
+  {
+   "name": "dotnet_test",
+   "result": null,
+   "summary": "Tests failed (exit 1)"
+  }
+ ]
+}

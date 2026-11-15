@@ -1,0 +1,18 @@
+# secrets and local state: never commit
+.env
+.env.*
+!.env.example
+.prw-secrets.json
+*.db
+*.sqlite*
+access.before-switch.yaml
+# build and tool output
+.venv/
+venv/
+__pycache__/
+*.pyc
+bin/
+obj/
+node_modules/
+.DS_Store
+*.log

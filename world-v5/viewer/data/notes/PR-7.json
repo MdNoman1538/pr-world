@@ -1,0 +1,4376 @@
+{
+ "pr": "PR-7",
+ "findings": [
+  {
+   "id": "C01",
+   "severity": "Blocker",
+   "title": "Missing four-eyes check in LoanService.ApproveAsync",
+   "dimension": "correctness"
+  },
+  {
+   "id": "S01",
+   "severity": "Blocker",
+   "title": "Missing four-eyes check allows loan officers to approve their own loans",
+   "dimension": "safety"
+  },
+  {
+   "id": "A01",
+   "severity": "ShouldFix",
+   "title": "Class-level Customer policy blocks LoanOfficer access to Approve and Reject endpoints",
+   "dimension": "architecture"
+  },
+  {
+   "id": "A02",
+   "severity": "ShouldFix",
+   "title": "Static LoanLocks creates an unbounded memory leak and ineffective distributed synchronization",
+   "dimension": "architecture"
+  },
+  {
+   "id": "C02",
+   "severity": "ShouldFix",
+   "title": "Class-level Customer policy on LoansController restricts LoanOfficer endpoints",
+   "dimension": "correctness"
+  },
+  {
+   "id": "P01",
+   "severity": "ShouldFix",
+   "title": "Unbounded memory retention in static LoanLocks dictionary",
+   "dimension": "performance"
+  },
+  {
+   "id": "S02",
+   "severity": "ShouldFix",
+   "title": "Unbounded static dictionary for per-loan locks creates memory leak",
+   "dimension": "safety"
+  },
+  {
+   "id": "T02",
+   "severity": "ShouldFix",
+   "title": "LoansController endpoints and status code translations lack test coverage",
+   "dimension": "tests"
+  },
+  {
+   "id": "T03",
+   "severity": "ShouldFix",
+   "title": "Loan domain entity invalid state transitions are not directly tested",
+   "dimension": "tests"
+  },
+  {
+   "id": "T01",
+   "severity": "ShouldFix",
+   "title": "Annuity rounding test does not test midpoint rounding half-away-from-zero",
+   "dimension": "tests"
+  }
+ ],
+ "source": "ai",
+ "model": "gemini-4-hydrogen",
+ "headline": "Add Loans module for customer loan applications, annuity calculation, and officer approval or rejection.",
+ "summary": "Introduces the Bank.Modules.Loans module with API endpoints, application service logic, domain entity, and database persistence for fixed-rate loans. Customers can apply for and view their loans, while loan officers can inspect, approve, and reject applications with ledger disbursement and event notifications.",
+ "business": "Customers can apply for 6 to 120 month loans between 1000 and 50000 at a fixed 5.5% annual rate and receive decision notifications. Loan officers can review, approve with automatic principal disbursement to the customer account, or reject applications with a reason.",
+ "business_impact": "high",
+ "notes": {
+  "P:Bank.Data.BankDbContext.Loans": {
+   "changed": "Adds the Loans DbSet to BankDbContext so loan records can be queried and saved.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Loans.Api.ApplyLoanRequest": {
+   "changed": "Defines the request payload carrying disbursement account id, principal, and term months.",
+   "changed_facts": "New record with 4 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Loans.Api.ApplyLoanRequest.#ctor(System.Guid,System.Decimal,System.Int32)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Loans.Api.ApplyLoanRequest.DisbursementAccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Api.ApplyLoanRequest.Principal": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Api.ApplyLoanRequest.TermMonths": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Loans.Api.ApproveLoanRequest": {
+   "changed": "Defines the optional approval note payload for approving a loan.",
+   "changed_facts": "New record with 2 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Loans.Api.ApproveLoanRequest.#ctor(System.String)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Loans.Api.ApproveLoanRequest.Note": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Loans.Api.RejectLoanRequest": {
+   "changed": "Defines the payload carrying the rejection reason for rejecting a loan.",
+   "changed_facts": "New record with 2 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Loans.Api.RejectLoanRequest.#ctor(System.String)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Loans.Api.RejectLoanRequest.Reason": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Loans.Api.LoanDto": {
+   "changed": "Defines the API response representation of a loan, including rate, monthly payment, status, and decision details.",
+   "changed_facts": "New record with 12 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Loans.Api.LoanDto.#ctor(System.Guid,System.String,System.Guid,System.Decimal,System.Int32,System.Decimal,System.Decimal,Bank.Modules.Loans.Domain.LoanStatus,System.String,System.String,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Loans.Api.LoanDto.Id": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Api.LoanDto.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Api.LoanDto.DisbursementAccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Api.LoanDto.Principal": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Api.LoanDto.TermMonths": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Api.LoanDto.AnnualRatePercent": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Api.LoanDto.MonthlyPayment": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Api.LoanDto.Status": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Api.LoanDto.DecidedBy": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Api.LoanDto.DecisionNote": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Api.LoanDto.AppliedAt": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Loans.Api.LoansController": {
+   "changed": "Adds HTTP endpoints for customers to submit and view loans and for loan officers to approve or reject them.",
+   "changed_facts": "New class with 13 member(s).",
+   "changed_src": "ai"
+  },
+  "F:Bank.Modules.Loans.Api.LoansController.JsonOptions": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Api.LoansController._loans": {
+   "changed": "New field."
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.#ctor(Bank.Modules.Loans.Application.ILoanService)": {
+   "changed": "New ctor."
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls LoansController.ToDto(), calls ILoanService.ApplyAsync()."
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Get(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls LoansController.ToDto(), calls ILoanService.GetAsync()."
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Approve(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls LoansController.ReadOptionalJsonBodyAsync(), calls LoansController.ToDto(), calls ILoanService.ApproveAsync()."
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Reject(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls LoansController.ReadOptionalJsonBodyAsync(), calls LoansController.ToDto(), calls ILoanService.RejectAsync()."
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.ReadOptionalJsonBodyAsync``1(System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.ToDto(Bank.Modules.Loans.Domain.Loan)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Loans.Application.LoanApplication": {
+   "changed": "Defines the application input carrying disbursement account id, principal, and term months.",
+   "changed_facts": "New record with 4 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Loans.Application.LoanApplication.#ctor(System.Guid,System.Decimal,System.Int32)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Loans.Application.LoanApplication.DisbursementAccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Application.LoanApplication.Principal": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Application.LoanApplication.TermMonths": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Loans.Application.ILoanService": {
+   "changed": "Declares loan application, lookup, approval, and rejection operations.",
+   "changed_facts": "New interface with 4 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Loans.Application.ILoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Loans.Application.ILoanService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Loans.Application.ILoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Loans.Application.ILoanService.RejectAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Loans.Application.LoanService": {
+   "changed": "New class with 19 member(s)."
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.MinPrincipal": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.MaxPrincipal": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.MinTermMonths": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.MaxTermMonths": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.FixedAnnualRatePercent": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.LoanLocks": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Application.LoanService._db": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Application.LoanService._ledger": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Application.LoanService._accounts": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Application.LoanService._user": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Application.LoanService._clock": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Application.LoanService._bus": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Application.LoanService._notifier": {
+   "changed": "New field."
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus,Bank.Modules.Notifications.Application.INotifier)": {
+   "changed": "New ctor."
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls IAccountService.IsOwnerAsync(), calls LoanService.CalculateMonthlyAnnuity(), calls IEventBus.PublishAsync(), publishes LoanSubmitted…."
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls ICurrentUser.IsInRole()."
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls IAccountService.GetAsync(), calls ICurrentUser.IsInRole(), calls ILedger.PostTransferAsync(), calls BankAccounts.For()…."
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.RejectAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls ICurrentUser.IsInRole(), calls Loan.Reject(), calls INotifier.NotifyAsync(), calls IEventBus.PublishAsync()…."
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.CalculateMonthlyAnnuity(System.Decimal,System.Int32)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Loans.Domain.LoanStatus": {
+   "changed": "Defines the Submitted, Rejected, and Disbursed states for a loan.",
+   "changed_facts": "New enum with 3 member(s).",
+   "changed_src": "ai"
+  },
+  "F:Bank.Modules.Loans.Domain.LoanStatus.Submitted": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Domain.LoanStatus.Rejected": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Loans.Domain.LoanStatus.Disbursed": {
+   "changed": "New field."
+  },
+  "T:Bank.Modules.Loans.Domain.Loan": {
+   "changed": "Represents a loan entity with a private-set status that starts Submitted and transitions only through Approve and Reject.",
+   "changed_facts": "New class with 14 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Loans.Domain.Loan.#ctor": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.Id": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.DisbursementAccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.Principal": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.TermMonths": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.AnnualRatePercent": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.MonthlyPayment": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.Status": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.DecidedBy": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.DecisionNote": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.AppliedAt": {
+   "changed": "New property."
+  },
+  "M:Bank.Modules.Loans.Domain.Loan.Approve(System.String,System.String)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Loans.Domain.Loan.Reject(System.String,System.String)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Loans.Domain.LoanSubmitted": {
+   "changed": "Defines the domain event raised when a loan application is submitted.",
+   "changed_facts": "New record with 5 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Loans.Domain.LoanSubmitted.#ctor(System.Guid,System.String,System.Decimal,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Loans.Domain.LoanSubmitted.LoanId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.LoanSubmitted.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.LoanSubmitted.Principal": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.LoanSubmitted.OccurredAt": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Loans.Domain.LoanApproved": {
+   "changed": "Defines the domain event raised when a loan is approved.",
+   "changed_facts": "New record with 5 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Loans.Domain.LoanApproved.#ctor(System.Guid,System.String,System.Decimal,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Loans.Domain.LoanApproved.LoanId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.LoanApproved.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.LoanApproved.Principal": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.LoanApproved.OccurredAt": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Loans.Domain.LoanRejected": {
+   "changed": "Defines the domain event raised when a loan is rejected.",
+   "changed_facts": "New record with 4 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Loans.Domain.LoanRejected.#ctor(System.Guid,System.String,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Loans.Domain.LoanRejected.LoanId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.LoanRejected.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Loans.Domain.LoanRejected.OccurredAt": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Loans.LoansModule": {
+   "changed": "New class with 1 member(s)."
+  },
+  "M:Bank.Modules.Loans.LoansModule.AddLoansModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "changed": "New method."
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "changed": "Wires the Loans module into the application startup.",
+   "changed_facts": "Modified (lines 11, 35).",
+   "changed_src": "ai"
+  },
+  "table:Loans.Id": {
+   "changed": "New column."
+  },
+  "table:Loans.CustomerId": {
+   "changed": "New column."
+  },
+  "table:Loans.DisbursementAccountId": {
+   "changed": "New column."
+  },
+  "table:Loans.Principal": {
+   "changed": "New column."
+  },
+  "table:Loans.TermMonths": {
+   "changed": "New column."
+  },
+  "table:Loans.AnnualRatePercent": {
+   "changed": "New column."
+  },
+  "table:Loans.MonthlyPayment": {
+   "changed": "New column."
+  },
+  "table:Loans.Status": {
+   "changed": "New column."
+  },
+  "table:Loans.DecidedBy": {
+   "changed": "New column."
+  },
+  "table:Loans.DecisionNote": {
+   "changed": "New column."
+  },
+  "table:Loans.AppliedAt": {
+   "changed": "New column."
+  },
+  "endpoint:POST /api/loans": {
+   "changed": "Submits a new loan application for the current user and returns BadRequest or Forbid on validation or ownership errors.",
+   "changed_facts": "New endpoint.",
+   "changed_src": "ai"
+  },
+  "endpoint:GET /api/loans/{id:guid}": {
+   "changed": "New endpoint."
+  },
+  "endpoint:POST /api/loans/{id:guid}/approve": {
+   "changed": "Requires the LoanOfficer policy, reads an optional approval note, and approves the loan.",
+   "changed_facts": "New endpoint.",
+   "changed_src": "ai"
+  },
+  "endpoint:POST /api/loans/{id:guid}/reject": {
+   "changed": "Requires the LoanOfficer policy, reads the rejection reason from the body, and rejects the loan.",
+   "changed_facts": "New endpoint.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Data.BankDbContext": {
+   "changed": "added Loans."
+  },
+  "module:Platform": {
+   "changed": "Classes: 2 changed (BankDbContext, Program).",
+   "affected": "3 part(s) are reached by it: PublishAsync, DefaultCurrency, DailyTransferLimit."
+  },
+  "module:Loans": {
+   "changed": "Classes: 14 new (ApplyLoanRequest, ApproveLoanRequest, RejectLoanRequest, LoanDto…)."
+  },
+  "T:Program": {
+   "changed": "modified <Main>$."
+  },
+  "table:Loans": {
+   "changed": "Adds the Loans database table storing loan terms, rate, monthly payment, status, and decision metadata.",
+   "changed_facts": "added Id, CustomerId, DisbursementAccountId, Principal, TermMonths.",
+   "changed_src": "ai"
+  },
+  "F:Bank.Modules.Auth.Roles.LoanOfficer": {
+   "affected": "Reached by the change through LoanService.GetAsync() (uses), 1 hop(s)."
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "affected": "Reached by the change through LoanService.ApproveAsync() (calls), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "affected": "Reached by the change through LoanService.ApproveAsync() (uses), 1 hop(s)."
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "affected": "Reached by the change through LoanTests.Apply_persists_submitted_loan_and_publishes_event() (uses), 1 hop(s)."
+  },
+  "F:Bank.Modules.Auth.Roles.Teller": {
+   "affected": "Reached by the change through LoanTests.Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "affected": "Reached by the change through LoanTests.Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "affected": "Reached by the change through LoanTests.Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii() (uses), 1 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IAccountService.IsOwnerAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IEventBus.PublishAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)": {
+   "affected": "Reached by the change through ICurrentUser.IsInRole() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IAccountService.GetAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through ILedger.PostTransferAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Notifications.Application.LogNotifier.NotifyAsync(System.String,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through INotifier.NotifyAsync() (resolves), 2 hop(s)."
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "affected": "Reached by the change through TestKit.Settings() (uses), 2 hop(s)."
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "affected": "Reached by the change through TestKit.Settings() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "affected": "Reached by the change through TestKit.Account() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "affected": "Reached by the change through Ledger.PostTransferAsync() (uses), 3 hop(s)."
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "affected": "Reached by the change through Ledger.PostTransferAsync() (uses), 3 hop(s)."
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IEventHandler.HandleAsync() (resolves), 4 hop(s)."
+  },
+  "T:Bank.Modules.Auth.Roles": {
+   "affected": "Referenced for authorization checks via LoanService.GetAsync and tests covering Customer, LoanOfficer, and Teller role rules.",
+   "affected_facts": "3 part(s) are reached by it: LoanOfficer, Customer, Teller.",
+   "affected_src": "ai"
+  },
+  "module:Auth": {
+   "affected": "4 part(s) are reached by it: LoanOfficer, Customer, Teller, IsInRole."
+  },
+  "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+   "affected": "Called via BankAccounts.For in LoanService.ApproveAsync to resolve the LoanFunding source account for the disbursement currency.",
+   "affected_facts": "1 part(s) are reached by it: For.",
+   "affected_src": "ai"
+  },
+  "module:Ledger": {
+   "affected": "4 part(s) are reached by it: For, PostTransferAsync, Currency, Reference."
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "affected": "Provides account currency during LoanService.ApproveAsync disbursement and is used in loan approval tests.",
+   "affected_facts": "4 part(s) are reached by it: Currency, Id, Iban, OwnerId.",
+   "affected_src": "ai"
+  },
+  "module:Accounts": {
+   "affected": "6 part(s) are reached by it: Currency, Id, Iban, IsOwnerAsync…."
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "affected": "Called via IAccountService.IsOwnerAsync during application and GetAsync during approval to verify ownership and resolve account currency.",
+   "affected_facts": "2 part(s) are reached by it: IsOwnerAsync, GetAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "affected": "Invoked via IEventBus.PublishAsync to dispatch LoanSubmitted and LoanRejected domain events.",
+   "affected_facts": "1 part(s) are reached by it: PublishAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Auth.Application.CurrentUser": {
+   "affected": "Checked through ICurrentUser.IsInRole and UserId to enforce ownership and loan officer permissions.",
+   "affected_facts": "1 part(s) are reached by it: IsInRole.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Ledger.Application.Ledger": {
+   "affected": "Invoked via ILedger.PostTransferAsync in LoanService.ApproveAsync to transfer loan principal to the customer account.",
+   "affected_facts": "1 part(s) are reached by it: PostTransferAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Notifications.Application.LogNotifier": {
+   "affected": "Invoked via INotifier.NotifyAsync in LoanService.RejectAsync to notify the customer of rejection.",
+   "affected_facts": "1 part(s) are reached by it: NotifyAsync.",
+   "affected_src": "ai"
+  },
+  "module:Notifications": {
+   "affected": "1 part(s) are reached by it: NotifyAsync."
+  },
+  "T:Bank.Shared.Settings.BankSettings": {
+   "affected": "Used by TestKit.Settings during loan test setup for default currency and daily transfer limit.",
+   "affected_facts": "2 part(s) are reached by it: DefaultCurrency, DailyTransferLimit.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+   "affected": "Created indirectly when Ledger.PostTransferAsync records the loan disbursement transfer currency and reference.",
+   "affected_facts": "2 part(s) are reached by it: Currency, Reference.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+   "affected": "Reached via IEventHandler.HandleAsync when published loan domain events trigger audit handling.",
+   "affected_facts": "1 part(s) are reached by it: HandleAsync.",
+   "affected_src": "ai"
+  },
+  "module:Audit": {
+   "affected": "1 part(s) are reached by it: HandleAsync."
+  }
+ },
+ "verdict": {
+  "label": "fix",
+  "reasons": [
+   {
+    "kind": "critical",
+    "level": "fix",
+    "text": "Missing four-eyes check in LoanService.ApproveAsync",
+    "finding": "C01",
+    "node": "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+    "detail": "2 failing test(s) reach this code",
+    "tests": [
+     "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+     "Approve_enforces_role_four_eyes_and_submitted_status"
+    ],
+    "claim": "ApproveAsync does not verify whether the approving officer is also the applicant (loan.CustomerId == officerId). This allows loan officers to approve their own loans and disburse funds to themselves, violating the four-eyes requirement and causing test failure.",
+    "suggested_fix": "Add `if (loan.CustomerId == officerId) throw new UnauthorizedAccessException(\"Loan officers cannot approve their own loan.\");` immediately after loading the loan.",
+    "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+    "line_start": 128,
+    "evidence": "                loan = await _db.Loans.FirstOrDefaultAsync(l => l.Id == loanId, ct)\n                    ?? throw new KeyNotFoundException($\"Loan {loanId} not found.\");\n\n                if (loan.Status != LoanStatus.Submitted)\n                    throw new InvalidOperationException($\"Cannot approve loan in status {loan.Status}.\");",
+    "evidence_verified": true,
+    "dimension": "correctness",
+    "severity": "Blocker",
+    "say": "Loan officers can approve their own loans and disburse bank funds to themselves, violating four-eyes controls. Ask the author to block self-approval in LoanService.ApproveAsync before sign-off.",
+    "say_facts": "This allows loan officers to approve their own loans and disburse funds to themselves, violating the four-eyes requirement and causing test failure. Tests agree. Ask for a fix before merging.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "critical",
+    "level": "fix",
+    "text": "Missing four-eyes check allows loan officers to approve their own loans",
+    "finding": "S01",
+    "node": "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+    "detail": "2 failing test(s) reach this code",
+    "tests": [
+     "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+     "Approve_enforces_role_four_eyes_and_submitted_status"
+    ],
+    "claim": "ApproveAsync does not verify whether loan.CustomerId matches the caller's officerId before disbursing funds. A loan officer with a customer account can approve their own application and trigger unauthorized principal payout.",
+    "suggested_fix": "Add `if (loan.CustomerId == officerId) throw new UnauthorizedAccessException(\"Loan officers cannot approve their own loan.\");` prior to initiating disbursement.",
+    "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+    "line_start": 131,
+    "evidence": "                if (loan.Status != LoanStatus.Submitted)\n                    throw new InvalidOperationException($\"Cannot approve loan in status {loan.Status}.\");\n\n                var account = await _accounts.GetAsync(loan.DisbursementAccountId, ct)",
+    "evidence_verified": true,
+    "dimension": "safety",
+    "severity": "Blocker",
+    "say": "A loan officer with a customer account can self-approve a loan and trigger unauthorized payout. Verify LoanService.ApproveAsync rejects approvals where the officer matches the borrower.",
+    "say_facts": "A loan officer with a customer account can approve their own application and trigger unauthorized principal payout. Tests agree. Ask for a fix before merging.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "tests_fail",
+    "level": "fix",
+    "text": "2 test(s) disagree with this PR's code (2 case(s)); the code or the test must change",
+    "detail": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAcces ×1; Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { Tr ×1",
+    "tests": [
+     "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+     "Approve_enforces_role_four_eyes_and_submitted_status"
+    ],
+    "say": "Two automated tests fail, showing missing authorization checks and duplicate money transfers. Do not sign off until all failing tests are fixed and passing.",
+    "say_facts": "2 tests written from the requirement expect different behaviour from the code. Decide which is right — the code or the test — before this can merge.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "business",
+    "level": "check",
+    "text": "High business impact",
+    "detail": "Customers can apply for 6 to 120 month loans between 1000 and 50000 at a fixed 5.5% annual rate and receive decision notifications. Loan officers can review, approve with automatic principal disbursement to the customer account, or reject applications with a reason.",
+    "say": "Customers can borrow 1,000 to 50,000 at 5.5% for 6 to 120 months with automated payout. Carefully verify all lending, disbursement, and notification rules given the financial risk.",
+    "say_facts": "This change has a high impact on customers or money: Customers can apply for 6 to 120 month loans between 1000 and 50000 at a fixed 5.5% annual rate and receive decision notifications. Loan officers can review, approve with automatic principal disbursement to the customer account, or reject applications with a reason. Confirm the business owner agrees.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Class-level Customer policy blocks LoanOfficer access to Approve and Reject endpoints",
+    "finding": "A01",
+    "node": "T:Bank.Modules.Loans.Api.LoansController",
+    "detail": "architecture",
+    "claim": "In ASP.NET Core, authorization attributes combine additively. Placing [Authorize(Policy = Policies.Customer)] on the controller class forces all actions—including Approve and Reject—to require both Policies.Customer and Policies.LoanOfficer. Loan officers without the Customer role will receive 403 Forbidden, violating the API specification.",
+    "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from the LoansController class and apply it directly to Apply and Get actions so Approve and Reject only require Policies.LoanOfficer.",
+    "file": "src/Bank.Api/Modules/Loans/Api/LoansController.cs",
+    "line_start": 29,
+    "evidence": "[ApiController]\n[Route(\"api/loans\")]\n[Authorize(Policy = Policies.Customer)]\npublic sealed class LoansController : ControllerBase",
+    "evidence_verified": true,
+    "dimension": "architecture",
+    "severity": "ShouldFix",
+    "say": "Loan officers without customer permissions will be blocked from approving or rejecting loans. Ask the author to remove the class-level customer policy on LoansController so staff can review applications.",
+    "say_facts": "Loan officers without the Customer role will receive 403 Forbidden, violating the API specification. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Static LoanLocks creates an unbounded memory leak and ineffective distributed synchronization",
+    "finding": "A02",
+    "node": "F:Bank.Modules.Loans.Application.LoanService.LoanLocks",
+    "detail": "architecture",
+    "claim": "LoanService stores SemaphoreSlim instances in a static ConcurrentDictionary keyed by loanId without any cleanup or eviction, leaking memory over the lifetime of the process. In-memory semaphores also fail to prevent concurrency races across multiple service instances in a distributed deployment.",
+    "suggested_fix": "Remove the in-memory SemaphoreSlim dictionary and rely on database transactions and status checks (or a distributed lock if multi-node serialization is required).",
+    "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+    "line_start": 35,
+    "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> LoanLocks = new();",
+    "evidence_verified": true,
+    "dimension": "architecture",
+    "severity": "ShouldFix",
+    "say": "Memory will leak over time as loans accumulate, and locks will fail across multiple servers, risking double payouts. Ask for database-level concurrency control instead of LoanLocks.",
+    "say_facts": "In-memory semaphores also fail to prevent concurrency races across multiple service instances in a distributed deployment. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Class-level Customer policy on LoansController restricts LoanOfficer endpoints",
+    "finding": "C02",
+    "node": "T:Bank.Modules.Loans.Api.LoansController",
+    "detail": "correctness",
+    "claim": "LoansController is decorated with [Authorize(Policy = Policies.Customer)] at the class level. In ASP.NET Core, class-level and action-level authorization attributes combine, requiring callers of Approve and Reject to satisfy both Policies.Customer and Policies.LoanOfficer, which denies loan officers who do not also possess the Customer role.",
+    "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from the controller class and place it specifically on the Apply and Get action methods.",
+    "file": "src/Bank.Api/Modules/Loans/Api/LoansController.cs",
+    "line_start": 31,
+    "evidence": "[Authorize(Policy = Policies.Customer)]\npublic sealed class LoansController : ControllerBase",
+    "evidence_verified": true,
+    "dimension": "correctness",
+    "severity": "ShouldFix",
+    "say": "Staff who are only loan officers will get access-denied errors when approving or rejecting loans. Ask the author to move the customer policy off the LoansController class to customer endpoints only.",
+    "say_facts": "In ASP.NET Core, class-level and action-level authorization attributes combine, requiring callers of Approve and Reject to satisfy both Policies.Customer and Policies.LoanOfficer, which denies loan officers who do not also possess the Customer role. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Unbounded memory retention in static LoanLocks dictionary",
+    "finding": "P01",
+    "node": "F:Bank.Modules.Loans.Application.LoanService.LoanLocks",
+    "detail": "performance",
+    "claim": "LoanLocks accumulates a SemaphoreSlim instance for every approved or rejected loan ID in a static ConcurrentDictionary without eviction or disposal. In a running service, this creates an unbounded memory leak as loan volume increases over time.",
+    "suggested_fix": "Use database row-level locking or an entity concurrency token instead of an unbounded in-memory static semaphore dictionary, or remove keys when work completes.",
+    "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+    "line_start": 35,
+    "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> LoanLocks = new();",
+    "evidence_verified": true,
+    "dimension": "performance",
+    "severity": "ShouldFix",
+    "say": "Every approved or rejected loan permanently holds memory in LoanLocks, which can eventually crash the service. Ask the author to clean up or replace this static lock storage.",
+    "say_facts": "In a running service, this creates an unbounded memory leak as loan volume increases over time. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Unbounded static dictionary for per-loan locks creates memory leak",
+    "finding": "S02",
+    "node": "F:Bank.Modules.Loans.Application.LoanService.LoanLocks",
+    "detail": "safety",
+    "claim": "LoanLocks statically retains a SemaphoreSlim instance for every processed loanId without eviction or cleanup. In long-running service instances, this causes monotonically increasing memory consumption.",
+    "suggested_fix": "Rely on database transactions with concurrency tokens/optimistic concurrency on the Loan entity, or remove entries from LoanLocks when locks are no longer in use.",
+    "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+    "line_start": 35,
+    "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> LoanLocks = new();",
+    "evidence_verified": true,
+    "dimension": "safety",
+    "severity": "ShouldFix",
+    "say": "Unbounded memory growth from LoanLocks will steadily degrade service stability in production. Confirm with the author how lock entries will be evicted or replaced with database locking.",
+    "say_facts": "In long-running service instances, this causes monotonically increasing memory consumption. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "LoansController endpoints and status code translations lack test coverage",
+    "finding": "T02",
+    "node": "T:Bank.Modules.Loans.Api.LoansController",
+    "detail": "tests",
+    "claim": "LoansController introduces four HTTP endpoints (POST api/loans, GET api/loans/{id}, POST api/loans/{id}/approve, POST api/loans/{id}/reject), custom JSON body reading, and exception-to-HTTP-status mappings (400, 403, 404, 409). None of these actions or controller behaviors are covered by any unit or integration tests.",
+    "suggested_fix": "Add controller unit tests or integration tests verifying routing, authorization policy enforcement, status code mappings, and request body deserialization for all four endpoints.",
+    "file": "src/Bank.Api/Modules/Loans/Api/LoansController.cs",
+    "line_start": 32,
+    "evidence": "public sealed class LoansController : ControllerBase\n{\n    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);\n\n    private readonly ILoanService _loans;\n\n    public LoansController(ILoanService loans) => _loans = loans;",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "None of the loan web endpoints or error status responses are tested, risking broken customer or staff requests. Ask for integration tests covering LoansController endpoints and error codes.",
+    "say_facts": "None of these actions or controller behaviors are covered by any unit or integration tests. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Loan domain entity invalid state transitions are not directly tested",
+    "finding": "T03",
+    "node": "M:Bank.Modules.Loans.Domain.Loan.Approve(System.String,System.String)",
+    "detail": "tests",
+    "claim": "The acceptance criteria requires testing invalid state transitions, and the Loan domain entity defines Approve and Reject methods that validate Status == LoanStatus.Submitted. However, no tests execute Loan.Approve or Loan.Reject directly on the domain model to verify state transition guards independently of LoanService.",
+    "suggested_fix": "Add domain unit tests verifying that calling Approve or Reject directly on a Loan instance that is already Disbursed or Rejected throws InvalidOperationException.",
+    "file": "src/Bank.Api/Modules/Loans/Domain/Loan.cs",
+    "line_start": 30,
+    "evidence": "    public void Approve(string officerId, string? note)\n    {\n        if (Status != LoanStatus.Submitted)\n            throw new InvalidOperationException($\"Cannot approve loan in status {Status}.\");\n        Status = LoanStatus.Disbursed;\n        DecidedBy = officerId;\n        DecisionNote = note;\n    }",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "Invalid loan status transitions are not tested directly on the loan record, leaving state rules unverified. Ask for unit tests confirming invalid Loan approvals and rejections are blocked.",
+    "say_facts": "However, no tests execute Loan.Approve or Loan.Reject directly on the domain model to verify state transition guards independently of LoanService. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Annuity rounding test does not test midpoint rounding half-away-from-zero",
+    "finding": "T01",
+    "node": "M:Bank.Tests.Loans.LoanTests.Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero(System.Decimal,System.Int32,System.Decimal)",
+    "detail": "tests",
+    "claim": "The test Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero claims to verify that payments round half-away-from-zero, but none of the test cases calculate a monthly payment ending in a half-cent midpoint (.XX5). For the inputs tested (169.3496..., 858.374..., 542.628...), MidpointRounding.ToEven and MidpointRounding.AwayFromZero produce identical results, so the test would pass even if banker's rounding or default rounding were used.",
+    "suggested_fix": "Add a test case with principal and term values where the third decimal digit of the calculated annuity is exactly 5, ensuring that AwayFromZero rounding behaves differently from default ToEven rounding.",
+    "file": "tests/Bank.Tests/Loans/LoanTests.cs",
+    "line_start": 60,
+    "evidence": "    [Theory]\n    [InlineData(1000, 6, 169.35)]\n    [InlineData(10000, 12, 858.37)]\n    [InlineData(50000, 120, 542.63)]\n    public async Task Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero(\n        decimal principal, int termMonths, decimal expectedMonthlyPayment)",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "The rounding test does not check half-cent values, so incorrect rounding could miscalculate customer monthly payments. Ask for a test case whose exact payment ends in half a cent.",
+    "say_facts": "For the inputs tested (169.3496..., 858.374..., 542.628...), MidpointRounding.ToEven and MidpointRounding.AwayFromZero produce identical results, so the test would pass even if banker's rounding or default rounding were used. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "untested",
+    "level": "check",
+    "text": "18 changed method(s) have no usable test evidence",
+    "nodes": [
+     "F:Bank.Modules.Loans.Api.LoansController.JsonOptions",
+     "M:Bank.Modules.Loans.Api.LoansController.#ctor(Bank.Modules.Loans.Application.ILoanService)",
+     "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Loans.Api.LoansController.Get(System.Guid,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Loans.Api.LoansController.Approve(System.Guid,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Loans.Api.LoansController.Reject(System.Guid,System.Threading.CancellationToken)"
+    ],
+    "detail": "LoansController.JsonOptions, LoansController.LoansController(), LoansController.Apply(), LoansController.Get()",
+    "say": "Eighteen changed methods lack test coverage, including LoansController endpoints, leaving customer application and lookup behavior unverified. Ask for tests covering these methods before approval.",
+    "say_facts": "18 changed parts of the code are not covered by any working test. Read them yourself or ask for tests.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "reviewer",
+    "level": "check",
+    "text": "Reviewer asks a human to check What",
+    "detail": "Requirement match is partial: The four-eyes validation rule is missing in ILoanService.ApproveAsync: it does not check whether the approving officer is the borrower (loan.CustomerId == officerId), violating a core requirement and causing automated test failures.",
+    "say": "The core four-eyes rule is missing in LoanService.ApproveAsync, letting officers approve their own loans and failing tests. Confirm this validation is added and all requirements pass before signing.",
+    "say_facts": "The reviewer is not sure the change does everything the requirement asks. Compare the change with the requirement.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "reviewer",
+    "level": "check",
+    "text": "Reviewer asks a human to check Where",
+    "detail": "Tier HIGH → full human read and 2 sign-off(s) required",
+    "say": "Because this change carries high financial risk, a full human review of the code and two sign-offs are required. Ensure a second qualified reviewer signs off alongside you.",
+    "say_facts": "The change touches a sensitive part of the bank. Check that only the intended places changed.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "not_checked",
+    "level": "info",
+    "text": "Not checked at this coverage level: Requirement",
+    "say": "Not checked (switched off by the team's coverage level, or did not run): Requirement. Not counted as passed; trust cannot be High."
+   },
+   {
+    "kind": "inherited",
+    "level": "info",
+    "text": "2 failing case(s) already failed before this PR (in PR-6): not counted here",
+    "say": "2 failing test case(s) were already failing before this PR (in PR-6); they are not held against it."
+   }
+  ],
+  "risk_areas": [
+   {
+    "module": "Loans",
+    "why": "Credit decisions and payouts"
+   },
+   {
+    "module": "Platform",
+    "why": "Database schema, wiring and bank-wide settings touch every module"
+   }
+  ],
+  "reviewer_gate": "BLOCKED",
+  "failures": {
+   "new": 2,
+   "broken": 0,
+   "inherited": 2,
+   "cases_failed": 4
+  }
+ },
+ "units": {
+  "F:Bank.Modules.Loans.Api.LoansController.JsonOptions": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.#ctor(Bank.Modules.Loans.Application.ILoanService)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Get(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Approve(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Reject(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.ReadOptionalJsonBodyAsync``1(System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.ToDto(Bank.Modules.Loans.Domain.Loan)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.MinPrincipal": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.MaxPrincipal": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.MinTermMonths": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.MaxTermMonths": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.FixedAnnualRatePercent": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.LoanLocks": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [
+    {
+     "id": "A02",
+     "severity": "ShouldFix",
+     "title": "Static LoanLocks creates an unbounded memory leak and ineffective distributed synchronization",
+     "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+     "line_start": 35,
+     "dimension": "architecture"
+    },
+    {
+     "id": "P01",
+     "severity": "ShouldFix",
+     "title": "Unbounded memory retention in static LoanLocks dictionary",
+     "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+     "line_start": 35,
+     "dimension": "performance"
+    },
+    {
+     "id": "S02",
+     "severity": "ShouldFix",
+     "title": "Unbounded static dictionary for per-loan locks creates memory leak",
+     "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+     "line_start": 35,
+     "dimension": "safety"
+    }
+   ],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus,Bank.Modules.Notifications.Application.INotifier)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown"
+    ],
+    "passed_n": 1,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Approve_allows_null_note",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status"
+    ],
+    "passed_n": 3,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [
+    {
+     "id": "C01",
+     "severity": "Blocker",
+     "title": "Missing four-eyes check in LoanService.ApproveAsync",
+     "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+     "line_start": 128,
+     "dimension": "correctness"
+    },
+    {
+     "id": "S01",
+     "severity": "Blocker",
+     "title": "Missing four-eyes check allows loan officers to approve their own loans",
+     "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+     "line_start": 131,
+     "dimension": "safety"
+    }
+   ],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.RejectAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 3,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.CalculateMonthlyAnnuity(System.Decimal,System.Int32)": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Domain.Loan.#ctor": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.Id": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.CustomerId": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.Status": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Approve_allows_null_note",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 6,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Domain.Loan.Approve(System.String,System.String)": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Approve_allows_null_note",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status"
+    ],
+    "passed_n": 3,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [
+    {
+     "id": "T03",
+     "severity": "ShouldFix",
+     "title": "Loan domain entity invalid state transitions are not directly tested",
+     "file": "src/Bank.Api/Modules/Loans/Domain/Loan.cs",
+     "line_start": 30,
+     "dimension": "tests"
+    }
+   ],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.Domain.Loan.Reject(System.String,System.String)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 3,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Loans.LoansModule.AddLoansModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "F:Bank.Modules.Auth.Roles.LoanOfficer": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 5,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Loans.Application.LoanService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Loans.LoanTests.Apply_persists_submitted_loan_and_publishes_event",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "F:Bank.Modules.Auth.Roles.Teller": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status"
+    ],
+    "passed_n": 2,
+    "failed": [
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 1,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Loans.LoanTests.Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Loans.LoanTests.Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Loans.LoanTests.Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 5,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Approve_allows_null_note",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status"
+    ],
+    "passed_n": 3,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Notifications.Application.LogNotifier.NotifyAsync(System.String,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Approve_allows_null_note",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 4,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Notifications.Application.INotifier.NotifyAsync(System.String,System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero",
+     "Apply_persists_submitted_loan_and_publishes_event",
+     "Apply_rejects_out_of_range_principal_or_term",
+     "Apply_throws_when_disbursement_account_not_owned_by_caller",
+     "Approve_allows_null_note",
+     "Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+     "Reject_after_disbursement_throws_invalid_operation",
+     "Reject_enforces_role_four_eyes_reason_and_submitted_status",
+     "Reject_transitions_loan_publishes_event_and_notifies_without_pii"
+    ],
+    "passed_n": 9,
+    "failed": [
+     {
+      "name": "Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+      "message": "Assert.Single() Failure: The collection contained 2 items Collection: [TransferPosted { TransferId = 6634be50-f462-4699-8c1d-301aff8bea3f, FromAccountId = 00000000-0000-0000-0001-000000000002, ToAccountId = 61f0b1f1-0086",
+      "cases": 1,
+      "cause": "assertion"
+     },
+     {
+      "name": "Approve_enforces_role_four_eyes_and_submitted_status",
+      "message": "Assert.Throws() Failure: No exception was thrown Expected: typeof(System.UnauthorizedAccessException)",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 4
+  }
+ },
+ "roll": {
+  "F:Bank.Modules.Loans.Api.LoansController.JsonOptions": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "F:Bank.Modules.Loans.Api.LoansController.JsonOptions",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Loans.Api.LoansController": {
+   "changed": {
+    "n": 8,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 8,
+    "weakest": [
+     [
+      "F:Bank.Modules.Loans.Api.LoansController.JsonOptions",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.#ctor(Bank.Modules.Loans.Application.ILoanService)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.Get(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.056,
+    "lo": 0.0,
+    "hi": 0.262
+   },
+   "affected": null
+  },
+  "layer:Loans/Api": {
+   "changed": {
+    "n": 8,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 8,
+    "weakest": [
+     [
+      "F:Bank.Modules.Loans.Api.LoansController.JsonOptions",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.#ctor(Bank.Modules.Loans.Application.ILoanService)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.Get(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.056,
+    "lo": 0.0,
+    "hi": 0.262
+   },
+   "affected": null
+  },
+  "module:Loans": {
+   "changed": {
+    "n": 27,
+    "verified": 3,
+    "contradicted": 7,
+    "not_run": 0,
+    "none": 17,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.CalculateMonthlyAnnuity(System.Decimal,System.Int32)",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Loans.Domain.Loan.Id",
+      "contradicted"
+     ]
+    ],
+    "pct": 11,
+    "conf": 0.125,
+    "lo": 0.032,
+    "hi": 0.268
+   },
+   "affected": null
+  },
+  "pr": {
+   "changed": {
+    "n": 28,
+    "verified": 3,
+    "contradicted": 7,
+    "not_run": 0,
+    "none": 18,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.CalculateMonthlyAnnuity(System.Decimal,System.Int32)",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Loans.Domain.Loan.Id",
+      "contradicted"
+     ]
+    ],
+    "pct": 11,
+    "conf": 0.121,
+    "lo": 0.031,
+    "hi": 0.259
+   },
+   "affected": {
+    "n": 19,
+    "verified": 0,
+    "contradicted": 19,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "F:Bank.Modules.Auth.Roles.LoanOfficer",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Currency",
+      "contradicted"
+     ],
+     [
+      "F:Bank.Modules.Auth.Roles.Customer",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.025,
+    "lo": 0.0,
+    "hi": 0.122
+   }
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.#ctor(Bank.Modules.Loans.Application.ILoanService)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.#ctor(Bank.Modules.Loans.Application.ILoanService)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Api.ApplyLoanRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Get(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.Get(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Approve(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.Approve(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.Reject(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.Reject(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.ReadOptionalJsonBodyAsync``1(System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.ReadOptionalJsonBodyAsync``1(System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Api.LoansController.ToDto(Bank.Modules.Loans.Domain.Loan)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Api.LoansController.ToDto(Bank.Modules.Loans.Domain.Loan)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.MinPrincipal": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "F:Bank.Modules.Loans.Application.LoanService.MinPrincipal",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Loans.Application.LoanService": {
+   "changed": {
+    "n": 12,
+    "verified": 2,
+    "contradicted": 3,
+    "not_run": 0,
+    "none": 7,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.CalculateMonthlyAnnuity(System.Decimal,System.Int32)",
+      "contradicted"
+     ],
+     [
+      "F:Bank.Modules.Loans.Application.LoanService.MinPrincipal",
+      "none"
+     ]
+    ],
+    "pct": 17,
+    "conf": 0.192,
+    "lo": 0.036,
+    "hi": 0.436
+   },
+   "affected": null
+  },
+  "layer:Loans/Application": {
+   "changed": {
+    "n": 12,
+    "verified": 2,
+    "contradicted": 3,
+    "not_run": 0,
+    "none": 7,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.CalculateMonthlyAnnuity(System.Decimal,System.Int32)",
+      "contradicted"
+     ],
+     [
+      "F:Bank.Modules.Loans.Application.LoanService.MinPrincipal",
+      "none"
+     ]
+    ],
+    "pct": 17,
+    "conf": 0.192,
+    "lo": 0.036,
+    "hi": 0.436
+   },
+   "affected": null
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.MaxPrincipal": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "F:Bank.Modules.Loans.Application.LoanService.MaxPrincipal",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.MinTermMonths": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "F:Bank.Modules.Loans.Application.LoanService.MinTermMonths",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.MaxTermMonths": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "F:Bank.Modules.Loans.Application.LoanService.MaxTermMonths",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.FixedAnnualRatePercent": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "F:Bank.Modules.Loans.Application.LoanService.FixedAnnualRatePercent",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "F:Bank.Modules.Loans.Application.LoanService.LoanLocks": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "F:Bank.Modules.Loans.Application.LoanService.LoanLocks",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus,Bank.Modules.Notifications.Application.INotifier)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus,Bank.Modules.Notifications.Application.INotifier)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.RejectAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Application.LoanService.CalculateMonthlyAnnuity(System.Decimal,System.Int32)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Application.LoanService.CalculateMonthlyAnnuity(System.Decimal,System.Int32)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Domain.Loan.#ctor": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Domain.Loan.#ctor",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Loans.Domain.Loan": {
+   "changed": {
+    "n": 6,
+    "verified": 1,
+    "contradicted": 4,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "P:Bank.Modules.Loans.Domain.Loan.Id",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Loans.Domain.Loan.CustomerId",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Loans.Domain.Loan.Status",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Loans.Domain.Loan.Approve(System.String,System.String)",
+      "contradicted"
+     ]
+    ],
+    "pct": 17,
+    "conf": 0.214,
+    "lo": 0.019,
+    "hi": 0.558
+   },
+   "affected": null
+  },
+  "layer:Loans/Domain": {
+   "changed": {
+    "n": 6,
+    "verified": 1,
+    "contradicted": 4,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "P:Bank.Modules.Loans.Domain.Loan.Id",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Loans.Domain.Loan.CustomerId",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Loans.Domain.Loan.Status",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Loans.Domain.Loan.Approve(System.String,System.String)",
+      "contradicted"
+     ]
+    ],
+    "pct": 17,
+    "conf": 0.214,
+    "lo": 0.019,
+    "hi": 0.558
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.Id": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Loans.Domain.Loan.Id",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.CustomerId": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Loans.Domain.Loan.CustomerId",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Loans.Domain.Loan.Status": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Loans.Domain.Loan.Status",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Domain.Loan.Approve(System.String,System.String)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.Domain.Loan.Approve(System.String,System.String)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.Domain.Loan.Reject(System.String,System.String)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Loans.LoansModule.AddLoansModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.LoansModule.AddLoansModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Loans.LoansModule": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.LoansModule.AddLoansModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "layer:Loans/Wiring": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Loans.LoansModule.AddLoansModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Program": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "layer:Platform/Host": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "module:Platform": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": {
+    "n": 3,
+    "verified": 0,
+    "contradicted": 3,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.125,
+    "lo": 0.0,
+    "hi": 0.536
+   }
+  },
+  "F:Bank.Modules.Auth.Roles.LoanOfficer": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "F:Bank.Modules.Auth.Roles.LoanOfficer",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Auth.Roles": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 0,
+    "contradicted": 3,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "F:Bank.Modules.Auth.Roles.LoanOfficer",
+      "contradicted"
+     ],
+     [
+      "F:Bank.Modules.Auth.Roles.Customer",
+      "contradicted"
+     ],
+     [
+      "F:Bank.Modules.Auth.Roles.Teller",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.125,
+    "lo": 0.0,
+    "hi": 0.536
+   }
+  },
+  "layer:Auth/Wiring": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 0,
+    "contradicted": 3,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "F:Bank.Modules.Auth.Roles.LoanOfficer",
+      "contradicted"
+     ],
+     [
+      "F:Bank.Modules.Auth.Roles.Customer",
+      "contradicted"
+     ],
+     [
+      "F:Bank.Modules.Auth.Roles.Teller",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.125,
+    "lo": 0.0,
+    "hi": 0.536
+   }
+  },
+  "module:Auth": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 0,
+    "contradicted": 4,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "F:Bank.Modules.Auth.Roles.LoanOfficer",
+      "contradicted"
+     ],
+     [
+      "F:Bank.Modules.Auth.Roles.Customer",
+      "contradicted"
+     ],
+     [
+      "F:Bank.Modules.Auth.Roles.Teller",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.1,
+    "lo": 0.0,
+    "hi": 0.445
+   }
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "layer:Ledger/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 0,
+    "contradicted": 3,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.125,
+    "lo": 0.0,
+    "hi": 0.536
+   }
+  },
+  "module:Ledger": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 0,
+    "contradicted": 4,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.1,
+    "lo": 0.0,
+    "hi": 0.445
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Currency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 0,
+    "contradicted": 4,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Currency",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Id",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Iban",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.1,
+    "lo": 0.0,
+    "hi": 0.445
+   }
+  },
+  "layer:Accounts/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 0,
+    "contradicted": 4,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Currency",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Id",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Iban",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.1,
+    "lo": 0.0,
+    "hi": 0.445
+   }
+  },
+  "module:Accounts": {
+   "changed": null,
+   "affected": {
+    "n": 6,
+    "verified": 0,
+    "contradicted": 6,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Currency",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Id",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Iban",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.071,
+    "lo": 0.0,
+    "hi": 0.33
+   }
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "F:Bank.Modules.Auth.Roles.Customer",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "F:Bank.Modules.Auth.Roles.Teller": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "F:Bank.Modules.Auth.Roles.Teller",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Id",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Iban",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 2,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   }
+  },
+  "layer:Accounts/Application": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 2,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   }
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "layer:Platform/Shared": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 0,
+    "contradicted": 3,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.125,
+    "lo": 0.0,
+    "hi": 0.536
+   }
+  },
+  "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Auth.Application.CurrentUser": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "layer:Auth/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Ledger.Application.Ledger": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "layer:Ledger/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "M:Bank.Modules.Notifications.Application.LogNotifier.NotifyAsync(System.String,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Notifications.Application.LogNotifier.NotifyAsync(System.String,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Notifications.Application.LogNotifier": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Notifications.Application.LogNotifier.NotifyAsync(System.String,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "layer:Notifications/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Notifications.Application.LogNotifier.NotifyAsync(System.String,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "module:Notifications": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Notifications.Application.LogNotifier.NotifyAsync(System.String,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Shared.Settings.BankSettings": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 2,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 2,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   }
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "layer:Audit/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "module:Audit": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  }
+ },
+ "tests_ran": true,
+ "findings_at": {
+  "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)": [
+   "C01",
+   "S01"
+  ],
+  "T:Bank.Modules.Loans.Api.LoansController": [
+   "A01",
+   "C02",
+   "T02"
+  ],
+  "F:Bank.Modules.Loans.Application.LoanService.LoanLocks": [
+   "A02",
+   "P01",
+   "S02"
+  ],
+  "M:Bank.Modules.Loans.Domain.Loan.Approve(System.String,System.String)": [
+   "T03"
+  ],
+  "M:Bank.Tests.Loans.LoanTests.Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero(System.Decimal,System.Int32,System.Decimal)": [
+   "T01"
+  ]
+ },
+ "trust": {
+  "level": "low",
+  "why": "7 changed method(s) contradicted by a failing test or a Critical finding"
+ }
+}

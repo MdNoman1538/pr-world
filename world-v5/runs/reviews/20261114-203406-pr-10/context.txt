@@ -1,0 +1,428 @@
+### FILE: src/Bank.Api/Modules/Deposits/Application/DepositService.cs  (slice: leftflow)
+    3| using Bank.Modules.Accounts.Application;
+    4| using Bank.Modules.Auth.Application;
+    5| using Bank.Modules.Deposits.Domain;
+    6| using Bank.Modules.Ledger.Application;
+    7| using Bank.Modules.Ledger.Domain;
+    8| using Bank.Shared.Events;
++   9| using Bank.Shared.Money;
+   10| using Bank.Shared.Time;
+   11| using Microsoft.EntityFrameworkCore;
+   12| using Microsoft.EntityFrameworkCore.Storage;
+   13| 
+   14| namespace Bank.Modules.Deposits.Application;
+   15| 
+     ⋮
+   27|     public async Task<TermDeposit> OpenAsync(Guid accountId, decimal principal, int termMonths, CancellationToken ct = default)
+   28|     {
+   29|         if (principal < 500m)
+   30|             throw new ArgumentException("Principal must be at least 500.", nameof(principal));
+-  30|         if (decimal.Round(principal, 2) != principal)
++  31|         if (MoneyMath.ToCents(principal) != principal)
+   32|             throw new ArgumentException("Principal must be whole cents.", nameof(principal));
+   33| 
+   34|         var annualRatePercent = termMonths switch
+   35|         {
+   36|             3 => 2.0m,
+   37|             6 => 2.5m,
+   38|             12 => 3.0m,
+   39|             _ => throw new ArgumentException("Term must be 3, 6, or 12 months.", nameof(termMonths)),
+   40|         };
+   41| 
+   42|         var customerId = user.UserId;
+   43|         if (!await accounts.IsOwnerAsync(accountId, customerId, ct))
+   44|             throw new UnauthorizedAccessException("Account is not owned by the caller.");
+   45| 
+   46|         var account = await accounts.GetAsync(accountId, ct)
+   47|             ?? throw new KeyNotFoundException($"Account {accountId} not found.");
+   48| 
+   49|         var now = clock.UtcNow;
+   50|         var depositId = Guid.NewGuid();
+   51|         var holdingAccountId = BankAccounts.For(BankAccountKind.DepositHolding, account.Currency);
+   52| 
+   53|         TermDeposit deposit;
+   54|         IDbContextTransaction? transaction = null;
+   55|         if (db.Database.IsRelational() && db.Database.CurrentTransaction is null)
+   56|             transaction = await db.Database.BeginTransactionAsync(ct);
+   57| 
+   58|         try
+   59|         {
+   60|             await ledger.PostTransferAsync(
+   61|                 accountId,
+   62|                 holdingAccountId,
+   63|                 principal,
+   64|                 $"Term deposit {depositId} opened ({termMonths}m)",
+   65|                 ct);
+   66| 
+   67|             deposit = new TermDeposit
+   68|             {
+   69|                 Id = depositId,
+   70|                 CustomerId = customerId,
+   71|                 AccountId = accountId,
+   72|                 Principal = principal,
+   73|                 Currency = account.Currency,
+   74|                 TermMonths = termMonths,
+   75|                 AnnualRatePercent = annualRatePercent,
+   76|                 OpenedAt = now,
+   77|                 MaturesAt = now.AddMonths(termMonths),
+   78|                 InterestPaid = 0m,
+   79|             };
+   80| 
+   81|             db.TermDeposits.Add(deposit);
+   82|             await db.SaveChangesAsync(ct);
+   83| 
+   84|             if (transaction is not null)
+   85|                 await transaction.CommitAsync(ct);
+   86|         }
+   87|         catch
+   88|         {
+   89|             if (transaction is not null)
+   90|                 await transaction.RollbackAsync(ct);
+   91|             throw;
+   92|         }
+   93|         finally
+   94|         {
+   95|             if (transaction is not null)
+   96|                 await transaction.DisposeAsync();
+   97|         }
+   98| 
+   99|         await bus.PublishAsync(new DepositOpened(deposit.Id, customerId, principal, termMonths, now), ct);
+  100|         return deposit;
+  101|     }
+     ⋮
+  103|     public async Task<TermDeposit> MatureAsync(Guid depositId, CancellationToken ct = default)
+  104|     {
+  105|         var depositLock = DepositLocks.GetOrAdd(depositId, _ => new SemaphoreSlim(1, 1));
+  106|         TermDeposit deposit;
+  107|         DateTimeOffset now;
+  108| 
+  109|         await depositLock.WaitAsync(ct);
+  110|         try
+  111|         {
+  112|             IDbContextTransaction? transaction = null;
+  113|             if (db.Database.IsRelational() && db.Database.CurrentTransaction is null)
+  114|                 transaction = await db.Database.BeginTransactionAsync(ct);
+  115| 
+  116|             try
+  117|             {
+  118|                 deposit = await db.TermDeposits.FirstOrDefaultAsync(d => d.Id == depositId, ct)
+  119|                     ?? throw new KeyNotFoundException($"Term deposit {depositId} not found.");
+  120| 
+  121|                 if (deposit.Status != DepositStatus.Open)
+  122|                     throw new InvalidOperationException($"Term deposit {depositId} is not open.");
+  123| 
+  124|                 now = clock.UtcNow;
+  125|                 if (now < deposit.MaturesAt)
+  126|                     throw new InvalidOperationException($"Term deposit {depositId} has not matured yet.");
+  127| 
+- 127|                 var interest = Math.Round(
+- 128|                     deposit.Principal * (deposit.AnnualRatePercent / 100m) * deposit.TermMonths / 12m,
+- 129|                     2,
+- 130|                     MidpointRounding.AwayFromZero);
++ 128|                 var interest = MoneyMath.ToCents(
++ 129|                     deposit.Principal * (deposit.AnnualRatePercent / 100m) * deposit.TermMonths / 12m);
+  130| 
+  131|                 var holdingAccountId = BankAccounts.For(BankAccountKind.DepositHolding, deposit.Currency);
+  132|                 var interestExpenseAccountId = BankAccounts.For(BankAccountKind.InterestExpense, deposit.Currency);
+  133| 
+  134|                 await ledger.PostTransferAsync(
+  135|                     holdingAccountId,
+  136|                     deposit.AccountId,
+  137|                     deposit.Principal,
+  138|                     $"Term deposit {deposit.Id} principal payout",
+  139|                     ct);
+  140| 
+  141|                 if (interest > 0m)
+  142|                 {
+  143|                     await ledger.PostTransferAsync(
+  144|                         interestExpenseAccountId,
+  145|                         deposit.AccountId,
+  146|                         interest,
+  147|                         $"Term deposit {deposit.Id} interest payout",
+  148|                         ct);
+  149|                 }
+  150| 
+  151|                 deposit.Mature(interest);
+  152|                 await db.SaveChangesAsync(ct);
+  153| 
+  154|                 if (transaction is not null)
+  155|                     await transaction.CommitAsync(ct);
+  156|             }
+  157|             catch
+  158|             {
+  159|                 if (transaction is not null)
+  160|                     await transaction.RollbackAsync(ct);
+  161|                 throw;
+  162|             }
+  163|             finally
+  164|             {
+  165|                 if (transaction is not null)
+  166|                     await transaction.DisposeAsync();
+  167|             }
+  168|         }
+  169|         finally
+  170|         {
+  171|             depositLock.Release();
+  172|         }
+  173| 
+  174|         await bus.PublishAsync(new DepositClosed(deposit.Id, deposit.CustomerId, deposit.InterestPaid, false, now), ct);
+  175|         return deposit;
+  176|     }
+
+### FILE: src/Bank.Api/Modules/Fees/Application/FeeCalculator.cs  (slice: leftflow)
+    1| using Bank.Modules.Fx.Application;
++   2| using Bank.Shared.Money;
+    3| 
+    4| namespace Bank.Modules.Fees.Application;
+    5| 
+    6| public sealed class FeeCalculator(IFxService fx) : IFeeCalculator
+    7| {
+    8|     private const decimal FeeRate = 0.002m;
+    9|     private const decimal MinFeeEur = 0.50m;
+   10|     private const decimal MaxFeeEur = 20.00m;
+     ⋮
+   12|     public Fee Quote(decimal amount, string fromCurrency, string toCurrency)
+   13|     {
+   14|         if (amount <= 0m)
+   15|             throw new ArgumentOutOfRangeException(nameof(amount), "Amount must be positive.");
+   16|         if (string.IsNullOrWhiteSpace(fromCurrency))
+   17|             throw new ArgumentException("Currency must not be null or empty.", nameof(fromCurrency));
+   18|         if (string.IsNullOrWhiteSpace(toCurrency))
+   19|             throw new ArgumentException("Currency must not be null or empty.", nameof(toCurrency));
+   20| 
+   21|         var from = fromCurrency.ToUpperInvariant();
+   22|         var to = toCurrency.ToUpperInvariant();
+   23| 
+   24|         if (from == to)
+   25|             return new Fee(0m, from);
+   26| 
+-  26|         var rawFee = Math.Round(amount * FeeRate, 2, MidpointRounding.AwayFromZero);
+-  27|         var minFee = Math.Round(fx.Convert(MinFeeEur, "EUR", from), 2, MidpointRounding.AwayFromZero);
+-  28|         var maxFee = Math.Round(fx.Convert(MaxFeeEur, "EUR", from), 2, MidpointRounding.AwayFromZero);
++  27|         var rawFee = MoneyMath.ToCents(amount * FeeRate);
++  28|         var minFee = MoneyMath.ToCents(fx.Convert(MinFeeEur, "EUR", from));
++  29|         var maxFee = MoneyMath.ToCents(fx.Convert(MaxFeeEur, "EUR", from));
+   30|         var fee = Math.Clamp(rawFee, minFee, maxFee);
+   31| 
+   32|         return new Fee(fee, from);
+   33|     }
+
+### FILE: src/Bank.Api/Modules/Fx/Application/FxService.cs  (slice: leftflow)
++   1| using Bank.Shared.Money;
++   2| 
+    3| namespace Bank.Modules.Fx.Application;
+    4| 
+    5| public interface IFxService
+    6| {
+    7|     decimal Rate(string fromCurrency, string toCurrency);
+    8|     decimal Convert(decimal amount, string fromCurrency, string toCurrency);
+     ⋮
+   33|     public decimal Convert(decimal amount, string fromCurrency, string toCurrency)
+   34|     {
+   35|         var from = NormalizeAndValidate(fromCurrency, nameof(fromCurrency));
+   36|         var to = NormalizeAndValidate(toCurrency, nameof(toCurrency));
+   37| 
+   38|         var raw = (from, to) switch
+   39|         {
+   40|             _ when from == to => amount,
+   41|             ("EUR", _) => amount * FromEur(to),
+   42|             (_, "EUR") => amount / FromEur(from),
+   43|             _ => (amount / FromEur(from)) * FromEur(to),
+   44|         };
+   45| 
+-  44|         return Math.Round(raw, 2, MidpointRounding.AwayFromZero);
++  46|         return MoneyMath.ToCents(raw);
+   47|     }
+
+### FILE: src/Bank.Api/Modules/Loans/Application/LoanService.cs  (slice: leftflow)
+    5| using Bank.Modules.Auth.Application;
+    6| using Bank.Modules.Ledger.Application;
+    7| using Bank.Modules.Ledger.Domain;
+    8| using Bank.Modules.Loans.Domain;
+    9| using Bank.Modules.Notifications.Application;
+   10| using Bank.Shared.Events;
++  11| using Bank.Shared.Money;
+   12| using Bank.Shared.Time;
+   13| using Microsoft.EntityFrameworkCore;
+   14| using Microsoft.EntityFrameworkCore.Storage;
+   15| 
+   16| namespace Bank.Modules.Loans.Application;
+   17| 
+     ⋮
+   64|     public async Task<Loan> ApplyAsync(LoanApplication application, CancellationToken ct = default)
+   65|     {
+   66|         ArgumentNullException.ThrowIfNull(application);
+   67| 
+   68|         if (application.Principal < MinPrincipal || application.Principal > MaxPrincipal)
+   69|             throw new ArgumentException($"Principal must be between {MinPrincipal} and {MaxPrincipal}.", nameof(application));
+-  69|         if (decimal.Round(application.Principal, 2) != application.Principal)
++  70|         if (MoneyMath.ToCents(application.Principal) != application.Principal)
+   71|             throw new ArgumentException("Principal must be whole cents.", nameof(application));
+   72|         if (application.TermMonths < MinTermMonths || application.TermMonths > MaxTermMonths)
+   73|             throw new ArgumentException($"Term must be between {MinTermMonths} and {MaxTermMonths} months.", nameof(application));
+   74| 
+   75|         var customerId = _user.UserId;
+   76|         if (!await _accounts.IsOwnerAsync(application.DisbursementAccountId, customerId, ct))
+   77|             throw new UnauthorizedAccessException("Disbursement account is not owned by the caller.");
+   78| 
+   79|         var monthlyPayment = CalculateMonthlyAnnuity(application.Principal, application.TermMonths);
+   80|         var now = _clock.UtcNow;
+   81| 
+   82|         var loan = new Loan
+   83|         {
+   84|             CustomerId = customerId,
+   85|             DisbursementAccountId = application.DisbursementAccountId,
+   86|             Principal = application.Principal,
+   87|             TermMonths = application.TermMonths,
+   88|             AnnualRatePercent = FixedAnnualRatePercent,
+   89|             MonthlyPayment = monthlyPayment,
+   90|             AppliedAt = now,
+   91|         };
+   92| 
+   93|         _db.Loans.Add(loan);
+   94|         await _db.SaveChangesAsync(ct);
+   95|         await _bus.PublishAsync(new LoanSubmitted(loan.Id, customerId, loan.Principal, now), ct);
+   96| 
+   97|         return loan;
+   98|     }
+     ⋮
+  211|     private static decimal CalculateMonthlyAnnuity(decimal principal, int termMonths)
+  212|     {
+  213|         var monthlyRate = (FixedAnnualRatePercent / 100m) / 12m;
+  214|         var onePlusRate = 1m + monthlyRate;
+  215|         var compoundFactor = 1m;
+  216|         for (var i = 0; i < termMonths; i++)
+  217|             compoundFactor *= onePlusRate;
+  218| 
+  219|         var payment = principal * monthlyRate / (1m - 1m / compoundFactor);
+- 219|         return Math.Round(payment, 2, MidpointRounding.AwayFromZero);
++ 220|         return MoneyMath.ToCents(payment);
+  221|     }
+
+### FILE: src/Bank.Api/Shared/Money/MoneyMath.cs  (slice: leftflow)
++   1| namespace Bank.Shared.Money;
++   2| 
++   3| public static class MoneyMath
++   4| {
++   5|     public static decimal ToCents(decimal amount) =>
++   6|         Math.Round(amount, 2, MidpointRounding.AwayFromZero);
++   7| }
+
+### FILE: tests/Bank.Tests/Shared/MoneyMathTests.cs  (slice: leftflow)
++   1| using Bank.Shared.Money;
++   2| using Xunit;
++   3| 
++   4| namespace Bank.Tests.Shared;
++   5| 
++   6| public sealed class MoneyMathTests
++   7| {
++   8|     public static IEnumerable<object[]> PositiveMidpointCases()
++   9|     {
++  10|         yield return new object[] { 2.345m, 2.35m };
++  11|         yield return new object[] { 2.355m, 2.36m };
++  12|         yield return new object[] { 0.005m, 0.01m };
++  13|         yield return new object[] { 0.015m, 0.02m };
++  14|         yield return new object[] { 1.005m, 1.01m };
++  15|         yield return new object[] { 999999999.995m, 1000000000.00m };
++  16|     }
++  17| 
++  18|     public static IEnumerable<object[]> NegativeMidpointCases()
++  19|     {
++  20|         yield return new object[] { -2.345m, -2.35m };
++  21|         yield return new object[] { -2.355m, -2.36m };
++  22|         yield return new object[] { -0.005m, -0.01m };
++  23|         yield return new object[] { -0.015m, -0.02m };
++  24|         yield return new object[] { -1.005m, -1.01m };
++  25|         yield return new object[] { -999999999.995m, -1000000000.00m };
++  26|     }
++  27| 
++  28|     public static IEnumerable<object[]> ExactCentAndShorterCases()
++  29|     {
++  30|         yield return new object[] { 12.34m, 12.34m };
++  31|         yield return new object[] { -12.34m, -12.34m };
++  32|         yield return new object[] { 0.01m, 0.01m };
++  33|         yield return new object[] { -0.01m, -0.01m };
++  34|         yield return new object[] { 5.5m, 5.50m };
++  35|         yield return new object[] { -5.5m, -5.50m };
++  36|         yield return new object[] { 100m, 100.00m };
++  37|         yield return new object[] { -100m, -100.00m };
++  38|         yield return new object[] { 12.3400m, 12.34m };
++  39|     }
++  40| 
++  41|     [Theory]
++  42|     [MemberData(nameof(PositiveMidpointCases))]
++  43|     public void ToCents_rounds_positive_midpoints_away_from_zero(decimal input, decimal expected)
++  44|     {
++  45|         Assert.Equal(expected, MoneyMath.ToCents(input));
++  46|     }
++  47| 
++  48|     [Theory]
++  49|     [MemberData(nameof(NegativeMidpointCases))]
++  50|     public void ToCents_rounds_negative_midpoints_away_from_zero(decimal input, decimal expected)
++  51|     {
++  52|         Assert.Equal(expected, MoneyMath.ToCents(input));
++  53|     }
++  54| 
++  55|     [Theory]
++  56|     [MemberData(nameof(ExactCentAndShorterCases))]
++  57|     public void ToCents_leaves_exact_cent_and_fewer_decimal_amounts_unchanged(decimal input, decimal expected)
++  58|     {
++  59|         Assert.Equal(expected, MoneyMath.ToCents(input));
++  60|     }
++  61| 
++  62|     [Fact]
++  63|     public void ToCents_returns_zero_for_zero_and_sub_half_cent_values()
++  64|     {
++  65|         Assert.Equal(0.00m, MoneyMath.ToCents(0m));
++  66|         Assert.Equal(0.00m, MoneyMath.ToCents(-0m));
++  67|         Assert.Equal(0.00m, MoneyMath.ToCents(0.000m));
++  68|         Assert.Equal(0.00m, MoneyMath.ToCents(0.004m));
++  69|         Assert.Equal(0.00m, MoneyMath.ToCents(-0.004m));
++  70|         Assert.Equal(0.00m, MoneyMath.ToCents(0.0049999m));
++  71|         Assert.Equal(0.00m, MoneyMath.ToCents(-0.0049999m));
++  72|     }
++  73| 
++  74|     [Fact]
++  75|     public void ToCents_rounds_values_below_and_above_midpoint_to_nearest_cent()
++  76|     {
++  77|         Assert.Equal(2.34m, MoneyMath.ToCents(2.344m));
++  78|         Assert.Equal(2.34m, MoneyMath.ToCents(2.3449999m));
++  79|         Assert.Equal(2.35m, MoneyMath.ToCents(2.3450001m));
++  80|         Assert.Equal(2.35m, MoneyMath.ToCents(2.346m));
++  81| 
++  82|         Assert.Equal(-2.34m, MoneyMath.ToCents(-2.344m));
++  83|         Assert.Equal(-2.34m, MoneyMath.ToCents(-2.3449999m));
++  84|         Assert.Equal(-2.35m, MoneyMath.ToCents(-2.3450001m));
++  85|         Assert.Equal(-2.35m, MoneyMath.ToCents(-2.346m));
++  86|     }
++  87| 
++  88|     [Fact]
++  89|     public void ToCents_is_symmetric_for_opposite_signed_amounts()
++  90|     {
++  91|         var samples = new[] { 0m, 0.004m, 0.005m, 0.015m, 2.344m, 2.345m, 2.355m, 12.34m, 1234567890.125m };
++  92| 
++  93|         foreach (var amount in samples)
++  94|         {
++  95|             Assert.Equal(-MoneyMath.ToCents(amount), MoneyMath.ToCents(-amount));
++  96|         }
++  97|     }
++  98| }
+
+
+# IMPACT
+- OpenAsync (src/Bank.Api/Modules/Deposits/Application/DepositService.cs): 0 caller(s) [none found]; test references: NONE
+- MatureAsync (src/Bank.Api/Modules/Deposits/Application/DepositService.cs): 0 caller(s) [none found]; test references: NONE
+- Quote (src/Bank.Api/Modules/Fees/Application/FeeCalculator.cs): 0 caller(s) [none found]; test references: NONE
+- Convert (src/Bank.Api/Modules/Fx/Application/FxService.cs): 0 caller(s) [none found]; test references: NONE
+- ApplyAsync (src/Bank.Api/Modules/Loans/Application/LoanService.cs): 0 caller(s) [none found]; test references: NONE
+- CalculateMonthlyAnnuity (src/Bank.Api/Modules/Loans/Application/LoanService.cs): 0 caller(s) [none found]; test references: NONE
+- ToCents (src/Bank.Api/Shared/Money/MoneyMath.cs): 0 caller(s) [none found]; test references: NONE
+- PositiveMidpointCases (tests/Bank.Tests/Shared/MoneyMathTests.cs): 0 caller(s) [none found]; test references: NONE
+- NegativeMidpointCases (tests/Bank.Tests/Shared/MoneyMathTests.cs): 0 caller(s) [none found]; test references: NONE
+- ExactCentAndShorterCases (tests/Bank.Tests/Shared/MoneyMathTests.cs): 0 caller(s) [none found]; test references: NONE
+- ToCents_rounds_positive_midpoints_away_from_zero (tests/Bank.Tests/Shared/MoneyMathTests.cs): 0 caller(s) [none found]; test references: NONE
+- ToCents_rounds_negative_midpoints_away_from_zero (tests/Bank.Tests/Shared/MoneyMathTests.cs): 0 caller(s) [none found]; test references: NONE
+- ToCents_leaves_exact_cent_and_fewer_decimal_amounts_unchanged (tests/Bank.Tests/Shared/MoneyMathTests.cs): 0 caller(s) [none found]; test references: NONE
+- ToCents_returns_zero_for_zero_and_sub_half_cent_values (tests/Bank.Tests/Shared/MoneyMathTests.cs): 0 caller(s) [none found]; test references: NONE
+- ToCents_rounds_values_below_and_above_midpoint_to_nearest_cent (tests/Bank.Tests/Shared/MoneyMathTests.cs): 0 caller(s) [none found]; test references: NONE
+- ToCents_is_symmetric_for_opposite_signed_amounts (tests/Bank.Tests/Shared/MoneyMathTests.cs): 0 caller(s) [none found]; test references: NONE

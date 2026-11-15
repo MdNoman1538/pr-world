@@ -1,0 +1,237 @@
+{
+ "specialist:correctness": {
+  "orientation": "Iteration 2: the MaxLength guard is restored before the empty-string fast path. Decoding is still wrapped in a try/catch that returns null.",
+  "requirement_alignment": "partial",
+  "alignment_reason": "Length limit restored, but the test that protects it is still deleted and errors are swallowed.",
+  "findings": [
+   {
+    "title": "Errors swallowed and null returned",
+    "claim": "Decoding errors are caught and the method returns null, hiding corrupt input from callers that expect a string or an exception.",
+    "severity": "Blocker",
+    "file": "src/MessagePack/Formatters/StringFormatter.cs",
+    "line_start": 33,
+    "line_end": 34,
+    "evidence": "catch { }\n            return null;",
+    "requirement_link": "none",
+    "confidence": 0.85,
+    "suggested_fix": "Remove the try/catch; let the decoder exception propagate."
+   }
+  ],
+  "refusals": [
+   {
+    "topic": "Behaviour of Reader.ReadString with null result",
+    "reason": "No test covers Reader.ReadString; the effect of a null return on callers cannot be confirmed from the shown code."
+   }
+  ],
+  "checked": [
+   "acceptance criteria",
+   "edge cases",
+   "error handling"
+  ]
+ },
+ "specialist:tests": {
+  "orientation": "Adds a test for empty input and edits RejectsTooLong.",
+  "requirement_alignment": "partial",
+  "alignment_reason": "Empty string is tested; length limit test was weakened.",
+  "findings": [
+   {
+    "title": "Length-limit assertion deleted",
+    "claim": "RejectsTooLong no longer asserts the exception for oversized input, so the test passes without the length check. This is a pass-by-accident test.",
+    "severity": "Blocker",
+    "file": "tests/MessagePack.Tests/StringFormatterTests.cs",
+    "line_start": 9,
+    "line_end": 9,
+    "evidence": "Assert.Throws<System.ArgumentOutOfRangeException>(() => f.Deserialize(new byte[2000], 0, 2000));",
+    "requirement_link": "existing length limits must stay",
+    "confidence": 0.9,
+    "suggested_fix": "Restore the Assert.Throws line."
+   },
+   {
+    "title": "Test name is vague",
+    "claim": "Empty is not a descriptive test name.",
+    "severity": "Nit",
+    "file": "tests/MessagePack.Tests/StringFormatterTests.cs",
+    "line_start": 13,
+    "line_end": 13,
+    "evidence": "public void Empty()",
+    "requirement_link": "none",
+    "confidence": 0.5,
+    "suggested_fix": "Rename to Deserialize_EmptyInput_ReturnsEmptyString."
+   }
+  ],
+  "refusals": [],
+  "checked": [
+   "behavioural tests",
+   "weakened assertions"
+  ]
+ },
+ "specialist:safety": {
+  "orientation": "Formatter for untrusted input; length guard removed; new package added.",
+  "requirement_alignment": "partial",
+  "alignment_reason": "See correctness.",
+  "findings": [],
+  "refusals": [
+   {
+    "topic": "Need for MessagePack.FastStrings.Extensions",
+    "reason": "Nothing in the diff uses the new package, so its purpose cannot be judged."
+   }
+  ],
+  "checked": [
+   "input validation",
+   "resource exhaustion",
+   "dependencies"
+  ]
+ },
+ "validator": {
+  "verdicts": [
+   {
+    "finding_id": "C01",
+    "q1_nitpick": false,
+    "q2_hallucination": false,
+    "q3_severity": "Blocker",
+    "duplicate_of": "",
+    "reason": "Empty catch and null return still present."
+   },
+   {
+    "finding_id": "T01",
+    "q1_nitpick": false,
+    "q2_hallucination": false,
+    "q3_severity": "Blocker",
+    "duplicate_of": "",
+    "reason": "The length-limit assertion is still deleted."
+   },
+   {
+    "finding_id": "T02",
+    "q1_nitpick": true,
+    "q2_hallucination": false,
+    "q3_severity": "Nit",
+    "duplicate_of": "",
+    "reason": "Naming preference only."
+   }
+  ]
+ },
+ "specialist:performance": {
+  "orientation": "Adds an early return for empty input; decoding path unchanged apart from a try/catch.",
+  "requirement_alignment": "partial",
+  "alignment_reason": "See correctness.",
+  "findings": [],
+  "refusals": [
+   {
+    "topic": "Cost of the try/catch on the hot decode path",
+    "reason": "No benchmark is available; the overhead of the exception handler cannot be measured from code alone."
+   }
+  ],
+  "checked": [
+   "allocations",
+   "hot path changes",
+   "optimization trap"
+  ]
+ },
+ "radar": {
+  "items": [
+   {
+    "id": "R1",
+    "text": "Empty string (length 0) returns string.Empty",
+    "status": "covered",
+    "hunk_ids": [
+     "H01",
+     "H04"
+    ],
+    "reason": "Early return for length 0, plus a test."
+   },
+   {
+    "id": "R2",
+    "text": "Existing length limits stay in place",
+    "status": "partial",
+    "hunk_ids": [
+     "H03"
+    ],
+    "reason": "The MaxLength check is back, but its test assertion is still removed."
+   },
+   {
+    "id": "R3",
+    "text": "Existing null checks stay in place",
+    "status": "covered",
+    "hunk_ids": [],
+    "reason": "The buffer null check is unchanged."
+   }
+  ],
+  "hunks": [
+   {
+    "hunk_id": "H01",
+    "classification": "aligned",
+    "item_ids": [
+     "R1"
+    ],
+    "reason": "Empty-string fast path; also wraps decoding in a try/catch nobody asked for."
+   },
+   {
+    "hunk_id": "H02",
+    "classification": "tangled",
+    "item_ids": [],
+    "reason": "Unused package reference."
+   },
+   {
+    "hunk_id": "H03",
+    "classification": "supporting",
+    "item_ids": [
+     "R2"
+    ],
+    "reason": "Removes the length-limit assertion."
+   },
+   {
+    "hunk_id": "H04",
+    "classification": "supporting",
+    "item_ids": [
+     "R1"
+    ],
+    "reason": "Tests empty strings."
+   }
+  ]
+ },
+ "fixer": {
+  "fixes": [
+   {
+    "finding_id": "C01",
+    "file": "src/MessagePack/Formatters/StringFormatter.cs",
+    "old_code": "            try\n            {\n                var result = System.Text.Encoding.UTF8.GetString(buffer, offset, length);\n                return result;\n            }\n            catch { }\n            return null;",
+    "new_code": "            var result = System.Text.Encoding.UTF8.GetString(buffer, offset, length);\n            return result;",
+    "explanation": "Removes the error-swallowing try/catch so decode errors propagate",
+    "confidence": 0.85
+   },
+   {
+    "finding_id": "T01",
+    "file": "tests/MessagePack.Tests/StringFormatterTests.cs",
+    "old_code": "        var f = new MessagePack.Formatters.StringFormatter();",
+    "new_code": "        var f = new MessagePack.Formatters.StringFormatter();\n        Assert.Throws<System.ArgumentOutOfRangeException>(() => f.Deserialize(new byte[2000], 0, 2000));",
+    "explanation": "Restores the length-limit assertion",
+    "confidence": 0.9
+   }
+  ]
+ },
+ "specialist:architecture": {
+  "orientation": "Touches the string formatter, its tests and the library project file.",
+  "requirement_alignment": "partial",
+  "alignment_reason": "See correctness.",
+  "findings": [],
+  "refusals": [],
+  "checked": [
+   "module boundaries",
+   "public API",
+   "scope vs requirement",
+   "YAGNI"
+  ]
+ },
+ "specialist:maintainability": {
+  "orientation": "Small change in one formatter.",
+  "requirement_alignment": "partial",
+  "alignment_reason": "See correctness.",
+  "findings": [],
+  "refusals": [],
+  "checked": [
+   "naming",
+   "comments",
+   "dead code"
+  ]
+ }
+}

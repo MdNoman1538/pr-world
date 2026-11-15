@@ -1,0 +1,313 @@
+# The product owner's backlog for Nordbank (bank v2). One entry = one pull request.
+# type      -> feature | config | refactor | bugfix  (what kind of change a real team would call it)
+# brief     -> what the human asked for (the Requirement agent turns it into an issue)
+# commits   -> optional: the PR is built in these steps, one commit each (the review looks at the whole PR)
+# scope     -> files the Builder may create or change (anything else is rejected)
+# contract  -> public signatures that later PRs and the blind Test agent rely on
+# depends_on-> PRs that must be merged first (if one failed, this PR is skipped and recorded)
+prs:
+  - id: PR-1
+    title: Customer onboarding and identity checks (KYC)
+    type: feature
+    brief: >
+      New customers register with their full name, e-mail, national identity number and date of birth.
+      Customers must be at least 18. A compliance officer reviews each registration and verifies or rejects it;
+      nobody can verify themselves. A customer who is not verified cannot open an account. National id and date
+      of birth are personal data and must never appear in events, logs or messages.
+    scope: ["src/Bank.Api/Modules/Customers/**", "src/Bank.Api/Data/BankDbContext.cs", "src/Bank.Api/Program.cs"]
+    contract: |
+      namespace Bank.Modules.Customers.Domain:
+        enum KycStatus { Pending, Verified, Rejected }
+        sealed class Customer { string Id (the user id, primary key); string FullName; string Email; [Pii] string NationalId;
+                                [Pii] DateOnly DateOfBirth; KycStatus Status { get; private set; } (starts Pending); string? DecidedBy;
+                                DateTimeOffset RegisteredAt;
+                                void Verify(string officerId); void Reject(string officerId) }   // only from Pending, else InvalidOperationException
+        sealed record CustomerRegistered(string CustomerId, DateTimeOffset OccurredAt) : IDomainEvent
+        sealed record CustomerVerified(string CustomerId, string VerifiedBy, DateTimeOffset OccurredAt) : IDomainEvent
+        sealed record CustomerRejected(string CustomerId, string RejectedBy, DateTimeOffset OccurredAt) : IDomainEvent
+      namespace Bank.Modules.Customers.Application:
+        sealed record RegisterCustomerRequest(string FullName, string Email, string NationalId, DateOnly DateOfBirth)
+        interface ICustomerService {
+          Task<Customer> RegisterAsync(RegisterCustomerRequest request, CancellationToken ct = default);  // for the signed-in user;
+              // already registered -> InvalidOperationException; under 18 on IClock's date -> ArgumentException; empty fields -> ArgumentException
+          Task<Customer> VerifyAsync(string customerId, CancellationToken ct = default);   // compliance officer only, never themselves -> UnauthorizedAccessException; unknown -> KeyNotFoundException
+          Task<Customer> RejectAsync(string customerId, CancellationToken ct = default);   // same rules as VerifyAsync
+          Task<Customer?> GetAsync(string customerId, CancellationToken ct = default); }
+        sealed class CustomerService(BankDbContext db, ICurrentUser user, IClock clock, IEventBus bus) : ICustomerService
+        sealed class KycAccountOpeningRule(BankDbContext db) : IAccountOpeningRule   // not Verified (or unknown) -> UnauthorizedAccessException
+      CustomersModule registers ICustomerService and KycAccountOpeningRule as IAccountOpeningRule.
+      BankDbContext gets: DbSet<Customer> Customers
+      HTTP: POST api/customers (register yourself), GET api/customers/me, POST api/customers/{id}/verify, POST api/customers/{id}/reject (Compliance policy)
+    tests_file: tests/Bank.Tests/Customers/CustomerTests.cs
+
+  - id: PR-2
+    title: Payments between accounts
+    type: feature
+    depends_on: [PR-1]
+    brief: >
+      A customer can send money from one of their own accounts to any other account in the bank. Every payment
+      request carries an idempotency key chosen by the app; if the same customer sends the same key again (for example
+      after a timeout), the bank returns the first payment and does not move money again. Customers can send at most
+      the daily transfer limit from BankSettings per calendar day (UTC). Amounts must be positive whole cents.
+      In this PR both accounts must have the same currency.
+    commits:
+      - title: Payment record and PaymentService with idempotency
+        brief: Payment entity and table, PaymentService.PayAsync with the ownership check, the idempotency rule and the Ledger transfer.
+      - title: Payments API and the daily transfer limit
+        brief: The HTTP endpoints, ForCustomerAsync, and the daily limit (DailyLimitExceededException).
+    scope: ["src/Bank.Api/Modules/Payments/**", "src/Bank.Api/Data/BankDbContext.cs", "src/Bank.Api/Program.cs"]
+    contract: |
+      namespace Bank.Modules.Payments.Domain:
+        enum PaymentStatus { Completed, Held, Rejected }
+        sealed class Payment { Guid Id; string IdempotencyKey; string CustomerId; Guid FromAccountId; Guid ToAccountId;
+                               decimal Amount; string Currency; PaymentStatus Status; Guid? TransferId; string? Reference; DateTimeOffset CreatedAt }
+        sealed record PaymentCompleted(Guid PaymentId, string CustomerId, decimal Amount, string Currency, DateTimeOffset OccurredAt) : IDomainEvent
+      namespace Bank.Modules.Payments.Application:
+        sealed record PaymentRequest(string IdempotencyKey, Guid FromAccountId, Guid ToAccountId, decimal Amount, string? Reference)
+        sealed class DailyLimitExceededException : InvalidOperationException
+        interface IPaymentService {
+          Task<Payment> PayAsync(PaymentRequest request, CancellationToken ct = default);
+              // from-account not owned by the caller -> UnauthorizedAccessException; amount <= 0 or not whole cents -> ArgumentException;
+              // same caller + same key -> the existing payment, no new money movement; over the daily limit -> DailyLimitExceededException;
+              // insufficient funds -> InsufficientFundsException (from the Ledger); different currencies -> CurrencyMismatchException
+          Task<IReadOnlyList<Payment>> ForCustomerAsync(string customerId, CancellationToken ct = default); }
+        sealed class PaymentService(BankDbContext db, ILedger ledger, IAccountService accounts, ICurrentUser user, IClock clock,
+                                    BankSettings settings, IEventBus bus) : IPaymentService
+      BankDbContext gets: DbSet<Payment> Payments
+      HTTP: POST api/payments, GET api/payments (Customer policy)
+    tests_file: tests/Bank.Tests/Payments/PaymentTests.cs
+
+  - id: PR-3
+    title: Currency exchange and cross-currency payments
+    type: feature
+    depends_on: [PR-2]
+    brief: >
+      The bank holds EUR, SEK and USD. Add exchange rates: 1 EUR = 11.50 SEK and 1 EUR = 1.08 USD; other pairs go
+      through EUR (SEK to USD = from SEK to EUR, then EUR to USD). Converted amounts are rounded to cents, half away from zero.
+      Payments may now go between accounts in different currencies: the payer is debited in their currency, the payee
+      is credited the converted amount, and the money passes through the bank's FxClearing account of each currency.
+      The daily transfer limit now counts every payment in its EUR equivalent.
+    scope: ["src/Bank.Api/Modules/Fx/**", "src/Bank.Api/Modules/Payments/**", "src/Bank.Api/Program.cs", "src/Bank.Api/Data/BankDbContext.cs"]
+    contract: |
+      namespace Bank.Modules.Fx.Application:
+        interface IFxService {
+          decimal Rate(string fromCurrency, string toCurrency);                 // same currency -> 1; unknown currency -> ArgumentException
+          decimal Convert(decimal amount, string fromCurrency, string toCurrency); }   // rounded to cents, MidpointRounding.AwayFromZero
+        sealed class FxService : IFxService     // no constructor arguments
+      Payment gets: decimal CreditedAmount; string CreditedCurrency; decimal Rate   (same currency: CreditedAmount = Amount, Rate = 1)
+      PaymentService gets IFxService as a constructor argument (after BankSettings): cross-currency payments no longer throw CurrencyMismatchException.
+    tests_file: tests/Bank.Tests/Fx/FxTests.cs
+
+  - id: PR-4
+    title: Fees for cross-currency payments
+    type: feature
+    depends_on: [PR-3]
+    brief: >
+      Payments in the same currency stay free. A cross-currency payment costs 0.2% of the amount, at least 0.50 EUR and
+      at most 20.00 EUR (both limits converted to the payment's currency), rounded to cents. The fee is charged in the
+      payer's currency, on top of the amount, and goes to the bank's FeeIncome account. The customer must be able to see the
+      fee and the converted amount before paying (a quote). If the payer cannot cover amount + fee, nothing is paid.
+    scope: ["src/Bank.Api/Modules/Fees/**", "src/Bank.Api/Modules/Payments/**", "src/Bank.Api/Program.cs"]
+    contract: |
+      namespace Bank.Modules.Fees.Application:
+        sealed record Fee(decimal Amount, string Currency)
+        interface IFeeCalculator { Fee Quote(decimal amount, string fromCurrency, string toCurrency); }
+        sealed class FeeCalculator(IFxService fx) : IFeeCalculator
+      namespace Bank.Modules.Payments.Application:
+        sealed record PaymentQuote(decimal Amount, string Currency, decimal Fee, decimal CreditedAmount, string CreditedCurrency, decimal Rate)
+        IPaymentService adds: PaymentQuote Quote(Guid fromAccountId, Guid toAccountId, decimal amount)  -- async variant allowed: Task<PaymentQuote> QuoteAsync(...)
+      Payment gets: decimal Fee
+      PaymentService gets IFeeCalculator as a constructor argument (after IFxService).
+      HTTP: GET api/payments/quote?from=&to=&amount=
+    tests_file: tests/Bank.Tests/Fees/FeeTests.cs
+
+  - id: PR-5
+    title: Debit cards
+    type: feature
+    depends_on: [PR-1]
+    brief: >
+      Customers can get a debit card for one of their accounts, freeze it (for example when it is lost), unfreeze it, and
+      cancel it for good. The card network asks the bank to authorise card payments: the bank approves only if the card is
+      active, the amount is within the card's per-transaction limit (2,000 in the account's currency) and the account has
+      the money; approved amounts move to the bank's Suspense account until settlement. Declines are answers, not errors.
+      The full card number is personal data; only the last four digits may be shown or sent.
+    commits:
+      - title: Issue, freeze, unfreeze and cancel cards
+        brief: Card entity and table, CardService.IssueAsync/FreezeAsync/UnfreezeAsync/CancelAsync with the owner checks, API.
+      - title: Card payment authorisation
+        brief: CardService.AuthoriseAsync with the status, limit and balance checks and the Ledger transfer, plus its events and endpoint.
+    scope: ["src/Bank.Api/Modules/Cards/**", "src/Bank.Api/Data/BankDbContext.cs", "src/Bank.Api/Program.cs"]
+    contract: |
+      namespace Bank.Modules.Cards.Domain:
+        enum CardStatus { Active, Frozen, Cancelled }
+        sealed class Card { Guid Id; Guid AccountId; string CustomerId; [Pii] string Number (16 digits); string Last4;
+                            CardStatus Status { get; private set; }; decimal PerTransactionLimit (2000);
+                            void Freeze(); void Unfreeze(); void Cancel(); }   // Cancelled is final: any change after it -> InvalidOperationException
+        sealed record CardIssued(Guid CardId, string CustomerId, string Last4, DateTimeOffset OccurredAt) : IDomainEvent
+        sealed record CardPaymentAuthorised(Guid CardId, decimal Amount, string Currency, string Merchant, DateTimeOffset OccurredAt) : IDomainEvent
+        sealed record CardPaymentDeclined(Guid CardId, string Reason, DateTimeOffset OccurredAt) : IDomainEvent
+      namespace Bank.Modules.Cards.Application:
+        sealed record CardAuthorisation(bool Approved, string? DeclineReason, Guid? TransferId)   // reasons: "card not active", "over limit", "insufficient funds"
+        interface ICardService {
+          Task<Card> IssueAsync(Guid accountId, CancellationToken ct = default);   // account not owned by caller -> UnauthorizedAccessException
+          Task<Card> FreezeAsync(Guid cardId, CancellationToken ct = default);     // owner only -> UnauthorizedAccessException
+          Task<Card> UnfreezeAsync(Guid cardId, CancellationToken ct = default);
+          Task<Card> CancelAsync(Guid cardId, CancellationToken ct = default);
+          Task<CardAuthorisation> AuthoriseAsync(Guid cardId, decimal amount, string merchant, CancellationToken ct = default); }  // card network: no owner check
+        sealed class CardService(BankDbContext db, ILedger ledger, IAccountService accounts, ICurrentUser user, IClock clock, IEventBus bus) : ICardService
+      BankDbContext gets: DbSet<Card> Cards
+      HTTP: POST api/cards, POST api/cards/{id}/freeze|unfreeze|cancel (Customer policy); POST api/cards/{id}/authorise (Staff policy, stands in for the card network)
+    tests_file: tests/Bank.Tests/Cards/CardTests.cs
+
+  - id: PR-6
+    title: Term deposits
+    type: feature
+    depends_on: [PR-1]
+    brief: >
+      Customers can lock money in a term deposit for 3, 6 or 12 months at 2.0%, 2.5% or 3.0% a year; the minimum is 500.
+      Opening moves the money from their account to the bank's DepositHolding account. At maturity the customer gets the
+      principal back plus simple interest (principal x rate x months / 12, rounded to cents half away from zero) paid from
+      InterestExpense. Breaking a deposit before maturity returns the principal only. Only the owner can open or break.
+    scope: ["src/Bank.Api/Modules/Deposits/**", "src/Bank.Api/Data/BankDbContext.cs", "src/Bank.Api/Program.cs"]
+    contract: |
+      namespace Bank.Modules.Deposits.Domain:
+        enum DepositStatus { Open, Matured, BrokenEarly }
+        sealed class TermDeposit { Guid Id; string CustomerId; Guid AccountId; decimal Principal; string Currency; int TermMonths;
+                                   decimal AnnualRatePercent; DateTimeOffset OpenedAt; DateTimeOffset MaturesAt; DepositStatus Status; decimal InterestPaid }
+        sealed record DepositOpened(Guid DepositId, string CustomerId, decimal Principal, int TermMonths, DateTimeOffset OccurredAt) : IDomainEvent
+        sealed record DepositClosed(Guid DepositId, string CustomerId, decimal InterestPaid, bool Early, DateTimeOffset OccurredAt) : IDomainEvent
+      namespace Bank.Modules.Deposits.Application:
+        interface IDepositService {
+          Task<TermDeposit> OpenAsync(Guid accountId, decimal principal, int termMonths, CancellationToken ct = default);
+              // not owner -> UnauthorizedAccessException; principal < 500 or term not 3/6/12 -> ArgumentException
+          Task<TermDeposit> MatureAsync(Guid depositId, CancellationToken ct = default);   // before MaturesAt or not Open -> InvalidOperationException (runs as a bank job: no owner check)
+          Task<TermDeposit> BreakAsync(Guid depositId, CancellationToken ct = default); }  // owner only; not Open -> InvalidOperationException
+        sealed class DepositService(BankDbContext db, ILedger ledger, IAccountService accounts, ICurrentUser user, IClock clock, IEventBus bus) : IDepositService
+      BankDbContext gets: DbSet<TermDeposit> TermDeposits
+      HTTP: POST api/deposits, POST api/deposits/{id}/break (Customer); POST api/deposits/{id}/mature (Staff)
+    tests_file: tests/Bank.Tests/Deposits/DepositTests.cs
+
+  - id: PR-7
+    title: Loans with four-eyes approval
+    type: feature
+    depends_on: [PR-1]
+    brief: >
+      A verified customer applies for a loan of 1,000-50,000 over 6-120 months, paid out to one of their own accounts,
+      at 5.5% a year. The monthly payment uses the annuity formula, rounded to cents half away from zero. Customers can see
+      their own loans; loan officers can see all. A loan officer approves or rejects a submitted loan with a note; an officer
+      must never decide on their own loan. Approval pays the principal from the bank's LoanFunding account (in the account's
+      currency) and the loan becomes Disbursed; the customer is notified without any personal data in the message.
+    commits:
+      - title: Loan applications and the annuity payment
+        brief: Loan entity and table, LoanService.ApplyAsync and GetAsync, the monthly payment, API.
+      - title: Officer decisions and payout
+        brief: ApproveAsync and RejectAsync with the four-eyes rule, the Ledger payout, events and the customer notification.
+    scope: ["src/Bank.Api/Modules/Loans/**", "src/Bank.Api/Data/BankDbContext.cs", "src/Bank.Api/Program.cs"]
+    contract: |
+      namespace Bank.Modules.Loans.Domain:
+        enum LoanStatus { Submitted, Rejected, Disbursed }
+        sealed class Loan { Guid Id; string CustomerId; Guid DisbursementAccountId; decimal Principal; int TermMonths; decimal AnnualRatePercent;
+                            decimal MonthlyPayment; LoanStatus Status; string? DecidedBy; string? DecisionNote; DateTimeOffset AppliedAt }
+        sealed record LoanSubmitted(Guid LoanId, string CustomerId, decimal Principal, DateTimeOffset OccurredAt) : IDomainEvent
+        sealed record LoanApproved(Guid LoanId, string CustomerId, decimal Principal, DateTimeOffset OccurredAt) : IDomainEvent
+        sealed record LoanRejected(Guid LoanId, string CustomerId, DateTimeOffset OccurredAt) : IDomainEvent
+      namespace Bank.Modules.Loans.Application:
+        sealed record LoanApplication(Guid DisbursementAccountId, decimal Principal, int TermMonths)
+        interface ILoanService {
+          Task<Loan> ApplyAsync(LoanApplication application, CancellationToken ct = default);
+              // out-of-range amount/term -> ArgumentException; account not owned by caller -> UnauthorizedAccessException
+          Task<Loan> GetAsync(Guid loanId, CancellationToken ct = default);     // unknown -> KeyNotFoundException; not owner and not loan officer -> UnauthorizedAccessException
+          Task<Loan> ApproveAsync(Guid loanId, string? note, CancellationToken ct = default);
+              // not a loan officer, or the officer is the borrower -> UnauthorizedAccessException; not Submitted -> InvalidOperationException
+          Task<Loan> RejectAsync(Guid loanId, string reason, CancellationToken ct = default); }   // same rules; empty reason -> ArgumentException
+        sealed class LoanService(BankDbContext db, ILedger ledger, IAccountService accounts, ICurrentUser user, IClock clock,
+                                 IEventBus bus, INotifier notifier) : ILoanService
+      BankDbContext gets: DbSet<Loan> Loans
+      HTTP: POST api/loans, GET api/loans/{id} (Customer); POST api/loans/{id}/approve|reject (LoanOfficer)
+    tests_file: tests/Bank.Tests/Loans/LoanTests.cs
+
+  - id: PR-8
+    title: Monthly account statements
+    type: feature
+    depends_on: [PR-1]
+    brief: >
+      A customer can get a statement for one of their accounts for a calendar month: the opening balance, every entry of the
+      month with the balance after it, and the closing balance. The month runs from the 1st at 00:00 UTC up to (not including)
+      the 1st of the next month. Opening balance + the month's entries = closing balance. Staff can read any statement;
+      customers only their own.
+    scope: ["src/Bank.Api/Modules/Statements/**", "src/Bank.Api/Program.cs"]
+    contract: |
+      namespace Bank.Modules.Statements.Application:
+        sealed record StatementLine(DateTimeOffset At, decimal Amount, decimal BalanceAfter, string Reference)
+        sealed record Statement(Guid AccountId, int Year, int Month, string Currency, decimal OpeningBalance, decimal ClosingBalance,
+                                IReadOnlyList<StatementLine> Lines)
+        interface IStatementService { Task<Statement> ForMonthAsync(Guid accountId, int year, int month, CancellationToken ct = default); }
+            // unknown account -> KeyNotFoundException; not owner and not staff (teller, loan officer, compliance officer, admin) -> UnauthorizedAccessException
+        sealed class StatementService(ILedger ledger, IAccountService accounts, ICurrentUser user) : IStatementService
+      HTTP: GET api/accounts/{id}/statements/{year}/{month} (Customer)
+    tests_file: tests/Bank.Tests/Statements/StatementTests.cs
+
+  - id: PR-9
+    title: Swedish launch settings
+    type: config
+    depends_on: [PR-3]
+    brief: >
+      We launch in Sweden next week. New accounts must default to SEK instead of EUR, and following the regulator's
+      guidance the daily transfer limit drops from 10,000 to 5,000 (EUR equivalent) for all customers. Nothing else changes.
+    scope: ["src/Bank.Api/Shared/Settings/BankSettings.cs"]
+    contract: |
+      BankSettings: DefaultCurrency = "SEK"; DailyTransferLimit = 5_000m; SupportedCurrencies unchanged.
+    tests_file: tests/Bank.Tests/Settings/LaunchSettingsTests.cs
+
+  - id: PR-10
+    title: One shared rule for rounding money
+    type: refactor
+    depends_on: [PR-4, PR-6, PR-7]
+    brief: >
+      Rounding to cents is written separately in several modules. Create one shared helper and use it in the Fx, Fees,
+      Deposits and Loans modules. This is a refactor: no customer may see a different amount afterwards.
+    scope: ["src/Bank.Api/Shared/Money/**", "src/Bank.Api/Modules/Fx/**", "src/Bank.Api/Modules/Fees/**",
+            "src/Bank.Api/Modules/Deposits/**", "src/Bank.Api/Modules/Loans/**"]
+    contract: |
+      namespace Bank.Shared.Money:
+        static class MoneyMath { static decimal ToCents(decimal amount); }   // rounds to 2 decimals, half away from zero (2.345 -> 2.35, -2.345 -> -2.35)
+    tests_file: tests/Bank.Tests/Shared/MoneyMathTests.cs
+
+  - id: PR-11
+    title: "Fix: customer charged twice when the app retried"
+    type: bugfix
+    depends_on: [PR-2]
+    brief: >
+      Support ticket #4711: a customer was charged twice for one payment after the mobile app retried a request that had
+      timed out. Make sure a payment request with the same idempotency key from the same customer can never move money
+      twice, also when two identical requests arrive at the same moment. The database must enforce it as well
+      (a unique index on customer + idempotency key).
+    scope: ["src/Bank.Api/Modules/Payments/**", "src/Bank.Api/Data/BankDbContext.cs"]
+    contract: |
+      No public signature changes. IPaymentService.PayAsync keeps its behaviour; a repeated key returns the first payment.
+    tests_file: tests/Bank.Tests/Payments/IdempotencyRegressionTests.cs
+
+  - id: PR-12
+    title: Hold large payments to new payees for review
+    type: feature
+    depends_on: [PR-4]
+    brief: >
+      To fight fraud, a payment of 5,000 EUR or more (EUR equivalent) to an account the customer has never paid before is
+      held: the money (amount + fee) leaves the payer's account and waits in the bank's Suspense account, the payment status
+      is Held, and the customer is told it is being checked. A compliance officer then releases it (the payee is credited) or
+      rejects it (the payer gets everything back). Officers cannot decide on their own payments.
+    scope: ["src/Bank.Api/Modules/Payments/**", "src/Bank.Api/Program.cs"]
+    contract: |
+      namespace Bank.Modules.Payments.Domain:
+        sealed record PaymentHeld(Guid PaymentId, string CustomerId, decimal Amount, string Currency, DateTimeOffset OccurredAt) : IDomainEvent
+        sealed record PaymentReleased(Guid PaymentId, string ReleasedBy, DateTimeOffset OccurredAt) : IDomainEvent
+        sealed record PaymentRejected(Guid PaymentId, string RejectedBy, DateTimeOffset OccurredAt) : IDomainEvent
+      namespace Bank.Modules.Payments.Application:
+        interface IPaymentReviewService {
+          Task<IReadOnlyList<Payment>> HeldAsync(CancellationToken ct = default);
+          Task<Payment> ReleaseAsync(Guid paymentId, CancellationToken ct = default);   // compliance officer only; own payment -> UnauthorizedAccessException; not Held -> InvalidOperationException
+          Task<Payment> RejectAsync(Guid paymentId, string reason, CancellationToken ct = default); }
+        sealed class PaymentReviewService(BankDbContext db, ILedger ledger, ICurrentUser user, IClock clock, IEventBus bus, INotifier notifier) : IPaymentReviewService
+      PaymentService gets INotifier as a constructor argument (after IFeeCalculator).
+      HTTP: GET api/payments/held, POST api/payments/{id}/release|reject (Compliance)
+    tests_file: tests/Bank.Tests/Payments/FraudHoldTests.cs

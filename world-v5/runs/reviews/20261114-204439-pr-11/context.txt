@@ -1,0 +1,310 @@
+### FILE: src/Bank.Api/Data/BankDbContext.cs  (slice: leftflow)
+   36|     protected override void OnModelCreating(ModelBuilder modelBuilder)
+   37|     {
+   38|         // The bank's own accounts: one per purpose and currency (see BankAccounts).
+   39|         var seed = new List<Account>();
+   40|         foreach (var kind in Enum.GetValues<BankAccountKind>())
+   41|         foreach (var currency in BankAccounts.Currencies)
+   42|             seed.Add(new Account
+   43|             {
+   44|                 Id = BankAccounts.For(kind, currency),
+   45|                 OwnerId = "bank",
+   46|                 Iban = $"FI00BANK{(int)kind:D2}{currency}",
+   47|                 Currency = currency,
+   48|                 Kind = AccountKind.Internal,
+   49|                 AllowOverdraft = true,
+   50|                 Balance = 0m,
+   51|                 OpenedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+   52|             });
+   53|         modelBuilder.Entity<Account>().HasData(seed);
+   54| 
+   55|         modelBuilder.Entity<Payment>()
+-  56|             .HasIndex(p => new { p.CustomerId, p.IdempotencyKey });
++  56|             .HasIndex(p => new { p.CustomerId, p.IdempotencyKey })
++  57|             .IsUnique();
+   58|     }
+
+### FILE: src/Bank.Api/Modules/Payments/Application/PaymentService.cs  (slice: leftflow, truncated)
++   1| using System.Collections.Concurrent;
++   2| using System.Data.Common;
++   3| using System.Runtime.CompilerServices;
+     ⋮
++   6| using Bank.Modules.Accounts.Domain;
+     ⋮
++  16| using Microsoft.Data.Sqlite;
+     ⋮
++  46|     private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();
++  47|     private static readonly ConcurrentDictionary<string, SemaphoreSlim> SqliteFileWriteLocks = new();
++  48|     private static readonly ConditionalWeakTable<DbConnection, SemaphoreSlim> SqliteConnectionWriteLocks = new();
++  49| 
+     ⋮
+- 135|         if (request.Amount != Math.Round(request.Amount, 2, MidpointRounding.AwayFromZero))
++ 144| 
++ 145|         var amount = Math.Round(request.Amount, 2, MidpointRounding.AwayFromZero);
++ 146|         if (request.Amount != amount)
+     ⋮
+- 147|         var existing = await _db.Payments.FirstOrDefaultAsync(
++ 158|         var existing = await _db.Payments.AsNoTracking().FirstOrDefaultAsync(
+     ⋮
++ 164|         var lockKey = $"{customerId}\0{request.IdempotencyKey}";
++ 165|         var keyLock = IdempotencyLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
++ 166| 
++ 167|         Payment result;
++ 168|         bool created;
++ 169| 
++ 170|         await keyLock.WaitAsync(ct);
++ 171|         try
++ 172|         {
++ 173|             existing = await _db.Payments.AsNoTracking().FirstOrDefaultAsync(
++ 174|                 p => p.CustomerId == customerId && p.IdempotencyKey == request.IdempotencyKey,
++ 175|                 ct);
++ 176|             if (existing is not null)
++ 177|                 return existing;
++ 178| 
++ 179|             var dbWriteLock = GetSqliteWriteLock();
++ 180|             if (dbWriteLock is not null)
++ 181|             {
++ 182|                 await dbWriteLock.WaitAsync(ct);
++ 183|                 try
++ 184|                 {
++ 185|                     (result, created) = await ExecuteIdempotentPaymentAsync(request, customerId, fromAccount, toAccount, amount, ct);
++ 186|                 }
++ 187|                 finally
++ 188|                 {
++ 189|                     dbWriteLock.Release();
++ 190|                 }
++ 191|             }
++ 192|             else
++ 193|             {
++ 194|                 (result, created) = await ExecuteIdempotentPaymentAsync(request, customerId, fromAccount, toAccount, amount, ct);
++ 195|             }
++ 196|         }
++ 197|         finally
++ 198|         {
++ 199|             keyLock.Release();
++ 200|         }
++ 201| 
++ 202|         if (created)
++ 203|         {
++ 204|             await _bus.PublishAsync(
++ 205|                 new PaymentCompleted(result.Id, customerId, result.Amount, result.Currency, result.CreatedAt),
++ 206|                 ct);
++ 207|         }
++ 208| 
++ 209|         return result;
++ 210|     }
++ 211| 
++ 212|     public async Task<IReadOnlyList<Payment>> ForCustomerAsync(string customerId, CancellationToken ct = default) =>
++ 213|         await _db.Payments
++ 214|             .Where(p => p.CustomerId == customerId)
++ 215|             .OrderByDescending(p => p.CreatedAt)
++ 216|             .ToListAsync(ct);
++ 217| 
++ 218|     private async Task<(Payment Payment, bool Created)> ExecuteIdempotentPaymentAsync(
++ 219|         PaymentRequest request,
++ 220|         string customerId,
++ 221|         Account fromAccount,
++ 222|         Account toAccount,
++ 223|         decimal amount,
++ 224|         CancellationToken ct)
++ 225|     {
++ 226|         var existing = await _db.Payments.AsNoTracking().FirstOrDefaultAsync(
++ 227|             p => p.CustomerId == customerId && p.IdempotencyKey == request.IdempotencyKey,
++ 228|             ct);
++ 229|         if (existing is not null)
++ 230|             return (existing, false);
++ 231| 
++ 232|         if (_db.Entry(fromAccount).State != EntityState.Detached)
++ 233|             await _db.Entry(fromAccount).ReloadAsync(ct);
++ 234| 
++ 235|         var latestAccount = await _db.Accounts.AsNoTracking()
++ 236|             .Where(a => a.Id == request.FromAccountId)
++ 237|             .Select(a => new { a.Balance, a.AllowOverdraft })
++ 238|             .FirstOrDefaultAsync(ct);
++ 239|         var availableBalance = latestAccount?.Balance ?? fromAccount.Balance;
++ 240|         var allowOverdraft = latestAccount?.AllowOverdraft ?? fromAccount.AllowOverdraft;
++ 241| 
+     ⋮
+- 156|             ? request.Amount
+- 157|             : _fx.Convert(request.Amount, fromAccount.Currency, toAccount.Currency);
++ 245|             ? amount
++ 246|             : _fx.Convert(amount, fromAccount.Currency, toAccount.Currency);
+     ⋮
+- 163|         var fee = _fees.Quote(request.Amount, fromAccount.Currency, toAccount.Currency);
++ 252|         var fee = _fees.Quote(amount, fromAccount.Currency, toAccount.Currency);
+     ⋮
+- 169|         Payment payment;
++ 258|         Payment? payment = null;
+     ⋮
++ 266|                 .AsNoTracking()
+     ⋮
+- 185|             var requestAmountEur = _fx.Convert(request.Amount, fromAccount.Currency, "EUR");
++ 275|             var requestAmountEur = _fx.Convert(amount, fromAccount.Currency, "EUR");
+     ⋮
+- 190|             if (!fromAccount.AllowOverdraft && fromAccount.Balance < request.Amount + fee.Amount)
++ 280|             if (!allowOverdraft && availableBalance < amount + fee.Amount)
+     ⋮
++ 283|             payment = new Payment
++ 284|             {
++ 285|                 IdempotencyKey = request.IdempotencyKey,
++ 286|                 CustomerId = customerId,
++ 287|                 FromAccountId = request.FromAccountId,
++ 288|                 ToAccountId = request.ToAccountId,
++ 289|                 Amount = amount,
++ 290|                 Currency = fromAccount.Currency,
++ 291|                 Fee = fee.Amount,
++ 292|                 CreditedAmount = creditedAmount,
++ 293|                 CreditedCurrency = creditedCurrency,
++ 294|                 Rate = rate,
++ 295|                 Reference = request.Reference,
++ 296|                 CreatedAt = now,
++ 297|             };
++ 298|             payment.Hold();
++ 299| 
++ 300|             _db.Payments.Add(payment);
++ 301|             await _db.SaveChangesAsync(ct);
++ 302| 
+     ⋮
+- 200|                     request.Amount,
++ 310|                     Math.Round(amount, 2, MidpointRounding.AwayFromZero),
+     ⋮
+- 212|                     request.Amount,
++ 322|                     Math.Round(amount, 2, MidpointRounding.AwayFromZero),
+     ⋮
+- 219|                     creditedAmount,
++ 329|                     Math.Round(creditedAmount, 2, MidpointRounding.AwayFromZero),
+     ⋮
+- 230|                     fee.Amount,
++ 340|                     Math.Round(fee.Amount, 2, MidpointRounding.AwayFromZero),
+     ⋮
+- 235|             payment = new Payment
+- 236|             {
+- 237|                 IdempotencyKey = request.IdempotencyKey,
+- 238|                 CustomerId = customerId,
+- 239|                 FromAccountId = request.FromAccountId,
+- 240|                 ToAccountId = request.ToAccountId,
+- 241|                 Amount = request.Amount,
+- 242|                 Currency = fromAccount.Currency,
+- 243|                 Fee = fee.Amount,
+- 244|                 CreditedAmount = creditedAmount,
+- 245|                 CreditedCurrency = creditedCurrency,
+- 246|                 Rate = rate,
+- 247|                 Reference = request.Reference,
+- 248|                 CreatedAt = now,
+- 249|             };
+     ⋮
+- 251| 
+- 252|             _db.Payments.Add(payment);
+     ⋮
++ 349|             {
+     ⋮
++ 351|                 await transaction.DisposeAsync();
++ 352|                 transaction = null;
++ 353|             }
++ 354| 
++ 355|             return (payment, true);
+     ⋮
+- 258|         catch (DbUpdateException)
++ 357|         catch (DbUpdateException ex) when (IsIdempotencyUniqueConstraintViolation(ex))
+     ⋮
+- 261|                 await transaction.RollbackAsync(ct);
++ 360|             {
++ 361|                 await transaction.RollbackAsync(CancellationToken.None);
++ 362|                 await transaction.DisposeAsync();
++ 363|                 transaction = null;
++ 364|             }
+     ⋮
+- 263|             foreach (var entry in _db.ChangeTracker.Entries<Payment>().Where(e => e.State == EntityState.Added).ToList())
+- 264|                 entry.State = EntityState.Detached;
++ 366|             DetachDirtyEntries();
+     ⋮
+- 270|                 return concurrent;
++ 372|                 return (concurrent, false);
+     ⋮
+- 277|                 await transaction.RollbackAsync(ct);
++ 379|             {
++ 380|                 await transaction.RollbackAsync(CancellationToken.None);
++ 381|                 await transaction.DisposeAsync();
++ 382|                 transaction = null;
++ 383|             }
++ 384|             else if (payment is not null && _db.Entry(payment).State != EntityState.Detached)
++ 385|             {
++ 386|                 _db.Payments.Remove(payment);
++ 387|                 await _db.SaveChangesAsync(CancellationToken.None);
++ 388|             }
++ 389| 
++ 390|             DetachDirtyEntries();
+     ⋮
++ 398|     }
+     ⋮
+- 286|         await _bus.PublishAsync(
+- 287|             new PaymentCompleted(payment.Id, customerId, payment.Amount, payment.Currency, now),
+- 288|             ct);
++ 400|     private SemaphoreSlim? GetSqliteWriteLock()
++ 401|     {
++ 402|         if (!_db.Database.IsRelational() || !_db.Database.IsSqlite() || _db.Database.CurrentTransaction is not null)
++ 403|             return null;
++ 404| 
++ 405|         var connection = _db.Database.GetDbConnection();
++ 406|         var dataSource = connection.DataSource;
++ 407|         if (string.IsNullOrEmpty(dataSource) || string.Equals(dataSource, ":memory:", StringComparison.OrdinalIgnoreCase))
++ 408|             return SqliteConnectionWriteLocks.GetValue(connection, _ => new SemaphoreSlim(1, 1));
+     ⋮
+- 290|         return payment;
++ 410|         return SqliteFileWriteLocks.GetOrAdd(dataSource, _ => new SemaphoreSlim(1, 1));
+     ⋮
+- 293|     public async Task<IReadOnlyList<Payment>> ForCustomerAsync(string customerId, CancellationToken ct = default) =>
+- 294|         await _db.Payments
+- 295|             .Where(p => p.CustomerId == customerId)
+- 296|             .OrderByDescending(p => p.CreatedAt)
+- 297|             .ToListAsync(ct);
++ 413|     private void DetachDirtyEntries()
++ 414|     {
++ 415|         foreach (var entry in _db.ChangeTracker.Entries()
++ 416|                      .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
++ 417|                      .ToList())
++ 418|         {
++ 419|             entry.State = EntityState.Detached;
++ 420|         }
++ 421|     }
++ 422| 
++ 423|     private static bool IsIdempotencyUniqueConstraintViolation(DbUpdateException ex)
++ 424|     {
++ 425|         if (ex.InnerException is SqliteException sqliteEx)
++ 426|         {
++ 427|             if (sqliteEx.SqliteErrorCode != 19)
++ 428|                 return false;
++ 429| 
++ 430|             if (sqliteEx.SqliteExtendedErrorCode != 0
++ 431|                 && sqliteEx.SqliteExtendedErrorCode != 19
++ 432|                 && sqliteEx.SqliteExtendedErrorCode != 2067)
++ 433|             {
++ 434|                 return false;
++ 435|             }
++ 436| 
++ 437|             var msg = sqliteEx.Message;
++ 438|             if (msg.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase))
++ 439|             {
++ 440|                 return msg.Contains("CustomerId", StringComparison.OrdinalIgnoreCase)
++ 441|                     && msg.Contains("IdempotencyKey", StringComparison.OrdinalIgnoreCase);
++ 442|             }
++ 443| 
++ 444|             return sqliteEx.SqliteExtendedErrorCode == 2067;
++ 445|         }
++ 446| 
++ 447|         var message = ex.InnerException?.Message ?? ex.Message;
++ 448|         return message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase)
++ 449|             && message.Contains("CustomerId", StringComparison.OrdinalIgnoreCase)
++ 450|             && message.Contains("IdempotencyKey", StringComparison.OrdinalIgnoreCase);
++ 451|     }
+     ⋮ (context reduced to fit; every changed line kept)
+
+
+# IMPACT
+- OnModelCreating (src/Bank.Api/Data/BankDbContext.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- ForCustomerAsync (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- ExecuteIdempotentPaymentAsync (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- GetSqliteWriteLock (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- DetachDirtyEntries (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- IsIdempotencyUniqueConstraintViolation (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE

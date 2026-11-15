@@ -1,0 +1,111 @@
+# Strict bank: Full coverage everywhere, signed plugins only, a 3-model panel, signatures per module.
+version: '1'
+preset: strict-bank
+rulebook: review-policy.yaml
+coverage:
+  default: full
+  by_tier:
+    high: full
+    medium: full
+    low: essential
+plugins:
+  enable: []
+  disable: []
+  company_dir: plugins/company
+  allow_unsigned: false
+  waivers: []
+models:
+  default:
+    provider: gemini
+    model: gemini-3.8-flash
+  roles:
+    specialist:
+      provider: gemini
+      model: gemini-3.8-flash
+    validator:
+      provider: gemini
+      model: gemini-4-hydrogen
+    radar:
+      provider: gemini
+      model: gemini-4-hydrogen
+    fixer:
+      provider: gemini
+      model: gemini-4-hydrogen
+    investigator:
+      provider: gemini
+      model: gemini-4-hydrogen
+    requirement_analyst:
+      provider: gemini
+      model: gemini-4-hydrogen
+    change_interpreter:
+      provider: gemini
+      model: gemini-3.8-flash
+    requirement_judge:
+      provider: gemini
+      model: gemini-4-hydrogen
+    writer:
+      provider: gemini
+      model: gemini-3.8-flash
+    panel:
+    - provider: gemini
+      model: gemini-4-hydrogen
+    - provider: openai
+      model: gpt-4.1
+    - provider: anthropic
+      model: claude-sonnet-5-5
+  providers:
+    gemini:
+      key_env: GEMINI_API_KEY
+      price_in_per_mtok: 0
+      price_out_per_mtok: 0
+    openai:
+      base_url: https://api.openai.com/v1
+      key_env: OPENAI_API_KEY
+      price_in_per_mtok: 0
+      price_out_per_mtok: 0
+    anthropic:
+      base_url: https://api.anthropic.com/v1
+      key_env: ANTHROPIC_API_KEY
+      price_in_per_mtok: 0
+      price_out_per_mtok: 0
+    local:
+      base_url: http://127.0.0.1:8000/v1
+      key_env: null
+      price_in_per_mtok: 0
+      price_out_per_mtok: 0
+budget:
+  max_calls: 80
+  max_cost_eur: 20
+  timeout_s: 1800
+  call_timeout_s: 180
+thresholds:
+  min_blocker_confidence: 0.6
+  panel_size: 3
+  investigator_max_steps: 6
+  show_nits: false
+local_only: []
+integrations:
+  dry_run: true
+view_defaults:
+  trust_view: level
+  severity_min: Nit
+  lenses:
+  - risk
+  - calls
+  - apis
+  - events
+  - data
+  - security
+  - tests
+  layout: split
+  density: comfortable
+  theme: dark
+  language: en
+  start: list
+access:
+  hide_restricted_names: true
+  restricted_names: []
+  emergency_max_hours: 2
+merge_policy:
+  protected_areas: []
+  rules: []

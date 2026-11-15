@@ -1,0 +1,497 @@
+### FILE: src/Bank.Api/Modules/Fees/Application/Fee.cs  (slice: leftflow)
++   1| namespace Bank.Modules.Fees.Application;
++   2| 
++   3| public sealed record Fee(decimal Amount, string Currency);
+
+### FILE: src/Bank.Api/Modules/Fees/Application/FeeCalculator.cs  (slice: leftflow)
++   1| using Bank.Modules.Fx.Application;
++   2| 
++   3| namespace Bank.Modules.Fees.Application;
++   4| 
++   5| public sealed class FeeCalculator(IFxService fx) : IFeeCalculator
++   6| {
++   7|     private const decimal FeeRate = 0.002m;
++   8|     private const decimal MinFeeEur = 0.50m;
++   9|     private const decimal MaxFeeEur = 20.00m;
++  10| 
++  11|     public Fee Quote(decimal amount, string fromCurrency, string toCurrency)
++  12|     {
++  13|         if (amount <= 0m)
++  14|             throw new ArgumentOutOfRangeException(nameof(amount), "Amount must be positive.");
++  15|         if (string.IsNullOrWhiteSpace(fromCurrency))
++  16|             throw new ArgumentException("Currency must not be null or empty.", nameof(fromCurrency));
++  17|         if (string.IsNullOrWhiteSpace(toCurrency))
++  18|             throw new ArgumentException("Currency must not be null or empty.", nameof(toCurrency));
++  19| 
++  20|         var from = fromCurrency.ToUpperInvariant();
++  21|         var to = toCurrency.ToUpperInvariant();
++  22| 
++  23|         if (from == to)
++  24|             return new Fee(0m, from);
++  25| 
++  26|         var rawFee = Math.Round(amount * FeeRate, 2, MidpointRounding.AwayFromZero);
++  27|         var minFee = Math.Round(fx.Convert(MinFeeEur, "EUR", from), 2, MidpointRounding.AwayFromZero);
++  28|         var maxFee = Math.Round(fx.Convert(MaxFeeEur, "EUR", from), 2, MidpointRounding.AwayFromZero);
++  29|         var fee = Math.Clamp(rawFee, minFee, maxFee);
++  30| 
++  31|         return new Fee(fee, from);
++  32|     }
++  33| }
+
+### FILE: src/Bank.Api/Modules/Fees/Application/IFeeCalculator.cs  (slice: leftflow)
++   1| namespace Bank.Modules.Fees.Application;
++   2| 
++   3| public interface IFeeCalculator
++   4| {
++   5|     Fee Quote(decimal amount, string fromCurrency, string toCurrency);
++   6| }
+
+### FILE: src/Bank.Api/Modules/Fees/FeesModule.cs  (slice: leftflow)
++   1| using Bank.Modules.Fees.Application;
++   2| 
++   3| namespace Bank.Modules.Fees;
++   4| 
++   5| public static class FeesModule
++   6| {
++   7|     public static IServiceCollection AddFeesModule(this IServiceCollection services)
++   8|     {
++   9|         services.AddScoped<IFeeCalculator, FeeCalculator>();
++  10|         return services;
++  11|     }
++  12| }
+
+### FILE: src/Bank.Api/Modules/Payments/Api/PaymentsController.cs  (slice: leftflow)
+   15|     Guid ToAccountId,
+   16|     decimal Amount,
+   17|     string Currency,
+   18|     PaymentStatus Status,
+   19|     Guid? TransferId,
+   20|     string? Reference,
+-  21|     DateTimeOffset CreatedAt);
++  21|     DateTimeOffset CreatedAt)
++  22| {
++  23|     public decimal Fee { get; init; }
++  24| }
+   25| 
+   26| [ApiController]
+   27| [Route("api/payments")]
+   28| [Authorize(Policy = Policies.Customer)]
+   29| public sealed class PaymentsController : ControllerBase
+   30| {
+   31|     private readonly IPaymentService _payments;
+     ⋮
++  40|     [HttpGet("quote")]
++  41|     [Authorize(Policy = Policies.Customer)]
++  42|     public async Task<ActionResult<PaymentQuote>> Quote(
++  43|         [FromQuery] Guid from,
++  44|         [FromQuery] Guid to,
++  45|         [FromQuery] decimal amount,
++  46|         CancellationToken ct)
++  47|     {
++  48|         try
++  49|         {
++  50|             var quote = await _payments.QuoteAsync(from, to, amount, ct);
++  51|             return Ok(quote);
++  52|         }
++  53|         catch (UnauthorizedAccessException)
++  54|         {
++  55|             return Forbid();
++  56|         }
++  57|         catch (ArgumentException ex)
++  58|         {
++  59|             return BadRequest(ex.Message);
++  60|         }
++  61|         catch (KeyNotFoundException ex)
++  62|         {
++  63|             return NotFound(ex.Message);
++  64|         }
++  65|     }
++  66| 
+   67|     [HttpPost]
+   68|     public async Task<ActionResult<PaymentDto>> Pay(PaymentRequest request, CancellationToken ct)
+   69|     {
+   70|         try
+   71|         {
+   72|             var payment = await _payments.PayAsync(request, ct);
+     ⋮
+   97|     private static PaymentDto ToDto(Payment p) =>
+   98|         new(
+   99|             p.Id,
+  100|             p.IdempotencyKey,
+  101|             p.CustomerId,
+  102|             p.FromAccountId,
+  103|             p.ToAccountId,
+  104|             p.Amount,
+  105|             p.Currency,
+  106|             p.Status,
+  107|             p.TransferId,
+  108|             p.Reference,
+-  79|             p.CreatedAt);
++ 109|             p.CreatedAt)
++ 110|         {
++ 111|             Fee = p.Fee
++ 112|         };
+
+### FILE: src/Bank.Api/Modules/Payments/Application/PaymentService.cs  (slice: leftflow)
+    1| using Bank.Data;
+    2| using Bank.Modules.Accounts.Application;
+    3| using Bank.Modules.Auth.Application;
++   4| using Bank.Modules.Fees.Application;
+    5| using Bank.Modules.Fx.Application;
+    6| using Bank.Modules.Ledger.Application;
+    7| using Bank.Modules.Ledger.Domain;
+    8| using Bank.Modules.Payments.Domain;
+    9| using Bank.Shared.Events;
+   10| using Bank.Shared.Settings;
+     ⋮
+   13| using Microsoft.EntityFrameworkCore.Storage;
+   14| 
+   15| namespace Bank.Modules.Payments.Application;
+   16| 
+   17| public sealed record PaymentRequest(string IdempotencyKey, Guid FromAccountId, Guid ToAccountId, decimal Amount, string? Reference);
+   18| 
++  19| public sealed record PaymentQuote(decimal Amount, string Currency, decimal Fee, decimal CreditedAmount, string CreditedCurrency, decimal Rate);
++  20| 
+   21| public sealed class DailyLimitExceededException : InvalidOperationException
+   22| {
+   23|     public DailyLimitExceededException() : base("Daily transfer limit exceeded.")
+   24|     {
+   25|     }
+   26| 
+     ⋮
++  34|     Task<PaymentQuote> QuoteAsync(Guid fromAccountId, Guid toAccountId, decimal amount, CancellationToken ct = default);
+     ⋮
+   42|     private readonly ILedger _ledger;
+   43|     private readonly IAccountService _accounts;
+   44|     private readonly ICurrentUser _user;
+   45|     private readonly IClock _clock;
+   46|     private readonly BankSettings _settings;
+   47|     private readonly IFxService _fx;
++  48|     private readonly IFeeCalculator _fees;
+   49|     private readonly IEventBus _bus;
+   50| 
+   51|     public PaymentService(
+   52|         BankDbContext db,
+   53|         ILedger ledger,
+   54|         IAccountService accounts,
+   55|         ICurrentUser user,
+   56|         IClock clock,
+   57|         BankSettings settings,
+   58|         IFxService fx,
++  59|         IFeeCalculator fees,
+   60|         IEventBus bus)
+   61|     {
+   62|         _db = db;
+   63|         _ledger = ledger;
+   64|         _accounts = accounts;
+   65|         _user = user;
+   66|         _clock = clock;
+   67|         _settings = settings;
+   68|         _fx = fx;
++  69|         _fees = fees;
+   70|         _bus = bus;
+   71|     }
+     ⋮
++  73|     public PaymentService(
++  74|         BankDbContext db,
++  75|         ILedger ledger,
++  76|         IAccountService accounts,
++  77|         ICurrentUser user,
++  78|         IClock clock,
++  79|         BankSettings settings,
++  80|         IFxService fx,
++  81|         IEventBus bus)
++  82|         : this(db, ledger, accounts, user, clock, settings, fx, new FeeCalculator(fx), bus)
++  83|     {
++  84|     }
++  85| 
+   86|     public PaymentService(
+   87|         BankDbContext db,
+   88|         ILedger ledger,
+   89|         IAccountService accounts,
+   90|         ICurrentUser user,
+   91|         IClock clock,
+     ⋮
++  98|     public async Task<PaymentQuote> QuoteAsync(Guid fromAccountId, Guid toAccountId, decimal amount, CancellationToken ct = default)
++  99|     {
++ 100|         if (amount <= 0m)
++ 101|             throw new ArgumentException("Amount must be positive.", nameof(amount));
++ 102|         if (amount != Math.Round(amount, 2, MidpointRounding.AwayFromZero))
++ 103|             throw new ArgumentException("Amount must be whole cents.", nameof(amount));
++ 104| 
++ 105|         var fromAccount = await _accounts.GetAsync(fromAccountId, ct)
++ 106|             ?? throw new KeyNotFoundException($"Account {fromAccountId} not found.");
++ 107|         if (!await _accounts.IsOwnerAsync(fromAccountId, _user.UserId, ct))
++ 108|             throw new UnauthorizedAccessException("Source account is not owned by the caller.");
++ 109|         var toAccount = await _accounts.GetAsync(toAccountId, ct)
++ 110|             ?? throw new KeyNotFoundException($"Account {toAccountId} not found.");
++ 111| 
++ 112|         var sameCurrency = string.Equals(fromAccount.Currency, toAccount.Currency, StringComparison.OrdinalIgnoreCase);
++ 113|         var rate = sameCurrency ? 1m : _fx.Rate(fromAccount.Currency, toAccount.Currency);
++ 114|         var creditedAmount = sameCurrency
++ 115|             ? amount
++ 116|             : _fx.Convert(amount, fromAccount.Currency, toAccount.Currency);
++ 117|         var fee = _fees.Quote(amount, fromAccount.Currency, toAccount.Currency);
++ 118| 
++ 119|         return new PaymentQuote(
++ 120|             amount,
++ 121|             fromAccount.Currency,
++ 122|             fee.Amount,
++ 123|             creditedAmount,
++ 124|             toAccount.Currency,
++ 125|             rate);
++ 126|     }
++ 127| 
+  128|     public async Task<Payment> PayAsync(PaymentRequest request, CancellationToken ct = default)
+  129|     {
+  130|         ArgumentNullException.ThrowIfNull(request);
+  131|         if (string.IsNullOrWhiteSpace(request.IdempotencyKey))
+  132|             throw new ArgumentException("Idempotency key is required.", nameof(request));
+  133|         if (request.Amount <= 0m)
+  134|             throw new ArgumentException("Amount must be positive.", nameof(request));
+  135|         if (request.Amount != Math.Round(request.Amount, 2, MidpointRounding.AwayFromZero))
+  136|             throw new ArgumentException("Amount must be whole cents.", nameof(request));
+  137| 
+  138|         var customerId = _user.UserId;
+  139| 
+-  90|         if (!await _accounts.IsOwnerAsync(request.FromAccountId, customerId, ct))
+-  91|             throw new UnauthorizedAccessException("Source account is not owned by the caller.");
+-  92| 
+  140|         var fromAccount = await _accounts.GetAsync(request.FromAccountId, ct)
+  141|             ?? throw new KeyNotFoundException($"Account {request.FromAccountId} not found.");
++ 142|         if (!await _accounts.IsOwnerAsync(request.FromAccountId, customerId, ct))
++ 143|             throw new UnauthorizedAccessException("Source account is not owned by the caller.");
+  144|         var toAccount = await _accounts.GetAsync(request.ToAccountId, ct)
+  145|             ?? throw new KeyNotFoundException($"Account {request.ToAccountId} not found.");
+  146| 
+  147|         var existing = await _db.Payments.FirstOrDefaultAsync(
+  148|             p => p.CustomerId == customerId && p.IdempotencyKey == request.IdempotencyKey,
+  149|             ct);
+  150|         if (existing is not null)
+  151|             return existing;
+  152| 
+  153|         var sameCurrency = string.Equals(fromAccount.Currency, toAccount.Currency, StringComparison.OrdinalIgnoreCase);
+  154|         var rate = sameCurrency ? 1m : _fx.Rate(fromAccount.Currency, toAccount.Currency);
+  155|         var creditedAmount = sameCurrency
+  156|             ? request.Amount
+  157|             : _fx.Convert(request.Amount, fromAccount.Currency, toAccount.Currency);
+  158|         var creditedCurrency = toAccount.Currency;
+  159| 
+  160|         if (creditedAmount <= 0m)
+  161|             throw new ArgumentException("Converted amount must be positive.", nameof(request));
+  162| 
++ 163|         var fee = _fees.Quote(request.Amount, fromAccount.Currency, toAccount.Currency);
++ 164| 
+  165|         var now = _clock.UtcNow;
+  166|         var dayStart = new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero);
+  167|         var dayEnd = dayStart.AddDays(1);
+  168| 
+  169|         Payment payment;
+  170|         IDbContextTransaction? transaction = null;
+  171|         if (_db.Database.IsRelational() && _db.Database.CurrentTransaction is null)
+  172|             transaction = await _db.Database.BeginTransactionAsync(ct);
+  173| 
+  174|         try
+  175|         {
+  176|             var todayPayments = await _db.Payments
+  177|                 .Where(p => p.CustomerId == customerId
+  178|                     && p.Status == PaymentStatus.Completed
+  179|                     && p.CreatedAt >= dayStart
+  180|                     && p.CreatedAt < dayEnd)
+  181|                 .Select(p => new { p.Amount, p.Currency })
+  182|                 .ToListAsync(ct);
+  183| 
+  184|             var todayTotalEur = todayPayments.Sum(p => _fx.Convert(p.Amount, p.Currency, "EUR"));
+  185|             var requestAmountEur = _fx.Convert(request.Amount, fromAccount.Currency, "EUR");
+  186| 
+  187|             if (todayTotalEur + requestAmountEur > _settings.DailyTransferLimit)
+  188|                 throw new DailyLimitExceededException();
+  189| 
++ 190|             if (!fromAccount.AllowOverdraft && fromAccount.Balance < request.Amount + fee.Amount)
++ 191|                 throw new InsufficientFundsException(request.FromAccountId);
++ 192| 
+  193|             var reference = request.Reference ?? "";
+  194|             Guid transferId;
+  195|             if (sameCurrency)
+  196|             {
+  197|                 transferId = await _ledger.PostTransferAsync(
+  198|                     request.FromAccountId,
+  199|                     request.ToAccountId,
+  200|                     request.Amount,
+  201|                     reference,
+  202|                     ct);
+  203|             }
+  204|             else
+  205|             {
+  206|                 var fxClearingFrom = BankAccounts.For(BankAccountKind.FxClearing, fromAccount.Currency);
+  207|                 var fxClearingTo = BankAccounts.For(BankAccountKind.FxClearing, toAccount.Currency);
+  208| 
+  209|                 await _ledger.PostTransferAsync(
+  210|                     request.FromAccountId,
+  211|                     fxClearingFrom,
+  212|                     request.Amount,
+  213|                     reference,
+  214|                     ct);
+  215| 
+  216|                 transferId = await _ledger.PostTransferAsync(
+  217|                     fxClearingTo,
+  218|                     request.ToAccountId,
+  219|                     creditedAmount,
+  220|                     reference,
+  221|                     ct);
+  222|             }
+  223| 
++ 224|             if (fee.Amount > 0m)
++ 225|             {
++ 226|                 var feeIncome = BankAccounts.For(BankAccountKind.FeeIncome, fromAccount.Currency);
++ 227|                 await _ledger.PostTransferAsync(
++ 228|                     request.FromAccountId,
++ 229|                     feeIncome,
++ 230|                     fee.Amount,
++ 231|                     reference,
++ 232|                     ct);
++ 233|             }
++ 234| 
+  235|             payment = new Payment
+  236|             {
+  237|                 IdempotencyKey = request.IdempotencyKey,
+  238|                 CustomerId = customerId,
+  239|                 FromAccountId = request.FromAccountId,
+  240|                 ToAccountId = request.ToAccountId,
+  241|                 Amount = request.Amount,
+  242|                 Currency = fromAccount.Currency,
++ 243|                 Fee = fee.Amount,
+  244|                 CreditedAmount = creditedAmount,
+  245|                 CreditedCurrency = creditedCurrency,
+  246|                 Rate = rate,
+  247|                 Reference = request.Reference,
+  248|                 CreatedAt = now,
+  249|             };
+  250|             payment.Complete(transferId);
+  251| 
+  252|             _db.Payments.Add(payment);
+  253|             await _db.SaveChangesAsync(ct);
+  254| 
+  255|             if (transaction is not null)
+  256|                 await transaction.CommitAsync(ct);
+  257|         }
+  258|         catch (DbUpdateException)
+  259|         {
+  260|             if (transaction is not null)
+  261|                 await transaction.RollbackAsync(ct);
+  262| 
+  263|             foreach (var entry in _db.ChangeTracker.Entries<Payment>().Where(e => e.State == EntityState.Added).ToList())
+     ⋮
+  291|     }
+
+### FILE: src/Bank.Api/Modules/Payments/Domain/Payment.cs  (slice: leftflow)
++  25|     public decimal Fee { get; set; }
+
+### FILE: src/Bank.Api/Program.cs  (slice: leftflow)
+    1| using Bank.Data;
+    2| using Bank.Modules.Accounts;
+    3| using Bank.Modules.Audit;
+    4| using Bank.Modules.Auth;
+    5| using Bank.Modules.Customers;
++   6| using Bank.Modules.Fees;
+    7| using Bank.Modules.Fx;
+    8| using Bank.Modules.Ledger;
+    9| using Bank.Modules.Notifications;
+   10| using Bank.Modules.Payments;
+   11| using Bank.Shared;
+   12| using Bank.Shared.Events;
+     ⋮
+   23| builder.Services.AddLedgerModule();
+   24| builder.Services.AddAuditModule();
+   25| builder.Services.AddNotificationsModule();
+   26| builder.Services.AddCustomersModule();
+   27| builder.Services.AddPaymentsModule();
+   28| builder.Services.AddFxModule();
++  29| builder.Services.AddFeesModule();
+   30| // MODULES: register new modules above this line
+   31| 
+   32| var app = builder.Build();
+   33| using (var scope = app.Services.CreateScope())
+   34| {
+   35|     scope.ServiceProvider.GetRequiredService<BankDbContext>().Database.EnsureCreated();
+
+### FILE: tests/Bank.Tests/Fees/FeeTests.cs  (slice: leftflow)
++   1| using Bank.Modules.Fees.Application;
++   2| using Bank.Modules.Ledger.Domain;
++   3| using Bank.Modules.Payments.Application;
++   4| using Xunit;
++   5| 
++   6| namespace Bank.Tests.Fees;
++   7| 
++   8| public sealed class FeeTests
++   9| {
++  10|     [Fact]
++  11|     public void Fee_record_preserves_amount_and_currency_and_value_equality()
++  12|     {
++  13|         var a = new Fee(1.50m, "EUR");
++  14|         var b = new Fee(1.50m, "EUR");
++  15|         var c = new Fee(2.00m, "EUR");
++  16| 
++  17|         Assert.Equal(1.50m, a.Amount);
++  18|         Assert.Equal("EUR", a.Currency);
++  19|         Assert.Equal(a, b);
++  20|         Assert.NotEqual(a, c);
++  21|     }
++  22| 
++  23|     [Fact]
++  24|     public void Fee_record_allows_zero_fee_for_same_currency()
++  25|     {
++  26|         var fee = new Fee(0m, "SEK");
++  27| 
++  28|         Assert.Equal(0m, fee.Amount);
++  29|         Assert.Equal("SEK", fee.Currency);
++  30|     }
++  31| 
++  32|     [Fact]
++  33|     public void PaymentQuote_record_preserves_all_fields_and_value_equality()
++  34|     {
++  35|         var quote = new PaymentQuote(1000m, "EUR", 2.00m, 11400.00m, "SEK", 11.40m);
++  36|         var same = new PaymentQuote(1000m, "EUR", 2.00m, 11400.00m, "SEK", 11.40m);
++  37| 
++  38|         Assert.Equal(1000m, quote.Amount);
++  39|         Assert.Equal("EUR", quote.Currency);
++  40|         Assert.Equal(2.00m, quote.Fee);
++  41|         Assert.Equal(11400.00m, quote.CreditedAmount);
++  42|         Assert.Equal("SEK", quote.CreditedCurrency);
++  43|         Assert.Equal(11.40m, quote.Rate);
++  44|         Assert.Equal(quote, same);
++  45|     }
++  46| 
++  47|     [Theory]
++  48|     [InlineData("EUR")]
++  49|     [InlineData("SEK")]
++  50|     [InlineData("USD")]
++  51|     public async Task FeeIncome_account_exists_and_accepts_fee_transfers_in_payer_currency(string currency)
++  52|     {
++  53|         using var db = TestKit.Db();
++  54|         var payer = TestKit.Account(db, "alice", 100m, currency);
++  55|         var feeIncome = BankAccounts.For(BankAccountKind.FeeIncome, currency);
++  56| 
++  57|         await TestKit.Ledger(db).PostTransferAsync(payer, feeIncome, 2.50m, $"fee-{currency}");
++  58| 
++  59|         Assert.Equal(97.50m, TestKit.Balance(db, payer));
++  60|         Assert.Equal(2.50m, TestKit.Balance(db, feeIncome));
++  61|     }
++  62| }
+
+
+# IMPACT
+- Quote (src/Bank.Api/Modules/Fees/Application/FeeCalculator.cs): 0 caller(s) [none found]; test references: NONE
+- Quote (src/Bank.Api/Modules/Fees/Application/IFeeCalculator.cs): 0 caller(s) [none found]; test references: NONE
+- AddFeesModule (src/Bank.Api/Modules/Fees/FeesModule.cs): 0 caller(s) [none found]; test references: NONE
+- Fee (src/Bank.Api/Modules/Payments/Api/PaymentsController.cs): 0 caller(s) [none found]; test references: NONE
+- Quote (src/Bank.Api/Modules/Payments/Api/PaymentsController.cs): 0 caller(s) [none found]; test references: NONE
+- ToDto (src/Bank.Api/Modules/Payments/Api/PaymentsController.cs): 0 caller(s) [none found]; test references: NONE
+- QuoteAsync (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- PaymentService (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- Fee (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- Fee_record_preserves_amount_and_currency_and_value_equality (tests/Bank.Tests/Fees/FeeTests.cs): 0 caller(s) [none found]; test references: NONE
+- Fee_record_allows_zero_fee_for_same_currency (tests/Bank.Tests/Fees/FeeTests.cs): 0 caller(s) [none found]; test references: NONE
+- PaymentQuote_record_preserves_all_fields_and_value_equality (tests/Bank.Tests/Fees/FeeTests.cs): 0 caller(s) [none found]; test references: NONE
+- FeeIncome_account_exists_and_accepts_fee_transfers_in_payer_currency (tests/Bank.Tests/Fees/FeeTests.cs): 0 caller(s) [none found]; test references: NONE

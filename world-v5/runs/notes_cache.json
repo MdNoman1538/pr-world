@@ -1,0 +1,2452 @@
+{
+ "a3d9fbd7ce2c6f80c4420bb240d8dd606c63b81ce4fae6d064a68cb1d2264f6c": {
+  "headline": "Add customer onboarding, KYC verification workflow, and account-opening eligibility check",
+  "summary": "Introduces the Customers module with customer registration, profile lookup, and compliance officer verification and rejection endpoints backed by BankDbContext. Validates required fields and minimum age of 18, blocks duplicate registrations and self-decisions, and publishes KYC domain events. Registers KycAccountOpeningRule as IAccountOpeningRule so unverified customers cannot open accounts.",
+  "business": "Prospective customers can register their identity details and view their KYC status, while compliance officers can verify or reject applications other than their own. Unverified or unknown customers are now blocked from opening bank accounts.",
+  "business_impact": "high",
+  "notes": {
+   "P:Bank.Data.BankDbContext.Customers": {
+    "changed": "Adds the Customers DbSet to BankDbContext to store and query customer KYC records."
+   },
+   "T:Bank.Modules.Customers.Api.CustomerDto": {
+    "changed": "Adds the full customer response DTO including NationalId, DateOfBirth, KYC status, and decision metadata."
+   },
+   "T:Bank.Modules.Customers.Api.CustomerSummaryDto": {
+    "changed": "Adds the summary customer DTO returning KYC status and decision details without NationalId or DateOfBirth."
+   },
+   "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)": {
+    "changed": "Registers the signed-in customer via ICustomerService and returns the created CustomerDto."
+   },
+   "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)": {
+    "changed": "Looks up the current user's customer record by UserId and returns it or 404 Not Found."
+   },
+   "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)": {
+    "changed": "Requires the Compliance policy, verifies the specified customer via ICustomerService, and returns CustomerSummaryDto."
+   },
+   "M:Bank.Modules.Customers.Api.CustomersController.Reject(System.String,System.Threading.CancellationToken)": {
+    "changed": "Requires the Compliance policy, rejects the specified customer via ICustomerService, and returns CustomerSummaryDto."
+   },
+   "endpoint:POST /api/customers": {
+    "changed": "Exposes the endpoint to register the current user as a pending customer."
+   },
+   "endpoint:GET /api/customers/me": {
+    "changed": "Exposes the endpoint to retrieve the current user's customer record."
+   },
+   "endpoint:POST /api/customers/{id}/verify": {
+    "changed": "Exposes the compliance-restricted endpoint to verify a customer's KYC application."
+   },
+   "endpoint:POST /api/customers/{id}/reject": {
+    "changed": "Exposes the compliance-restricted endpoint to reject a customer's KYC application."
+   },
+   "T:Bank.Modules.Customers.Application.RegisterCustomerRequest": {
+    "changed": "Adds the registration input record containing FullName, Email, NationalId, and DateOfBirth."
+   },
+   "T:Bank.Modules.Customers.Application.ICustomerService": {
+    "changed": "Defines the customer application service contract for registration, verification, rejection, and lookup."
+   },
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)": {
+    "changed": "Validates required fields and age 18+, rejects duplicate users, saves a pending customer under UserId, and publishes CustomerRegistered."
+   },
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)": {
+    "changed": "Enforces ComplianceOfficer role and non-self verification, updates the customer to Verified, and publishes CustomerVerified including NationalId."
+   },
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)": {
+    "changed": "Enforces ComplianceOfficer role and non-self rejection, updates the customer to Rejected, and publishes CustomerRejected."
+   },
+   "M:Bank.Modules.Customers.Application.CustomerService.GetAsync(System.String,System.Threading.CancellationToken)": {
+    "changed": "Retrieves a customer record from BankDbContext.Customers by customer ID."
+   },
+   "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": {
+    "changed": "Throws UnauthorizedAccessException unless the account owner exists in Customers with KycStatus.Verified."
+   },
+   "M:Bank.Modules.Customers.CustomersModule.AddCustomersModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+    "changed": "Registers CustomerService as ICustomerService and KycAccountOpeningRule as IAccountOpeningRule in scoped DI."
+   },
+   "T:Bank.Modules.Customers.Domain.KycStatus": {
+    "changed": "Adds the KYC status enum with Pending, Verified, and Rejected values."
+   },
+   "T:Bank.Modules.Customers.Domain.Customer": {
+    "changed": "Adds the Customer entity storing identity fields, KYC status, deciding officer, and registration timestamp."
+   },
+   "M:Bank.Modules.Customers.Domain.Customer.Verify(System.String)": {
+    "changed": "Transitions a Pending customer to Verified and sets DecidedBy, throwing if status is not Pending or officerId is blank."
+   },
+   "M:Bank.Modules.Customers.Domain.Customer.Reject(System.String)": {
+    "changed": "Transitions a Pending customer to Rejected and sets DecidedBy, throwing if status is not Pending or officerId is blank."
+   },
+   "T:Bank.Modules.Customers.Domain.CustomerRegistered": {
+    "changed": "Adds the CustomerRegistered domain event containing CustomerId and OccurredAt."
+   },
+   "T:Bank.Modules.Customers.Domain.CustomerVerified": {
+    "changed": "Adds the CustomerVerified domain event containing CustomerId, VerifiedBy, NationalId, and OccurredAt."
+   },
+   "T:Bank.Modules.Customers.Domain.CustomerRejected": {
+    "changed": "Adds the CustomerRejected domain event containing CustomerId, RejectedBy, and OccurredAt."
+   },
+   "M:Program.{Main}$(System.String[])": {
+    "changed": "Registers the Customers module with the application service container via AddCustomersModule()."
+   },
+   "table:Customers": {
+    "changed": "Creates the Customers table storing identity details, KYC status, deciding officer, and registration timestamp."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "AccountService.OpenAsync() now enforces KycAccountOpeningRule.EnsureMayOpenAsync(), blocking account creation for unknown or unverified customers."
+   },
+   "T:Bank.Modules.Accounts.Api.AccountsController": {
+    "affected": "AccountsController.Open() is gated by KYC verification through IAccountOpeningRule invoked by AccountService.OpenAsync()."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "Roles.ComplianceOfficer is checked by CustomerService.VerifyAsync() and RejectAsync() to authorize KYC decisions."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Account.OwnerId is verified against the Customers table by KycAccountOpeningRule before an account can be opened."
+   },
+   "T:Bank.Modules.Audit.Application.AuditLog": {
+    "affected": "AuditLog.Redact() and IsPiiParameter() are exercised by customer tests verifying PII handling."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "InMemoryEventBus.PublishAsync() dispatches CustomerRegistered, CustomerVerified, and CustomerRejected events published by CustomerService."
+   },
+   "T:Bank.Modules.Auth.Application.CurrentUser": {
+    "affected": "CurrentUser.IsInRole() is called by CustomerService to confirm whether the caller holds the ComplianceOfficer role."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "BankSettings supplies currency and limit configuration used in account-opening test scenarios covering KycAccountOpeningRule."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "AuditEventHandler.HandleAsync() handles the newly published CustomerRegistered, CustomerVerified, and CustomerRejected domain events."
+   }
+  },
+  "dropped": 0
+ },
+ "14cf2d9485feb8b52aa05a9f1325946539dd970d4d4f798d66a976f304fb02b1": {
+  "0": "Customer verification events currently leak sensitive national ID numbers and break downstream contracts. Ask the author to remove the national ID field from CustomerVerified before approving.",
+  "1": "An automated test currently fails because a serialized event exposes a national ID number. Confirm all tests pass after removing that sensitive field from the verification event.",
+  "2": "This change governs customer identity onboarding, compliance verification, and blocking unverified account openings. Ensure customer data protection, age limits, and staff approval rules work properly before signing off.",
+  "3": "Web endpoints, role-based access controls, and missing-record responses in CustomersController are completely untested. Ask for API-level tests proving unauthorized staff or customers cannot bypass permissions.",
+  "4": "Validation tests always supply a valid birth date, leaving missing birth dates untested during onboarding. Ask the author to add a test case ensuring blank birth dates are rejected.",
+  "5": "The underage check test uses March 1 instead of February 29, risking underage customers opening accounts on leap-year boundaries. Ask for a test using an actual February 29 birth date.",
+  "6": "The verification test ignores extra fields on the published event, allowing leaked national IDs to pass unnoticed. Ask the author to assert that no personal ID appears in the event.",
+  "7": "Eleven changed methods, including the web endpoints in CustomersController for registration, profile lookup, and verification, lack test coverage. Ask for tests covering these public endpoints before approving.",
+  "8": "Most onboarding, age-limit, and compliance-approval rules match requirements, except the verification event leaks national IDs. Verify the event fix and confirm all acceptance criteria are met before signing.",
+  "9": "This high-risk banking change handles personal identity data and account-opening controls. Perform a full manual review of all changes and obtain two human sign-offs before merging."
+ },
+ "2d816d371c15931a1c575da6d062a4bf7646fde804f9efdfcf2f4900f6cb45c6": {
+  "headline": "Adds the Payments module for intra-bank customer transfers with daily limit checks and payment history.",
+  "summary": "Introduces the Payments module across API, application, domain, and database layers, wired into Program and BankDbContext. PaymentService validates request amounts, source ownership, matching account currencies, and the UTC daily transfer limit before calling the ledger. PaymentsController exposes POST and GET endpoints under api/payments for initiating transfers and listing a customer's payments.",
+  "business": "Customers can transfer whole-cent amounts in the same currency between bank accounts and view their payment history, subject to the daily transfer limit.",
+  "business_impact": "high",
+  "notes": {
+   "T:Bank.Data.BankDbContext": {
+    "changed": "Adds the Payments DbSet and configures a composite index on CustomerId and IdempotencyKey."
+   },
+   "P:Bank.Data.BankDbContext.Payments": {
+    "changed": "Exposes the Payments table as an Entity Framework DbSet on BankDbContext."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentDto": {
+    "changed": "Defines the API response record carrying payment identifiers, accounts, amount, currency, status, transfer ID, reference, and timestamp."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentsController": {
+    "changed": "Adds the API controller exposing endpoints to submit a payment and list the current customer's payments."
+   },
+   "endpoint:POST /api/payments": {
+    "changed": "New endpoint that submits a customer payment request and returns the resulting PaymentDto or error status."
+   },
+   "endpoint:GET /api/payments": {
+    "changed": "New endpoint that returns the authenticated customer's payments ordered from the service."
+   },
+   "T:Bank.Modules.Payments.Application.DailyLimitExceededException": {
+    "changed": "Adds an exception thrown when a payment would push a customer past the daily transfer limit."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentRequest": {
+    "changed": "Defines the input record with idempotency key, source and destination account IDs, amount, and optional reference."
+   },
+   "T:Bank.Modules.Payments.Application.IPaymentService": {
+    "changed": "Defines the application service contract for executing a payment and querying payments by customer."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentService": {
+    "changed": "Implements payment validation, UTC daily limit enforcement, ledger transfer posting, and customer payment queries."
+   },
+   "T:Bank.Modules.Payments.Domain.PaymentStatus": {
+    "changed": "Defines the Completed, Held, and Rejected states for a payment."
+   },
+   "T:Bank.Modules.Payments.Domain.Payment": {
+    "changed": "Defines the Payment entity with account, amount, status, transfer ID, reference, timestamp, and state-transition methods."
+   },
+   "M:Bank.Modules.Payments.Domain.Payment.Hold": {
+    "changed": "Moves a Completed or Held payment to Held and throws InvalidOperationException from other states."
+   },
+   "M:Bank.Modules.Payments.Domain.Payment.Reject": {
+    "changed": "Sets status to Rejected and throws InvalidOperationException if the payment is already Completed."
+   },
+   "T:Bank.Modules.Payments.Domain.PaymentCompleted": {
+    "changed": "Defines the PaymentCompleted domain event containing PaymentId, CustomerId, Amount, Currency, and OccurredAt."
+   },
+   "T:Bank.Modules.Payments.PaymentsModule": {
+    "changed": "Adds the module registration class for the Payments module."
+   },
+   "T:Program": {
+    "changed": "Imports the Payments module namespace and registers Payments services at startup."
+   },
+   "table:Payments": {
+    "changed": "Adds the Payments table with columns for payment details, status, transfer ID, reference, and creation timestamp."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "Reached from BankDbContext.OnModelCreating via BankAccounts.For and BankAccounts.Currencies during model building alongside the new Payment configuration."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Used by BankDbContext.OnModelCreating when seeding bank accounts alongside the added Payment entity configuration."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "BankSettings.DailyTransferLimit is read by PaymentService.PayAsync to cap a customer's daily transfer total, and DefaultCurrency is used in test setup."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "Roles.Customer is used by payment tests when constructing the test setup for the new Payments module."
+   },
+   "T:Bank.Modules.Audit.Application.AuditLog": {
+    "affected": "AuditLog.Redact and IsPiiParameter are exercised by new payment tests verifying PaymentCompleted event redaction."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "AccountService.GetAsync is called through IAccountService.GetAsync in PaymentService.PayAsync to check source ownership and matching account currencies."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "Ledger.PostTransferAsync is invoked through ILedger.PostTransferAsync from PaymentService.PayAsync to transfer funds between accounts."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "InMemoryEventBus.PublishAsync resolves IEventBus.PublishAsync for domain event publishing wired with PaymentService."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "LedgerEntry.Currency and Reference are populated when PaymentService.PayAsync calls Ledger.PostTransferAsync with the payment reference."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "AuditEventHandler.HandleAsync resolves IEventHandler.HandleAsync to handle events published during payment flows."
+   }
+  },
+  "dropped": 8
+ },
+ "2413f27c5b0335115f8595da18e67a958a63d1c8e6cc71cdae45e5139ab2c11c": {
+  "0": "Without a unique constraint on customer and idempotency key in BankDbContext, retried requests can create duplicate payments and move money twice. Ask the author to enforce uniqueness in the database index.",
+  "1": "PaymentService.PayAsync posts to the ledger and checks daily limits before verifying idempotency, so retries can double-charge accounts or fail falsely. Ask to check for existing payments first.",
+  "2": "Two automated tests fail with assertion and insufficient-funds errors, showing payment behavior does not yet match expectations. Ask the author to fix the root cause and make all tests pass before signing.",
+  "3": "This change lets customers move money between accounts and view history up to daily limits, directly affecting customer balances. Review all payment paths carefully before approving.",
+  "4": "Simultaneous payment requests from one customer can bypass the daily transfer limit and allow excess money movement. Ask the author how concurrent transfers per customer are serialized or locked.",
+  "5": "Adding huge payment amounts to daily totals can crash the request with a server error instead of rejecting it cleanly. Ask the author to guard the arithmetic against overflow.",
+  "6": "The web endpoints in PaymentsController lack tests, leaving customer access controls and error responses unverified. Ask for integration tests covering authorization, user scoping, and HTTP status codes.",
+  "7": "Eleven changed methods, including all PaymentsController endpoints, have no test evidence, risking undetected regressions in customer-facing APIs. Check which behaviors remain untested and ask for coverage.",
+  "8": "The PR misses key idempotency requirements in BankDbContext and PaymentService, which breaks safe retries and causes test failures. Verify the idempotency fix satisfies every acceptance criterion before approving.",
+  "9": "This high-risk payment change requires a full line-by-line review and two human sign-offs to protect customer funds. Ensure a second reviewer completes an independent check.",
+  "10": "Because this code handles money movement and account access, verify that authentication, account ownership checks, and customer data isolation cannot be bypassed."
+ },
+ "d437077f5e43d783f793e30aef4fd8fe9e20034e7e5972d4367a838237a0547b": {
+  "headline": "Add FX conversion module and cross-currency payment support with EUR-equivalent daily limits",
+  "summary": "Introduces an FX service with fixed EUR-based rates and away-from-zero rounding for EUR, SEK, and USD. Updates payment processing to allow cross-currency transfers, track credited amounts and rates, check idempotency, and enforce daily limits in EUR equivalents.",
+  "business": "Customers can now send payments between accounts in different supported currencies with automatic conversion and EUR-equivalent daily limit checks. Payment records now store the applied rate, credited currency, and credited amount.",
+  "business_impact": "high",
+  "notes": {
+   "M:Bank.Modules.Fx.Application.IFxService.Rate(System.String,System.String)": {
+    "changed": "Defines the currency exchange rate lookup operation between two currency codes."
+   },
+   "M:Bank.Modules.Fx.Application.IFxService.Convert(System.Decimal,System.String,System.String)": {
+    "changed": "Defines the currency conversion operation for an amount between two currency codes."
+   },
+   "F:Bank.Modules.Fx.Application.FxService.UnitsPerEur": {
+    "changed": "Stores the fixed exchange rates per EUR for supported currencies."
+   },
+   "M:Bank.Modules.Fx.Application.FxService.Rate(System.String,System.String)": {
+    "changed": "Computes direct, inverse, or EUR-routed exchange rates and returns 1 when source and target currencies match."
+   },
+   "M:Bank.Modules.Fx.Application.FxService.Convert(System.Decimal,System.String,System.String)": {
+    "changed": "Converts amounts through EUR when needed and rounds results to two decimal places away from zero."
+   },
+   "M:Bank.Modules.Fx.Application.FxService.GetUnitsPerEur(System.String,System.String)": {
+    "changed": "Looks up the EUR rate for a currency and rejects blank or unsupported currency codes."
+   },
+   "M:Bank.Modules.Fx.FxModule.AddFxModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+    "changed": "Registers the FX service for scoped dependency injection."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentService._fx": {
+    "changed": "Adds a dependency field holding the FX conversion service."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentService._bus": {
+    "changed": "Allows the event bus dependency to be optional."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Modules.Fx.Application.IFxService,Bank.Shared.Events.IEventBus)": {
+    "changed": "Adds a primary constructor accepting the FX service and an optional event bus."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Shared.Events.IEventBus)": {
+    "changed": "Delegates the existing constructor to the new constructor using a default FX service instance."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+    "changed": "Adds early idempotency lookup, removes the currency-mismatch rejection, and evaluates daily transfer limits in EUR equivalents via the FX service."
+   },
+   "P:Bank.Modules.Payments.Domain.Payment.CreditedAmount": {
+    "changed": "Adds a property on payments to store the amount credited in the destination currency."
+   },
+   "P:Bank.Modules.Payments.Domain.Payment.CreditedCurrency": {
+    "changed": "Adds a property on payments to store the destination account currency."
+   },
+   "P:Bank.Modules.Payments.Domain.Payment.Rate": {
+    "changed": "Adds a property on payments to record the exchange rate applied."
+   },
+   "M:Program.{Main}$(System.String[])": {
+    "changed": "Registers the new FX module during application startup."
+   },
+   "table:Payments.CreditedAmount": {
+    "changed": "Adds a database column to persist the credited payment amount."
+   },
+   "table:Payments.CreditedCurrency": {
+    "changed": "Adds a database column to persist the credited payment currency."
+   },
+   "table:Payments.Rate": {
+    "changed": "Adds a database column to persist the applied FX rate."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentsController": {
+    "affected": "PaymentsController.Pay depends on updated payment behavior through IPaymentService.PayAsync, which now supports cross-currency transfers and EUR-equivalent limits."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "BankAccounts.For is reached by PaymentService.PayAsync to look up clearing accounts during payment processing."
+   },
+   "T:Bank.Modules.Payments.Domain.Payment": {
+    "affected": "Payment members Complete, CustomerId, IdempotencyKey, and Status are accessed by PaymentService.PayAsync during idempotency checks, daily limit queries, and completion."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Account.OwnerId and Account.Currency are read by PaymentService.PayAsync for ownership checks and EUR limit conversion, while Iban and Id are used by TestKit.Account."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "BankSettings.DailyTransferLimit is compared against the EUR-converted daily payment totals in PaymentService.PayAsync."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "AccountService.GetAsync is resolved via IAccountService.GetAsync when PaymentService.PayAsync loads source and destination accounts."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "Ledger.PostTransferAsync is resolved via ILedger.PostTransferAsync when PaymentService.PayAsync posts ledger transfers."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "InMemoryEventBus.PublishAsync is resolved via IEventBus.PublishAsync from PaymentService.PayAsync."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "LedgerEntry.Currency and LedgerEntry.Reference are used downstream through Ledger.PostTransferAsync when PaymentService.PayAsync posts transfers."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "AuditEventHandler.HandleAsync is resolved via IEventHandler.HandleAsync in response to events published by PaymentService.PayAsync."
+   }
+  },
+  "dropped": 0
+ },
+ "d75767b22432d2a141702f5e6cd34959fffc8d223cb1da0820bc56fbadc0c9b2": {
+  "0": "Cross-currency payment orchestration, credited fields, and the EUR daily limit have no automated tests. Ask the author to add end-to-end tests through PaymentService before approving.",
+  "1": "One existing ledger test is failing because an expected exception is no longer thrown. Check the failing test and confirm whether the code or the test needs fixing.",
+  "2": "Customers can now send cross-currency payments with automatic conversion and EUR daily limits, directly affecting money movement. Verify the exchange rates, rounding rules, and stored payment fields carefully.",
+  "3": "Making the event bus optional in PaymentService lets callers silently drop payment completion notifications. Ask why this change was added and require the event bus unless justified.",
+  "4": "A fallback constructor in PaymentService creates its own currency converter instead of using dependency injection, risking mismatched rates. Ask the author to remove it or justify its need.",
+  "5": "A validation check was deleted without replacement, which can allow invalid inputs through. Review the diff around old line 73 and confirm whether that guard must return.",
+  "6": "Reusing an idempotency key with different accounts or amounts silently returns the old payment instead of rejecting the conflict. Ask the author to validate matching request details on retries.",
+  "7": "Simultaneous payments from the same customer can both pass the daily limit check and exceed the bank cap. Ask how concurrent requests are serialized or locked to enforce the limit.",
+  "8": "Rounding each payment to EUR cents lets repeated tiny SEK transfers count as zero toward the daily limit. Ask the author to sum unrounded equivalents or block zero-EUR transfers.",
+  "9": "Extremely large payment amounts can trigger an unhandled arithmetic overflow instead of a clean limit rejection. Check that upper amount bounds are validated before adding to the daily total.",
+  "10": "The safeguard blocking tiny cross-currency payments that round down to zero is not covered by tests. Ask for a payment test proving small amounts like 0.01 SEK are rejected.",
+  "11": "Service registration for currency conversion and PaymentService startup wiring are untested, risking runtime failures in production. Ask for an integration check verifying the application resolves and runs payments cleanly.",
+  "12": "Five new or changed setup and constructor methods lack test evidence, leaving startup wiring and rate lookup helpers unverified. Confirm these paths are exercised by tests or manually checked.",
+  "13": "The production logic covers the requirements, but key PaymentService tests are missing and the test suite is failing. Confirm all acceptance criteria have passing tests before signing off.",
+  "14": "This high-risk change affects money movement and currency conversion, so it requires a full line-by-line review and two human sign-offs before merging.",
+  "15": "Five code changes are mixed into this pull request without clear ties to the cross-currency requirement. Check those extra changes and ask for them to be split out if unrelated.",
+  "16": "Safety and integrity issues were flagged around concurrency, limit bypasses, and removed checks. Review those risks carefully and require fixes before approving this payment change."
+ },
+ "31e5ab43479df8b018650dee2f0c7d0078bae689cc5a46527e0e3d27f588f791": {
+  "headline": "Add Fees module for cross-currency payment fees and expose payment quote endpoint",
+  "summary": "Introduces a new Fees module with FeeCalculator to quote 0.2% cross-currency fees (subject to a converted 0.50 EUR minimum) and zero fees for same-currency payments. Adds GET /api/payments/quote via PaymentService.QuoteAsync, rejects same-account transfers in PayAsync, and adds a Fee field to Payment, PaymentDto, and the Payments table.",
+  "business": "Customers can request a fee, exchange rate, and credited amount quote before paying, and cross-currency payments carry a 0.2% fee (at least 0.50 EUR equivalent) while same-currency payments remain free.",
+  "business_impact": "high",
+  "notes": {
+   "T:Bank.Modules.Fees.Application.Fee": {
+    "changed": "Represents a quoted fee amount and its currency."
+   },
+   "T:Bank.Modules.Fees.Application.IFeeCalculator": {
+    "changed": "Defines the contract for quoting payment fees between source and destination currencies."
+   },
+   "T:Bank.Modules.Fees.Application.FeeCalculator": {
+    "changed": "Calculates cross-currency fees at 0.2% with a converted 0.50 EUR minimum, or zero for same-currency payments."
+   },
+   "M:Bank.Modules.Fees.Application.FeeCalculator.Quote(System.Decimal,System.String,System.String)": {
+    "changed": "Returns zero for matching currencies; otherwise charges 0.2% or the converted 0.50 EUR minimum, whichever is higher, rounded away from zero."
+   },
+   "T:Bank.Modules.Fees.FeesModule": {
+    "changed": "Registers the fee calculator service in dependency injection."
+   },
+   "M:Bank.Modules.Fees.FeesModule.AddFeesModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+    "changed": "Registers FeeCalculator as the scoped IFeeCalculator implementation."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentDto": {
+    "changed": "Adds the Fee property, defaulting to zero, to payment API responses."
+   },
+   "P:Bank.Modules.Payments.Api.PaymentDto.Fee": {
+    "changed": "Exposes the fee amount in payment DTO responses."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentsController": {
+    "changed": "Adds the payment quote endpoint and maps the payment fee into PaymentDto.",
+    "affected": "Payment creation responses now include Fee because PaymentsController.Pay calls the updated PaymentsController.ToDto."
+   },
+   "M:Bank.Modules.Payments.Api.PaymentsController.Quote(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)": {
+    "changed": "Handles GET quote requests, returning 200 with the quote or 400, 403, or 404 on validation, ownership, or lookup errors."
+   },
+   "M:Bank.Modules.Payments.Api.PaymentsController.ToDto(Bank.Modules.Payments.Domain.Payment)": {
+    "changed": "Includes the payment's Fee property when mapping to PaymentDto."
+   },
+   "endpoint:GET /api/payments/quote": {
+    "changed": "New endpoint returning fee, FX rate, and credited amount quotes for proposed payments."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentQuote": {
+    "changed": "Holds quoted payment amount, source currency, fee, credited amount, destination currency, and FX rate."
+   },
+   "T:Bank.Modules.Payments.Application.IPaymentService": {
+    "changed": "Adds QuoteAsync to preview payment fees and credited amounts."
+   },
+   "M:Bank.Modules.Payments.Application.IPaymentService.QuoteAsync(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)": {
+    "changed": "Previews the fee, exchange rate, and credited amount for a proposed payment."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentService": {
+    "changed": "Injects IFeeCalculator, adds QuoteAsync to compute quotes, and rejects same-account transfers in PayAsync."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Modules.Fx.Application.IFxService,Bank.Modules.Fees.Application.IFeeCalculator,Bank.Shared.Events.IEventBus)": {
+    "changed": "Primary DI constructor accepting IFeeCalculator for fee quoting."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Modules.Fx.Application.IFxService,Bank.Shared.Events.IEventBus)": {
+    "changed": "Delegates to the primary constructor with a default FeeCalculator instance."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Modules.Fx.Application.IFxService)": {
+    "changed": "Delegates to the primary constructor with a default FeeCalculator and no event bus."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.QuoteAsync(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)": {
+    "changed": "Validates amount and source ownership, loads both accounts, quotes the fee via IFeeCalculator, and computes credited amount and FX rate."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+    "changed": "Now rejects transfers where the source and destination accounts are identical."
+   },
+   "T:Bank.Modules.Payments.Domain.Payment": {
+    "changed": "Adds a Fee property to store the fee applied to a payment.",
+    "affected": "Existing Payment fields are mapped alongside the new Fee property inside PaymentsController.ToDto."
+   },
+   "P:Bank.Modules.Payments.Domain.Payment.Fee": {
+    "changed": "Stores the decimal fee amount on the payment entity."
+   },
+   "T:Program": {
+    "changed": "Registers the Fees module during application startup."
+   },
+   "M:Program.{Main}$(System.String[])": {
+    "changed": "Calls AddFeesModule to register fee calculation services."
+   },
+   "table:Payments": {
+    "changed": "Adds a Fee column to persist payment fees."
+   },
+   "table:Payments.Fee": {
+    "changed": "Stores the persisted fee amount for each payment record."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Account currency and owner details are read by PaymentService.QuoteAsync and PayAsync."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "Fee-income accounts are resolved via BankAccounts.For called from PaymentService.PayAsync."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "Daily transfer limits and default currency settings are read by PaymentService.PayAsync and test helpers."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "Ledger entry currency and reference fields are used by Ledger.PostTransferAsync and fee transfer tests."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "Account lookups and ownership checks are invoked through GetAsync and IsOwnerAsync by quoting and tests."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "Customer role checks are exercised by fee tests verifying source account ownership."
+   },
+   "T:Bank.Modules.Fx.Application.FxService": {
+    "affected": "FX conversion and rate lookups are resolved via IFxService from FeeCalculator.Quote and PaymentService.QuoteAsync."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "Ledger transfer postings are resolved through ILedger.PostTransferAsync during payment execution."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "Payment event publishing resolves to InMemoryEventBus.PublishAsync through IEventBus."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "Audit event handling is invoked downstream through IEventHandler.HandleAsync when payment events publish."
+   }
+  },
+  "dropped": 0
+ },
+ "c96d873abfcc0e46fc1b2f526f65a1c156bc84e840ef1b93e54aac7257262153": {
+  "0": "Cross-currency payments lack the 20.00 EUR maximum fee cap, so large transfers will overcharge customers without an upper limit. Ask the author to convert and enforce the 20.00 EUR cap in FeeCalculator.",
+  "1": "FeeTests passes a null currency service into FeeCalculator, crashing three tests on startup and preventing verification of fee logic. Ask the author to supply a valid or mocked service in those tests.",
+  "2": "Three automated tests fail due to a missing currency service dependency, leaving fee behavior unverified. Confirm with the author whether the tests or constructor handling should be fixed before approving.",
+  "3": "This change introduces customer payment quotes and 0.2% cross-currency fees, directly affecting customer pricing and bank revenue. Carefully verify all fee calculations, rounding, and customer disclosures before signing off.",
+  "4": "Extra constructors in PaymentService bypass dependency injection and hardcode the fee calculator, risking inconsistent pricing rules if fee logic changes. Ask the author to remove these fallback constructors and rely on the interface.",
+  "5": "Balance checks and fee ledger postings are duplicated across same-currency and cross-currency paths, increasing the risk of future billing discrepancies. Ask the author to consolidate this shared monetary logic.",
+  "6": "Key scenarios—cross-currency fees, min/max caps, rounding, quotes, and insufficient-funds checks—have no tests, risking unnoticed billing errors for customers. Ask the author to add unit and integration tests covering these flows.",
+  "7": "Twelve changed methods in FeeCalculator have no passing test evidence, leaving core pricing behavior unverified. Check test results and ask for complete coverage before sign-off.",
+  "8": "The PR partially meets requirements: quotes and fee transfers exist, but the 20.00 EUR cap is missing and tests fail or are absent. Verify requirement alignment and ask for these gaps to be closed.",
+  "9": "Because this change carries high risk to customer money and pricing, a full line-by-line human review and two sign-offs are required. Ensure both reviewers inspect all modified files.",
+  "10": "One code change is tangled and does not clearly map to the fee requirement, increasing review and release risk. Ask the author to explain or split out any unrelated edits."
+ },
+ "2fac43282a7c5cfb82304639290909979975b69e650d8b5fb9560ade8bd4c78f": {
+  "headline": "Adds debit card issuance, lifecycle controls, and staff-authorised card payments.",
+  "summary": "Introduces the Cards module with domain entities, events, service logic, API endpoints, and database persistence. Customers can issue, freeze, unfreeze, and cancel owned cards, while staff can authorise card payments against status, transaction limit, and account balance.",
+  "business": "Customers can request debit cards with a 2,000 per-transaction limit and manage card status, while staff can authorise card payments against account balances and card limits.",
+  "business_impact": "high",
+  "notes": {
+   "T:Bank.Data.BankDbContext": {
+    "changed": "Adds a Cards DbSet to persist debit card records."
+   },
+   "P:Bank.Data.BankDbContext.Cards": {
+    "changed": "Exposes the Cards entity set for querying and saving debit cards."
+   },
+   "T:Bank.Modules.Cards.Api.IssueCardRequest": {
+    "changed": "Defines the API request payload containing the target account identifier for card issuance."
+   },
+   "T:Bank.Modules.Cards.Api.AuthoriseCardPaymentRequest": {
+    "changed": "Defines the API request payload carrying the payment amount and merchant name."
+   },
+   "T:Bank.Modules.Cards.Api.CardDto": {
+    "changed": "Defines the card response DTO exposing card details and Last4 without the full card number."
+   },
+   "T:Bank.Modules.Cards.Api.CardsController": {
+    "changed": "Adds HTTP endpoints to issue, freeze, unfreeze, cancel, and authorise debit cards."
+   }
+  },
+  "dropped": 1
+ },
+ "e00076340839a312da7ccef4b31e6c1587e2cd89601591dfe9089b5a748d7cc6": {
+  "0": "Staff-only users will be blocked from authorising card payments because the customer access rule applies to the whole controller. Ask the author to move the customer policy to individual actions instead.",
+  "1": "Customers who freeze their card can still be charged because payment authorisation only blocks cancelled cards. Ask the author to reject any card that is not active in AuthoriseAsync.",
+  "2": "One automated test is currently failing, meaning card behaviour or test expectations are wrong. Ask the author to fix the failing code or test before you sign off.",
+  "3": "This change directly controls card issuance, spending limits, and moving customer money during payments. Verify all acceptance criteria and edge cases closely before approving.",
+  "4": "New 16-digit card numbers are generated predictably, increasing fraud risk for customer payment credentials. Ask the author to use a cryptographically secure random generator in CardService.IssueAsync.",
+  "5": "Access rules, error responses, and hiding full card numbers in API responses are completely untested, risking data leaks or broken endpoints. Ask for tests covering CardsController.",
+  "6": "Ten changed methods lack test evidence, leaving card issuance and freeze or unfreeze endpoints unverified for customers. Ask the author to add automated tests for these methods.",
+  "7": "The payment authorisation and staff access requirements are only partly met, which affects card controls and staff workflows. Confirm the frozen-card check and staff endpoint permissions are fixed.",
+  "8": "Because this is a high-risk banking change touching customer funds and card controls, a full code read and two human sign-offs are required before release.",
+  "9": "Security-sensitive card data and payment permissions are affected by this change. Check that card numbers are generated securely, full numbers stay hidden in responses, and staff-only endpoints work."
+ },
+ "e630025b177e38137f415e059c869f37bbce0fa11417cf75ab4651fab0ed9f7e": {
+  "headline": "Add Term Deposits module supporting open, maturity payout, and early break.",
+  "summary": "Introduces the Deposits module with API endpoints, application service, domain entities, events, and database persistence for fixed-term deposits. Customers can open 3, 6, or 12-month deposits from 500 minimum and break them early, while staff can mature eligible deposits to pay simple interest.",
+  "business": "Customers can lock at least 500 in 3, 6, or 12-month deposits earning 2.0%, 2.5%, or 3.0% annual interest, or break early with zero interest. Bank staff gain an endpoint to mature deposits once due.",
+  "business_impact": "high",
+  "notes": {
+   "P:Bank.Data.BankDbContext.TermDeposits": {
+    "changed": "Adds the TermDeposits entity set to the database context for persisting term deposit records."
+   },
+   "T:Bank.Modules.Deposits.Api.OpenDepositRequest": {
+    "changed": "Defines the API request payload carrying account ID, principal amount, and term in months to open a deposit."
+   },
+   "T:Bank.Modules.Deposits.Api.TermDepositDto": {
+    "changed": "Defines the API response representation exposing term deposit details, status, dates, rate, and interest paid."
+   },
+   "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)": {
+    "changed": "Handles opening a deposit and maps authorization, not-found, validation, insufficient funds, and conflict errors to HTTP status codes."
+   },
+   "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Restricts deposit maturation to staff policy and maps missing, insufficient funds, and state errors to HTTP responses."
+   },
+   "M:Bank.Modules.Deposits.Api.DepositsController.Break(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Handles early deposit breaking and translates ownership, missing, insufficient funds, and state errors to HTTP responses."
+   },
+   "endpoint:POST /api/deposits": {
+    "changed": "Exposes HTTP endpoint to open a new term deposit."
+   },
+   "endpoint:POST /api/deposits/{id:guid}/mature": {
+    "changed": "Exposes staff-authorized HTTP endpoint to mature an existing term deposit."
+   },
+   "endpoint:POST /api/deposits/{id:guid}/break": {
+    "changed": "Exposes HTTP endpoint to break an open term deposit early."
+   },
+   "T:Bank.Modules.Deposits.Application.IDepositService": {
+    "changed": "Defines application service operations to open, mature, and break term deposits."
+   },
+   "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)": {
+    "changed": "Validates ownership, minimum 500 principal, whole cents, and 3/6/12-month rates, transfers principal to holding, saves deposit, and publishes DepositOpened."
+   },
+   "M:Bank.Modules.Deposits.Application.DepositService.MatureAsync(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Verifies open status and maturity date, pays principal and rounded simple interest via ledger, updates deposit, and publishes DepositClosed."
+   },
+   "M:Bank.Modules.Deposits.Application.DepositService.BreakAsync(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Checks owner and open status, returns principal without interest via ledger, marks deposit broken early, and publishes DepositClosed."
+   },
+   "M:Bank.Modules.Deposits.DepositsModule.AddDepositsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+    "changed": "Registers DepositService as the scoped implementation of IDepositService."
+   },
+   "T:Bank.Modules.Deposits.Domain.DepositOpened": {
+    "changed": "Defines domain event emitted when a term deposit is opened."
+   },
+   "T:Bank.Modules.Deposits.Domain.DepositClosed": {
+    "changed": "Defines domain event emitted when a term deposit is matured or broken early."
+   },
+   "T:Bank.Modules.Deposits.Domain.DepositStatus": {
+    "changed": "Defines lifecycle states Open, Matured, and BrokenEarly for term deposits."
+   },
+   "T:Bank.Modules.Deposits.Domain.TermDeposit": {
+    "changed": "Represents a term deposit record holding principal, rate, term dates, status, and interest paid."
+   },
+   "M:Bank.Modules.Deposits.Domain.TermDeposit.Mature(System.Decimal)": {
+    "changed": "Transitions an open deposit to Matured and records non-negative interest paid."
+   },
+   "M:Bank.Modules.Deposits.Domain.TermDeposit.BreakEarly": {
+    "changed": "Transitions an open deposit to BrokenEarly and sets interest paid to zero."
+   },
+   "M:Program.{Main}$(System.String[])": {
+    "changed": "Registers the Deposits module services in the application startup pipeline."
+   },
+   "table:TermDeposits": {
+    "changed": "Adds the TermDeposits database table storing deposit amounts, rates, dates, status, and interest paid."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "DepositService calls BankAccounts.For to resolve deposit holding and interest expense system accounts during open, mature, and break."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "DepositService.OpenAsync reads Account.Currency, and deposit tests reference Account identifiers and owner fields."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "Deposit test fixtures and authorization tests use Customer, Teller, and Admin role constants."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "DepositService.OpenAsync resolves AccountService through IAccountService to verify account ownership and retrieve account details."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "DepositService calls Ledger.PostTransferAsync through ILedger to move principal and interest across accounts."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "DepositService resolves InMemoryEventBus via IEventBus to publish DepositOpened and DepositClosed events."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "Deposit test setup reads DefaultCurrency and DailyTransferLimit from BankSettings."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "Ledger transfers initiated by DepositService record Currency and Reference values on created LedgerEntry rows."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "AuditEventHandler is invoked via IEventHandler when DepositService publishes DepositOpened and DepositClosed domain events."
+   }
+  },
+  "dropped": 0
+ },
+ "6e116f41fc017fc8948b41816b0f660a3753497a56ce1f964d85602ee7933484": {
+  "0": "Staff may be blocked from maturing customer deposits because DepositsController Mature requires both customer and staff permissions. Ask the author to apply the customer policy only to customer endpoints.",
+  "1": "Customers can lock at least 500 for 3, 6, or 12 months at 2% to 3% interest, or break early with no interest. Confirm these terms and rates match bank policy.",
+  "2": "Web routes, error codes, and permission rules in DepositsController have no automated tests, risking rejected requests or wrong errors. Ask for endpoint tests covering each role and failure case.",
+  "3": "The DepositsController endpoints lack test evidence, leaving live request handling and setup unverified for customers and staff. Ask for tests covering opening, maturing, and breaking deposits through the API.",
+  "4": "Interest math and ledger transfers match requirements, but the Mature endpoint permission stack leaves staff access broken. Check that the authorization fix is applied and re-verified before release.",
+  "5": "This change moves customer money and calculates interest payouts, making errors costly. Complete a full human review of all changed files and obtain two sign-offs."
+ },
+ "14c6240930060e2b21c7bb2d45abf1de74a842587980dbb78a39fd0ccf38fb5c": {
+  "headline": "Add Loans module supporting applications, officer review, and ledger disbursement",
+  "summary": "Introduces the Loans module with domain entity, lifecycle events, database table, application service, and API endpoints. Customers can apply for fixed-rate loans into their own accounts, while loan officers can approve and disburse or reject submitted loans.",
+  "business": "Customers can now apply for 5.5% fixed-rate loans between 1,000 and 50,000 over 6 to 120 months into their own accounts. Loan officers gain endpoints to approve loans, transferring principal from the bank's loan funding account, or reject applications with a mandatory reason.",
+  "business_impact": "high",
+  "notes": {
+   "P:Bank.Data.BankDbContext.Loans": {
+    "changed": "Adds the Loans database set so loan records are persisted and queried through Entity Framework."
+   },
+   "M:Bank.Modules.Loans.Api.LoansController.Apply(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)": {
+    "changed": "Accepts a loan application, delegates creation to the loan service, and maps authorization or validation failures to HTTP responses."
+   },
+   "M:Bank.Modules.Loans.Api.LoansController.Get(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Retrieves a loan by identifier and returns forbidden or not found responses when access is denied or the loan is missing."
+   },
+   "M:Bank.Modules.Loans.Api.LoansController.Approve(System.Guid,Bank.Modules.Loans.Api.ApproveLoanRequest,System.Threading.CancellationToken)": {
+    "changed": "Restricts loan approval to loan officers and maps authorization, missing loan, insufficient funds, and status conflict errors to HTTP responses."
+   },
+   "M:Bank.Modules.Loans.Api.LoansController.Reject(System.Guid,Bank.Modules.Loans.Api.RejectLoanRequest,System.Threading.CancellationToken)": {
+    "changed": "Restricts loan rejection to loan officers and maps authorization, missing loan, empty reason, and status conflict errors to HTTP responses."
+   },
+   "M:Bank.Modules.Loans.Application.LoanService.ApplyAsync(Bank.Modules.Loans.Application.LoanApplication,System.Threading.CancellationToken)": {
+    "changed": "Validates principal and term limits, verifies destination account ownership, computes the fixed-rate monthly payment, saves the submitted loan, and publishes LoanSubmitted."
+   },
+   "M:Bank.Modules.Loans.Application.LoanService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Loads a loan by identifier and allows access only to the applying customer or a loan officer."
+   },
+   "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+    "changed": "Checks loan officer role and submitted status, posts a ledger disbursement from the currency's loan funding account, and marks the loan disbursed."
+   },
+   "M:Bank.Modules.Loans.Application.LoanService.RejectAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+    "changed": "Requires a loan officer other than the applicant and a non-empty reason, marks the loan rejected, saves it, and publishes LoanRejected."
+   },
+   "M:Bank.Modules.Loans.Application.LoanService.ComputeMonthlyPayment(System.Decimal,System.Int32)": {
+    "changed": "Calculates the fixed-rate annuity monthly payment at 5.5 percent annual interest, rounded away from zero to two decimal places."
+   },
+   "T:Bank.Modules.Loans.Domain.LoanStatus": {
+    "changed": "Defines the loan lifecycle states: Submitted, Rejected, and Disbursed."
+   },
+   "M:Bank.Modules.Loans.Domain.Loan.Disburse(System.String,System.String)": {
+    "changed": "Transitions a submitted loan to disbursed status while recording the deciding officer and optional note."
+   },
+   "M:Bank.Modules.Loans.Domain.Loan.Reject(System.String,System.String)": {
+    "changed": "Transitions a submitted loan to rejected status while recording the deciding officer and mandatory rejection reason."
+   },
+   "T:Bank.Modules.Loans.Domain.LoanSubmitted": {
+    "changed": "Domain event carrying the loan identifier, customer, principal, and timestamp when a loan is submitted."
+   },
+   "T:Bank.Modules.Loans.Domain.LoanApproved": {
+    "changed": "Domain event carrying the loan identifier, customer, principal, and timestamp when a loan is approved."
+   },
+   "T:Bank.Modules.Loans.Domain.LoanRejected": {
+    "changed": "Domain event carrying the loan identifier, customer, and timestamp when a loan is rejected."
+   },
+   "M:Bank.Modules.Loans.LoansModule.AddLoansModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+    "changed": "Registers the loan service with scoped lifetime in the dependency injection container."
+   },
+   "M:Program.{Main}$(System.String[])": {
+    "changed": "Updated host startup to wire up the new Loans module."
+   },
+   "table:Loans": {
+    "changed": "New database table storing loan applications, calculated terms, status, decision metadata, and application timestamp."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "LoanService checks the LoanOfficer role for viewing, approving, and rejecting loans."
+   },
+   "T:Bank.Modules.Auth.Application.CurrentUser": {
+    "affected": "LoanService reads the caller identity and role membership via ICurrentUser."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "LoanService verifies disbursement account ownership on application and fetches account currency on approval."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Loan approval reads the destination account currency to select the matching funding account."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "Loan approval resolves the currency-specific LoanFunding source account through BankAccounts.For."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "Loan approval transfers the loan principal into the customer's account via ILedger.PostTransferAsync."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "Ledger disbursement creates entries using the account currency and a loan disbursement reference."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "Loan submission and rejection publish domain events through IEventBus."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "Audit event handler receives the loan domain events published on the event bus."
+   },
+   "T:Bank.Modules.Notifications.Application.LogNotifier": {
+    "affected": "LoanService accepts INotifier to send notifications."
+   }
+  },
+  "dropped": 0
+ },
+ "78ceab6e820540e092695e4effe00a937827281cd5e7a03a2621ec24798061c5": {
+  "0": "A loan officer can approve and disburse their own loan because the four-eyes check is missing in ApproveAsync. Ask the author to block self-approval before sign-off.",
+  "1": "An automated test is failing because approving your own loan does not get rejected. Ask the author to fix the underlying bug and re-run the test suite.",
+  "2": "This change lets customers apply for fixed-rate loans and lets staff disburse bank funds upon approval. Confirm the rate, limits, and funding account rules match bank policy.",
+  "3": "Loan officers who are not also set up as customers could be blocked from approving or rejecting loans. Ask the author to move the customer policy off the LoansController class level.",
+  "4": "None of the web endpoints or service registrations in LoansController and LoansModule are exercised by tests. Ask for integration tests covering routing, error responses, and access checks.",
+  "5": "The maximum loan boundary test only checks that the monthly payment is above a floor, so interest or rounding errors could slip through. Ask for an exact payment assertion.",
+  "6": "Twenty-two new or changed methods, including the web controller actions, lack test evidence. Ask the author which paths are verified and request tests for critical customer and money flows.",
+  "7": "Most loan application, calculation, and payout requirements are met, except loan officers can still approve their own loans. Verify the four-eyes rule is added before approving this change.",
+  "8": "Because this change moves bank money and enforces lending controls, it requires a full line-by-line review and two human sign-offs before merge."
+ },
+ "c1efc1fca3aa81d4d18d7a46ec3aab6017a1bd62476a7714048b3c61490ff104": {
+  "headline": "Add monthly account statements module and HTTP GET endpoint",
+  "summary": "Introduces Bank.Modules.Statements with Statement, StatementLine, IStatementService, StatementService, and StatementsController, and wires it into Program.cs. StatementService validates the period, checks account ownership or staff roles, sums prior ledger entries for the opening balance, and builds chronologically ordered lines with running balances and a closing balance.",
+  "business": "Account owners and staff (Teller, LoanOfficer, ComplianceOfficer, Admin) can now retrieve monthly account statements showing opening balance, chronological entries with running balances, and closing balance.",
+  "business_impact": "medium",
+  "notes": {
+   "T:Bank.Modules.Statements.Api.StatementsController": {
+    "changed": "New API controller exposing the monthly account statement endpoint backed by IStatementService."
+   },
+   "M:Bank.Modules.Statements.Api.StatementsController.Get(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)": {
+    "changed": "Calls ForMonthAsync and returns 200 OK, mapping argument range, missing account, and unauthorized errors to 400, 404, and 403."
+   },
+   "endpoint:GET /api/accounts/{id:guid}/statements/{year:int}/{month:int}": {
+    "changed": "New HTTP GET endpoint returning a monthly statement for an account."
+   },
+   "T:Bank.Modules.Statements.Application.StatementLine": {
+    "changed": "Immutable record holding a statement entry timestamp, amount, running balance after the entry, and reference."
+   },
+   "T:Bank.Modules.Statements.Application.Statement": {
+    "changed": "Immutable record holding account, period, currency, opening balance, closing balance, and ordered statement lines."
+   },
+   "T:Bank.Modules.Statements.Application.IStatementService": {
+    "changed": "New service interface defining monthly statement retrieval for an account."
+   },
+   "M:Bank.Modules.Statements.Application.IStatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)": {
+    "changed": "Contract method to retrieve a statement for a given account, year, and month."
+   },
+   "T:Bank.Modules.Statements.Application.StatementService": {
+    "changed": "New service implementing monthly statement retrieval, authorization checks, and balance calculations using ledger, account, and user services."
+   },
+   "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)": {
+    "changed": "Validates dates, checks staff role or ownership, sums prior entries for opening balance, queries entries up to DaysInMonth 00:00 UTC, and computes running balances."
+   },
+   "T:Bank.Modules.Statements.StatementsModule": {
+    "changed": "New module registration class for wiring the Statements module into dependency injection."
+   },
+   "M:Bank.Modules.Statements.StatementsModule.AddStatementsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+    "changed": "Registers IStatementService with StatementService as a scoped dependency."
+   },
+   "M:Program.{Main}$(System.String[])": {
+    "changed": "Registers the Statements module in the application service container during startup."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "Teller, LoanOfficer, ComplianceOfficer, and Admin role constants are checked by StatementService.ForMonthAsync to allow staff access."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "Id and Reference are read by StatementService.ForMonthAsync for ordering and line creation; Currency is used via Ledger.PostTransferAsync."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Account Id and Currency are read by StatementService.ForMonthAsync, while OwnerId and Iban are exercised by statement tests."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "BankAccounts.For is called by the new statement test suite when setting up ledger test data."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "GetAsync and IsOwnerAsync are resolved through IAccountService and called by StatementService.ForMonthAsync to verify existence and ownership."
+   },
+   "T:Bank.Modules.Auth.Application.CurrentUser": {
+    "affected": "IsInRole is resolved through ICurrentUser and called by StatementService.ForMonthAsync to verify staff permissions."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "EntriesAsync is called by StatementService.ForMonthAsync via ILedger to fetch entries; PostTransferAsync is exercised by statement tests."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "DefaultCurrency and DailyTransferLimit are used by TestKit.Settings during statement tests."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "PublishAsync is resolved through IEventBus when ledger transfers run in statement tests."
+   }
+  },
+  "dropped": 0
+ },
+ "569cd64d63f2857474f73f859dbb60a6a36f61674771bbdab0c466c8a02267d8": {
+  "0": "Every transaction on the last day of a month is missing from statements and closing balances. Ask the author to fix the StatementService end boundary, including December 9999.",
+  "1": "Three automated tests fail with missing statement entries and an unexpected insufficient-funds error. Ask the author to resolve these failures and prove all tests pass before merging.",
+  "2": "Loading every historical transaction into memory to calculate opening balances could slow down or crash statements for busy accounts. Ask if the ledger can return a direct balance total instead.",
+  "3": "Customer access controls, error responses, and web routing have no automated tests, risking unauthorized data exposure or broken endpoints. Ask for integration tests covering StatementsController and module setup.",
+  "4": "Eight modified parts, including the StatementsController web endpoint, lack automated test evidence. Confirm with the author which parts need direct tests or manual verification before sign-off.",
+  "5": "Most statement requirements are met, except missing last-day transactions break accuracy and fail tests. Verify that the month-end fix resolves the gaps without breaking access rules or rounding.",
+  "6": "Because this change is high risk for customer financial reporting, perform a full line-by-line review of the statement logic and obtain two human sign-offs."
+ },
+ "ee07a639201ec568e3e4d65d2e6333493393f2dbabb34867c7561a183b5378df": {
+  "headline": "Update BankSettings default currency to SEK and daily transfer limit to 5,000 EUR",
+  "summary": "This PR updates BankSettings.DefaultCurrency to SEK and lowers BankSettings.DailyTransferLimit to 5,000 EUR while keeping SupportedCurrencies unchanged. AccountService.OpenAsync now defaults new accounts without an explicit currency to SEK, and PaymentService.PayAsync enforces the 5,000 EUR daily transfer cap.",
+  "business": "High impact on customers and money flows because default currency and transfer limits change: new accounts without an explicit currency default to SEK, and all customers are capped at 5,000 EUR equivalent in daily outgoing transfers instead of 10,000 EUR. Existing account currencies and balances remain unchanged.",
+  "business_impact": "high",
+  "notes": {
+   "T:Bank.Shared.Settings.BankSettings": {
+    "changed": "BankSettings updates the default account currency to SEK and lowers the daily transfer limit to 5,000 EUR, while keeping supported currencies unchanged.",
+    "affected": "BankSettings.SupportedCurrencies remains unchanged and is used alongside the updated Swedish launch settings."
+   },
+   "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+    "changed": "DefaultCurrency now defaults to SEK instead of EUR for newly opened accounts that omit a currency."
+   },
+   "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+    "changed": "DailyTransferLimit is reduced from 10,000 to 5,000 EUR equivalent per customer per UTC day."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "OpenAsync uses BankSettings.DefaultCurrency to default new accounts to SEK; ForOwnerAsync, GetAsync, and IsOwnerAsync are exercised in ownership and existing-account checks."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentService": {
+    "affected": "PayAsync uses BankSettings.DailyTransferLimit to cap cumulative outgoing transfers at 5,000.00 EUR equivalent per UTC day."
+   },
+   "T:Bank.Modules.Accounts.Api.AccountsController": {
+    "affected": "Open calls IAccountService.OpenAsync, so requests omitting a currency now open SEK accounts."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentsController": {
+    "affected": "Pay calls IPaymentService.PayAsync, enforcing the reduced 5,000 EUR daily transfer limit on payment requests."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "Roles.Customer is used by the launch tests verifying default SEK account opening."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Account properties Id, Currency, OwnerId, and Kind are used when verifying default SEK account creation."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "BankAccounts.For is called when testing ledger transfers and currency boundaries on default SEK accounts."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "Ledger.PostTransferAsync is resolved through ILedger.PostTransferAsync during default SEK transfer execution."
+   },
+   "T:Bank.Modules.Customers.Application.KycAccountOpeningRule": {
+    "affected": "KycAccountOpeningRule.EnsureMayOpenAsync is resolved through IAccountOpeningRule.EnsureMayOpenAsync during account opening flows."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "InMemoryEventBus.PublishAsync is resolved through IEventBus.PublishAsync when operations publish domain events."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "LedgerEntry.Currency and Reference are used by Ledger.PostTransferAsync when recording transfers under the updated settings."
+   },
+   "T:Bank.Modules.Customers.Domain.Customer": {
+    "affected": "Customer.Id and Status are used by KycAccountOpeningRule.EnsureMayOpenAsync during account opening checks."
+   }
+  },
+  "dropped": 0
+ },
+ "490fc8766a0c7482b2c25393f485ba2ee9e816e13a0ae9f0d85d5a7296ad978e": {
+  "0": "Customers could still send over 5,000 EUR daily because new tests do not verify transfer limit enforcement, FX rounding, or UTC day boundaries. Ask for tests covering actual transfer rejection at 5,000.01 EUR.",
+  "1": "We cannot confirm the daily limit, FX rounding, UTC day boundaries, or account permissions work properly because those modules were outside this review. Check the transfer and authorization code to confirm compliance.",
+  "2": "This high-risk change affects customer funds and regulatory compliance. Please complete a full human review of the changes and obtain two sign-offs before approving.",
+  "3": "New accounts opened without a chosen currency will now default to SEK instead of EUR in BankSettings. Confirm this matches the Swedish launch plan and that existing accounts stay unchanged.",
+  "4": "All customers will be restricted to sending 5,000 EUR equivalent per UTC day instead of 10,000 EUR. Confirm this lower limit in BankSettings matches regulatory guidance and check if customer support is notified."
+ },
+ "20bae34a8474ab2ee09c5dce15e3fc167b526526dd0f8b3b033d21801dd0b287": {
+  "headline": "Extract MoneyMath.ToCents helper and adopt across Deposits, Fees, Fx, and Loans",
+  "summary": "Adds a shared MoneyMath.ToCents method in Bank.Shared.Money and replaces inline cent-rounding calls across DepositService, FeeCalculator, FxService, and LoanService. MoneyMath.ToCents uses Math.Round(amount, 2), which defaults to round-half-to-even, whereas the replaced calls all specified MidpointRounding.AwayFromZero.",
+  "business": "Half-cent midpoints such as 2.345 in FX conversions, transfer fees, deposit interest, and monthly loan payments now round to the nearest even cent instead of away from zero.",
+  "business_impact": "high",
+  "notes": {
+   "T:Bank.Modules.Deposits.Application.DepositService": {
+    "changed": "Replaces inline cent-rounding calls in deposit opening and maturity with MoneyMath.ToCents."
+   },
+   "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": {
+    "changed": "Constructor dependencies are unchanged; methods in the service now delegate cent rounding to MoneyMath.ToCents."
+   },
+   "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)": {
+    "changed": "Checks whole-cent principal using MoneyMath.ToCents instead of decimal.Round with MidpointRounding.AwayFromZero."
+   },
+   "M:Bank.Modules.Deposits.Application.DepositService.MatureAsync(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Rounds accrued deposit interest using MoneyMath.ToCents instead of Math.Round with MidpointRounding.AwayFromZero."
+   },
+   "T:Bank.Modules.Fees.Application.FeeCalculator": {
+    "changed": "Replaces inline cent rounding in fee quoting with MoneyMath.ToCents."
+   },
+   "M:Bank.Modules.Fees.Application.FeeCalculator.#ctor(Bank.Modules.Fx.Application.IFxService)": {
+    "changed": "Constructor dependencies are unchanged; Quote now delegates cent rounding to MoneyMath.ToCents."
+   },
+   "M:Bank.Modules.Fees.Application.FeeCalculator.Quote(System.Decimal,System.String,System.String)": {
+    "changed": "Rounds the effective fee using MoneyMath.ToCents instead of Math.Round with MidpointRounding.AwayFromZero."
+   },
+   "T:Bank.Modules.Fx.Application.FxService": {
+    "changed": "Replaces inline cent rounding in currency conversion with MoneyMath.ToCents.",
+    "affected": "GetUnitsPerEur supplies exchange rates to FxService.Convert before MoneyMath.ToCents rounds the result."
+   },
+   "M:Bank.Modules.Fx.Application.FxService.Convert(System.Decimal,System.String,System.String)": {
+    "changed": "Rounds both same-currency and converted amounts using MoneyMath.ToCents instead of Math.Round with MidpointRounding.AwayFromZero."
+   },
+   "T:Bank.Modules.Loans.Application.LoanService": {
+    "changed": "Replaces inline cent rounding in monthly payment calculation with MoneyMath.ToCents.",
+    "affected": "ApplyAsync stores and returns the monthly payment produced by ComputeMonthlyPayment, which now uses MoneyMath.ToCents."
+   },
+   "M:Bank.Modules.Loans.Application.LoanService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus,Bank.Modules.Notifications.Application.INotifier)": {
+    "changed": "Constructor dependencies are unchanged; payment computation now delegates cent rounding to MoneyMath.ToCents."
+   },
+   "M:Bank.Modules.Loans.Application.LoanService.ComputeMonthlyPayment(System.Decimal,System.Int32)": {
+    "changed": "Rounds the calculated monthly loan payment using MoneyMath.ToCents instead of Math.Round with MidpointRounding.AwayFromZero."
+   },
+   "T:Bank.Shared.Money.MoneyMath": {
+    "changed": "Adds shared static MoneyMath helper class in Bank.Shared.Money for cent rounding."
+   },
+   "M:Bank.Shared.Money.MoneyMath.ToCents(System.Decimal)": {
+    "changed": "Rounds a decimal amount to two decimal places via Math.Round(amount, 2), using default round-half-to-even."
+   },
+   "T:Bank.Modules.Deposits.Api.DepositsController": {
+    "affected": "Open and Mature endpoints invoke IDepositService.OpenAsync and MatureAsync, inheriting the MoneyMath.ToCents rounding behavior."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentService": {
+    "affected": "QuoteAsync and PayAsync obtain transfer fees through IFeeCalculator.Quote, which now uses MoneyMath.ToCents."
+   },
+   "T:Bank.Modules.Loans.Api.LoansController": {
+    "affected": "Apply endpoint delegates to ILoanService.ApplyAsync, returning loans whose monthly payment is rounded by MoneyMath.ToCents."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentsController": {
+    "affected": "Quote and Pay endpoints call IPaymentService, indirectly receiving fee amounts rounded via IFeeCalculator.Quote."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "BankAccounts.For is called by DepositService.OpenAsync when resolving deposit holding accounts."
+   },
+   "T:Bank.Modules.Deposits.Domain.TermDeposit": {
+    "affected": "DepositService.OpenAsync sets TermDeposit properties and DepositService.MatureAsync passes rounded interest into TermDeposit.Mature."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Account properties are read during DepositService.OpenAsync and AccountService.IsOwnerAsync checks."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "IsOwnerAsync and GetAsync are called by DepositService.OpenAsync during deposit opening."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "PostTransferAsync posts deposit principal and rounded interest transfers triggered by DepositService.MatureAsync."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "PublishAsync dispatches domain events emitted by the modified deposit and loan flows."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "Currency and Reference fields are populated when Ledger.PostTransferAsync records deposit transfers."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "HandleAsync processes events published from the deposit and loan services."
+   }
+  },
+  "dropped": 0
+ },
+ "8d322c77251abd6dff97c0a40c4a7a588e0079d0645522322ccb333e3e075932": {
+  "0": "The new shared rounding helper rounds half-cents to even instead of away from zero, quietly changing customer balances, fees, and loan amounts. Ask the author to fix MoneyMath.ToCents to round away from zero.",
+  "1": "Five existing tests fail across eleven cases because calculated customer amounts are off by one cent. Do not approve until the rounding fix makes all tests pass with original expected amounts.",
+  "2": "Half-cent amounts in FX, fees, deposit interest, and loan payments now round differently, creating silent cent discrepancies for customers. Ask for proof that every product returns identical pre-change cent amounts.",
+  "3": "Three updated constructors in DepositService, FeeCalculator, and LoanService lack test coverage, risking undetected setup issues for customer transactions. Ask the author to verify these changes with tests.",
+  "4": "Because this high-risk change affects core money calculations across four customer products, read the full change yourself and ensure two reviewers sign off before merging."
+ },
+ "dc032fa04a8ad7e50e0234a7db805c37cb70a451cdcbacf1b0d639cae01cda0c": {
+  "headline": "Prevent duplicate payments on retries and concurrent requests with key locking and unique indexing",
+  "summary": "PaymentService.PayAsync now checks ownership via IsOwnerAsync and serializes concurrent requests sharing a customer ID and idempotency key before querying existing payments without tracking. BankDbContext also marks the composite index on Payment CustomerId and IdempotencyKey as unique.",
+  "business": "Customers whose apps retry or send concurrent payment requests with the same idempotency key are charged only once and receive the original payment.",
+  "business_impact": "high",
+  "notes": {
+   "T:Bank.Data.BankDbContext": {
+    "changed": "Configures the payment table's customer and idempotency key index as unique in the database model."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentService": {
+    "changed": "Adds per-customer, per-idempotency-key locking around payment processing and updates ownership and tracking checks in PayAsync."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentService.KeyLocks": {
+    "changed": "Stores active lock entries keyed by customer ID and idempotency key."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentService.LockEntry": {
+    "changed": "Represents a reference-counted semaphore entry coordinating concurrent requests for one customer and idempotency key."
+   },
+   "P:Bank.Modules.Payments.Application.PaymentService.LockEntry.Semaphore": {
+    "changed": "Holds the semaphore used to serialize payment requests sharing a customer and idempotency key."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentService.LockEntry.RefCount": {
+    "changed": "Tracks how many in-flight requests are waiting on or holding the lock entry."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentService.KeyLockReleaser": {
+    "changed": "Ensures an acquired key lock is released once when payment processing leaves the scope."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentService.KeyLockReleaser._key": {
+    "changed": "Stores the customer ID and idempotency key pair identifying the held lock."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentService.KeyLockReleaser._entry": {
+    "changed": "References the lock entry associated with the acquired key lock."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentService.KeyLockReleaser._disposed": {
+    "changed": "Tracks whether the releaser has already freed its key lock."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.KeyLockReleaser.Dispose": {
+    "changed": "Releases the acquired key lock once using an atomic disposed flag."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentsController": {
+    "affected": "Pay and Mine call IPaymentService.PayAsync and IPaymentService.ForCustomerAsync, receiving serialized idempotent payment processing."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "For and Currencies are used by BankDbContext.OnModelCreating when seeding internal bank accounts."
+   },
+   "T:Bank.Modules.Payments.Domain.Payment": {
+    "affected": "CustomerId and IdempotencyKey form the unique index via OnModelCreating; Complete and Status are used in PayAsync."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Id, OwnerId, Iban, and Currency are used by BankDbContext.OnModelCreating when seeding bank accounts."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "DailyTransferLimit is checked in PayAsync after idempotency checks; DefaultCurrency is used by test settings."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "IsOwnerAsync and GetAsync are called via IAccountService by PayAsync to verify ownership and load accounts."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "Customer role is referenced by idempotency regression tests exercising per-customer payment ownership."
+   },
+   "T:Bank.Modules.Fx.Application.FxService": {
+    "affected": "Convert, Rate, and GetUnitsPerEur are invoked via IFxService during PayAsync limit calculations."
+   },
+   "T:Bank.Modules.Fees.Application.FeeCalculator": {
+    "affected": "Quote is invoked via IFeeCalculator during PayAsync only after passing idempotency locking."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "PostTransferAsync is reached via ILedger.PostTransferAsync from PayAsync only for non-duplicate payments."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "PublishAsync is reached via IEventBus.PublishAsync from PayAsync after payment execution."
+   },
+   "T:Bank.Shared.Money.MoneyMath": {
+    "affected": "ToCents is reached downstream of PayAsync through FxService.Convert."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "Currency and Reference are used downstream when Ledger.PostTransferAsync posts transfers from PayAsync."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "HandleAsync is reached via IEventHandler.HandleAsync when PayAsync publishes payment events."
+   }
+  },
+  "dropped": 6
+ },
+ "dec260cda320ccb72c77dfe9593584795e8008647816ca89d07b97dd21ccd1e0": {
+  "0": "Duplicate charges on app retries or concurrent requests are untested, leaving customers exposed to double billing. Ask the author to add real PayAsync retry and concurrency tests in IdempotencyRegressionTests.cs.",
+  "1": "Fixing this ensures customers whose apps retry or send simultaneous payments are charged only once and see their original payment. Confirm tests prove single billing before approving.",
+  "2": "Without an active transaction, the money transfer runs before saving the payment, risking an unreversed charge on duplicates. Ask the author to unify PaymentService.PayAsync so the payment record is claimed first.",
+  "3": "Removing an existing validation check could allow invalid inputs to affect customer balances. Inspect the diff near old line 144 and ask whether that check must be restored.",
+  "4": "Under simultaneous requests across processes, the second call can fail with an error instead of returning the first payment. Check PaymentService.PayAsync and ask how it waits for an uncommitted winner.",
+  "5": "Long, deeply nested payment logic with duplicated error handling raises maintenance risk and can cause inconsistent fixes for staff. Ask the author to split PaymentService.PayAsync into smaller helper methods.",
+  "6": "The isolation test never runs a payment, risking cross-customer data leaks or unowned account charges when keys match. Ask for a PaymentService.PayAsync test covering both cases.",
+  "7": "Database uniqueness setup and request-locking helpers have no test proof, leaving concurrency bugs undetected. Ask for test coverage of BankDbContext.OnModelCreating and the locking helpers before signing.",
+  "8": "Failing tests and truncated payment code mean protection against double charges is unconfirmed. Read the full PaymentService.cs, ask why tests failed, and require passing retry and concurrency tests.",
+  "9": "Because payment changes directly affect customer money, errors risk duplicate debits. Read the full change carefully and obtain two human sign-offs.",
+  "10": "Unresolved correctness risks in payment handling could still double-charge customers or break valid retries. Review both correctness concerns carefully and verify failure-recovery behavior before approving."
+ },
+ "6676df99ac7deb859324022d90269eaccced6c93e2cdf94fda251a32d7af9139": {
+  "headline": "Add compliance review workflow and endpoints for held payments",
+  "summary": "Adds a payment review service, domain events, and compliance-only API endpoints to list, release, or reject held payments. Also updates payment service constructors, quote rounding, rejection rules, and payment status handling.",
+  "business": "Compliance officers can list, release, or reject held payments, while customers see held payments delayed in suspense until reviewed and cross-currency quotes rounded to two decimal places.",
+  "business_impact": "high",
+  "notes": {
+   "T:Bank.Modules.Payments.Api.RejectPaymentRequest": {
+    "changed": "Added request payload record carrying an optional rejection reason for rejecting a held payment."
+   },
+   "M:Bank.Modules.Payments.Api.RejectPaymentRequest.#ctor(System.String)": {
+    "changed": "Initializes the rejection request with an optional reason string."
+   },
+   "P:Bank.Modules.Payments.Api.RejectPaymentRequest.Reason": {
+    "changed": "Stores the optional rejection reason supplied by the compliance reviewer."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentsController": {
+    "changed": "Added compliance review dependency and endpoints to list, release, and reject held payments.",
+    "affected": "ToDto reads the modified Payment.Status, while Quote and Pay delegate to modified IPaymentService methods."
+   },
+   "F:Bank.Modules.Payments.Api.PaymentsController._review": {
+    "changed": "Holds the injected payment review service used by the new compliance endpoints."
+   },
+   "M:Bank.Modules.Payments.Api.PaymentsController.#ctor(Bank.Modules.Payments.Application.IPaymentService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Modules.Payments.Application.IPaymentReviewService)": {
+    "changed": "Added primary constructor injecting the payment review service alongside payment and user services."
+   },
+   "M:Bank.Modules.Payments.Api.PaymentsController.Held(System.Threading.CancellationToken)": {
+    "changed": "Lists all held payments as DTOs for users satisfying the compliance policy."
+   },
+   "M:Bank.Modules.Payments.Api.PaymentsController.Release(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Releases a held payment for compliance users and maps authorization, lookup, funds, and state errors to HTTP statuses."
+   },
+   "M:Bank.Modules.Payments.Api.PaymentsController.Reject(System.Guid,Bank.Modules.Payments.Api.RejectPaymentRequest,System.Threading.CancellationToken)": {
+    "changed": "Rejects a held payment with an optional request body and maps validation and state errors to HTTP statuses."
+   },
+   "endpoint:GET /api/payments/held": {
+    "changed": "Exposes held payments for review under the compliance authorization policy."
+   },
+   "endpoint:POST /api/payments/{id:guid}/release": {
+    "changed": "Exposes held payment release under the compliance authorization policy."
+   },
+   "endpoint:POST /api/payments/{id:guid}/reject": {
+    "changed": "Exposes held payment rejection under the compliance authorization policy."
+   },
+   "T:Bank.Modules.Payments.Application.IPaymentReviewService": {
+    "changed": "Defines operations to list held payments and release or reject a held payment."
+   },
+   "M:Bank.Modules.Payments.Application.IPaymentReviewService.HeldAsync(System.Threading.CancellationToken)": {
+    "changed": "Returns all payments currently in held status."
+   },
+   "M:Bank.Modules.Payments.Application.IPaymentReviewService.ReleaseAsync(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Releases a held payment after compliance validation and ledger settlement."
+   },
+   "M:Bank.Modules.Payments.Application.IPaymentReviewService.RejectAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+    "changed": "Rejects a held payment with a reason and refunds the payer."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentReviewService": {
+    "changed": "Implements compliance review queries, release settlement from suspense, and rejection refunds."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentReviewService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus,Bank.Modules.Notifications.Application.INotifier)": {
+    "changed": "Injects database, ledger, current user, clock, event bus, and notifier dependencies with null guards."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentReviewService._db": {
+    "changed": "Provides database access to payments and accounts during review operations."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentReviewService._ledger": {
+    "changed": "Posts suspense release and refund transfers during compliance decisions."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentReviewService._user": {
+    "changed": "Identifies the current reviewer and checks compliance role membership."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentReviewService._clock": {
+    "changed": "Provides current timestamps for review actions."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentReviewService._bus": {
+    "changed": "Publishes domain events when review actions occur."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentReviewService._notifier": {
+    "changed": "Sends customer notifications for payment review outcomes."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentReviewService.HeldAsync(System.Threading.CancellationToken)": {
+    "changed": "Queries payments in held status ordered chronologically by creation time."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentReviewService.ReleaseAsync(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Enforces compliance role and non-self-approval, then posts suspense release transfers within a relational transaction, handling cross-currency clearing."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentReviewService.RejectAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+    "changed": "Validates compliance role, non-empty reason, and non-self-rejection, refunds principal plus fee from suspense, and marks the payment rejected."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentService": {
+    "changed": "Adds hold threshold and notifier support, updates constructor chaining, rounds quote outputs, and updates payment execution.",
+    "affected": "AcquireKeyLockAsync and ReleaseKeyLock are reached by the modified PaymentService.PayAsync flow."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentService.HoldThresholdEur": {
+    "changed": "Added EUR threshold constant used to evaluate payment holds."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentService._notifier": {
+    "changed": "Stores the optional notifier service used to inform customers."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Modules.Fx.Application.IFxService,Bank.Modules.Fees.Application.IFeeCalculator,Bank.Modules.Notifications.Application.INotifier,Bank.Shared.Events.IEventBus)": {
+    "changed": "Added primary constructor accepting an optional notifier before the optional event bus."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Modules.Fx.Application.IFxService,Bank.Modules.Fees.Application.IFeeCalculator,Bank.Shared.Events.IEventBus)": {
+    "changed": "Updated constructor to delegate to the new primary constructor with a null notifier."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Modules.Fx.Application.IFxService,Bank.Shared.Events.IEventBus)": {
+    "changed": "Updated constructor overload to pass a null notifier when chaining."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Modules.Fx.Application.IFxService)": {
+    "changed": "Updated minimal constructor overload to pass null notifier and event bus when chaining."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.QuoteAsync(System.Guid,System.Guid,System.Decimal,System.Threading.CancellationToken)": {
+    "changed": "Rounds both the fee amount and cross-currency credited amount to two decimal places away from zero."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+    "changed": "Updated payment execution behavior while continuing to acquire key locks and check daily transfer limits."
+   },
+   "T:Bank.Modules.Payments.Domain.Payment": {
+    "changed": "Updated payment status handling and restricted rejection to held payments.",
+    "affected": "Complete, Id, CustomerId, and Currency are used or invoked by PaymentReviewService.ReleaseAsync."
+   },
+   "P:Bank.Modules.Payments.Domain.Payment.Status": {
+    "changed": "Modified payment status property definition to support the updated payment lifecycle."
+   },
+   "M:Bank.Modules.Payments.Domain.Payment.Reject": {
+    "changed": "Restricts rejection so only payments currently in held status can be transitioned to rejected."
+   },
+   "T:Bank.Modules.Payments.Domain.PaymentHeld": {
+    "changed": "Added domain event raised when a payment is placed on hold."
+   },
+   "M:Bank.Modules.Payments.Domain.PaymentHeld.#ctor(System.Guid,System.String,System.Decimal,System.String,System.DateTimeOffset)": {
+    "changed": "Initializes the held-payment event with payment, customer, amount, currency, and timestamp."
+   },
+   "P:Bank.Modules.Payments.Domain.PaymentHeld.PaymentId": {
+    "changed": "Identifies the payment placed on hold."
+   },
+   "P:Bank.Modules.Payments.Domain.PaymentHeld.CustomerId": {
+    "changed": "Identifies the customer who initiated the held payment."
+   },
+   "P:Bank.Modules.Payments.Domain.PaymentHeld.Amount": {
+    "changed": "Records the principal amount of the held payment."
+   },
+   "P:Bank.Modules.Payments.Domain.PaymentHeld.Currency": {
+    "changed": "Records the currency of the held payment."
+   },
+   "P:Bank.Modules.Payments.Domain.PaymentHeld.OccurredAt": {
+    "changed": "Records when the payment was placed on hold."
+   },
+   "T:Bank.Modules.Payments.Domain.PaymentReleased": {
+    "changed": "Added domain event raised when a held payment is released."
+   },
+   "M:Bank.Modules.Payments.Domain.PaymentReleased.#ctor(System.Guid,System.String,System.DateTimeOffset)": {
+    "changed": "Initializes the released-payment event with payment ID, reviewer ID, and timestamp."
+   },
+   "P:Bank.Modules.Payments.Domain.PaymentReleased.PaymentId": {
+    "changed": "Identifies the released payment."
+   },
+   "P:Bank.Modules.Payments.Domain.PaymentReleased.ReleasedBy": {
+    "changed": "Identifies the compliance officer who released the payment."
+   },
+   "P:Bank.Modules.Payments.Domain.PaymentReleased.OccurredAt": {
+    "changed": "Records when the payment was released."
+   },
+   "T:Bank.Modules.Payments.Domain.PaymentRejected": {
+    "changed": "Added domain event raised when a held payment is rejected."
+   },
+   "M:Bank.Modules.Payments.Domain.PaymentRejected.#ctor(System.Guid,System.String,System.DateTimeOffset)": {
+    "changed": "Initializes the rejected-payment event with payment ID, reviewer ID, and timestamp."
+   },
+   "P:Bank.Modules.Payments.Domain.PaymentRejected.PaymentId": {
+    "changed": "Identifies the rejected payment."
+   },
+   "P:Bank.Modules.Payments.Domain.PaymentRejected.RejectedBy": {
+    "changed": "Identifies the compliance officer who rejected the payment."
+   },
+   "P:Bank.Modules.Payments.Domain.PaymentRejected.OccurredAt": {
+    "changed": "Records when the payment was rejected."
+   },
+   "T:Bank.Modules.Payments.PaymentsModule": {
+    "changed": "Registers the new payment review service in dependency injection."
+   },
+   "M:Bank.Modules.Payments.PaymentsModule.AddPaymentsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+    "changed": "Registers scoped IPaymentReviewService implementation alongside IPaymentService."
+   },
+   "table:Payments": {
+    "changed": "Updated schema definition for the Payments table."
+   },
+   "table:Payments.Status": {
+    "changed": "Modified the Status column definition on the Payments table."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "Reached by PaymentReviewService.ReleaseAsync calling BankAccounts.For to resolve suspense and clearing accounts."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "ComplianceOfficer role constant is checked by PaymentReviewService.ReleaseAsync to authorize releases."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Id and Currency are read by PaymentReviewService.ReleaseAsync, and OwnerId is checked via AccountService.IsOwnerAsync."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "DailyTransferLimit is read by the modified PaymentService.PayAsync execution path."
+   },
+   "T:Bank.Modules.Audit.Application.AuditLog": {
+    "affected": "Redact and IsPiiParameter are exercised by tests auditing the new PaymentHeld event."
+   },
+   "T:Bank.Modules.Auth.Application.CurrentUser": {
+    "affected": "IsInRole resolves ICurrentUser.IsInRole calls made during compliance review checks."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "PostTransferAsync resolves ILedger.PostTransferAsync calls for suspense releases and refunds."
+   },
+   "T:Bank.Modules.Notifications.Application.LogNotifier": {
+    "affected": "NotifyAsync resolves INotifier.NotifyAsync calls triggered by payment and review workflows."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "PublishAsync resolves IEventBus.PublishAsync calls for payment hold and review events."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "GetAsync and IsOwnerAsync resolve account lookups and ownership checks in payment flows."
+   },
+   "T:Bank.Modules.Fees.Application.FeeCalculator": {
+    "affected": "Quote resolves IFeeCalculator.Quote calls during payment quoting and execution."
+   },
+   "T:Bank.Modules.Fx.Application.FxService": {
+    "affected": "Rate, Convert, and GetUnitsPerEur resolve FX conversions and rates used in quoting and payments."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentService.LockEntry": {
+    "affected": "Semaphore is accessed via PaymentService.AcquireKeyLockAsync during payment execution."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "Currency and Reference are used when Ledger.PostTransferAsync records review transfers."
+   },
+   "T:Bank.Shared.Money.MoneyMath": {
+    "affected": "ToCents is called via FeeCalculator.Quote during payment quoting."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "HandleAsync resolves IEventHandler.HandleAsync when domain events are published."
+   }
+  },
+  "dropped": 0
+ },
+ "2466064579ad9356d6bc68bb75e45bbc37e42097cb6fa83f98b85744879bb970": {
+  "0": "Compliance officers who do not also hold a customer role will be blocked from reviewing held payments. Ask the author to separate compliance endpoints from the customer-only policy on PaymentsController.",
+  "1": "Payments of exactly 5,000.00 EUR to new payees will slip through without compliance review, increasing fraud exposure. Ask the author to include 5,000.00 EUR in the hold check in PaymentService.",
+  "2": "Held payments delay customer transfers in suspense, alter cross-currency rounding, and give staff new release or reject controls. Confirm with product and compliance that these operational changes match expectations.",
+  "3": "Duplicating currency settlement rules between PaymentService and PaymentReviewService risks diverging payouts or accounting errors when FX rules change. Ask the author to share one settlement implementation across both services.",
+  "4": "Repeating permission, status, and concurrency checks between release and reject flows risks inconsistent fraud or double-settlement safeguards later. Ask the author to extract a single shared workflow in PaymentReviewService.",
+  "5": "Removing a prior boundary check may let invalid payment inputs reach customer accounts or ledger balances. Ask the author to confirm why the old check on line 48 was removed or restore it.",
+  "6": "Adding hold branches deep inside PayAsync makes payment settlement harder to audit and easier to break during future changes. Ask the author to extract the hold and settlement paths into clear helpers.",
+  "7": "Without endpoint tests, compliance staff could face broken access rules or misleading errors when reviewing held payments. Ask for tests covering authorization and response statuses on PaymentsController's new actions.",
+  "8": "Unverified guards could let unauthorized staff, customers approving their own payments, or repeat actions move money improperly. Ask for tests proving PaymentReviewService blocks invalid roles, self-decisions, and non-held payments.",
+  "9": "Releasing or rejecting real held payments has never been tested, risking lost funds, wrong fees, or missing refunds. Ask for tests covering full release, cross-currency, and refund flows in PaymentReviewService.",
+  "10": "Because payment holding in PayAsync is untested, threshold bugs like excluding 5,000.00 EUR go unnoticed while tests pass. Ask for tests covering the 5,000 EUR boundary, suspense transfers, and repeat-payee bypass.",
+  "11": "Eighteen changed methods, including the new compliance endpoints in PaymentsController, lack usable test evidence, leaving production regressions undetected. Ask the author to add automated tests before sign-off.",
+  "12": "Payments of exactly 5,000.00 EUR bypass review and compliance-only staff risk being locked out by customer authorization. Verify both the threshold fix and compliance access rules before approving.",
+  "13": "This change touches high-risk payment and compliance flows, so perform a full manual code read and ensure two reviewers sign off before merging."
+ },
+ "75a26a9f5b6e939c019d1e0208266b756b7b191d1ebc6937b7d15e0ef3d089c7": {
+  "headline": "Add customer KYC onboarding, compliance verification, and account-opening gate",
+  "summary": "Introduces the Customers module with customer registration, age validation, and compliance officer verify/reject workflows backed by a new Customers table. Registers KycAccountOpeningRule so account opening requires a verified customer record, and exposes customer and compliance HTTP endpoints.",
+  "business": "New applicants aged 18 or older must register and wait for a compliance officer other than themselves to verify their identity before opening a bank account. Unverified or underage applicants are blocked from opening accounts.",
+  "business_impact": "high",
+  "notes": {
+   "P:Bank.Data.BankDbContext.Customers": {
+    "changed": "Adds the Customers DbSet to BankDbContext for persisting customer KYC records."
+   },
+   "T:Bank.Modules.Customers.Api.CustomerDto": {
+    "changed": "Adds a read-only customer response DTO exposing status, decision officer, and registration timestamp without NationalId or DateOfBirth."
+   },
+   "T:Bank.Modules.Customers.Application.RegisterCustomerRequest": {
+    "changed": "Defines the registration payload containing full name, email, national ID, and date of birth."
+   },
+   "T:Bank.Modules.Customers.Application.ICustomerService": {
+    "changed": "Defines the customer service contract for registering, verifying, rejecting, and fetching customer records."
+   },
+   "T:Bank.Modules.Customers.Domain.KycStatus": {
+    "changed": "Adds the KycStatus enum with Pending, Verified, and Rejected states."
+   },
+   "T:Bank.Modules.Customers.Domain.Customer": {
+    "changed": "Adds the Customer entity holding identity fields, registration timestamp, decision officer, and Pending default status."
+   },
+   "T:Bank.Modules.Customers.Domain.CustomerRegistered": {
+    "changed": "Adds the CustomerRegistered domain event carrying CustomerId and OccurredAt."
+   },
+   "T:Bank.Modules.Customers.Domain.CustomerVerified": {
+    "changed": "Adds the CustomerVerified domain event carrying CustomerId, VerifiedBy, and OccurredAt."
+   },
+   "T:Bank.Modules.Customers.Domain.CustomerRejected": {
+    "changed": "Adds the CustomerRejected domain event carrying CustomerId, RejectedBy, and OccurredAt."
+   },
+   "table:Customers": {
+    "changed": "Adds the Customers database table with identity, KYC status, decision officer, and registration columns."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "AccountService.OpenAsync now enforces KYC verification by calling the new KycAccountOpeningRule via IAccountOpeningRule.EnsureMayOpenAsync."
+   },
+   "T:Bank.Modules.Accounts.Api.AccountsController": {
+    "affected": "AccountsController.Open is affected through IAccountOpeningRule enforcement inside IAccountService.OpenAsync, rejecting unverified customers."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "Roles.ComplianceOfficer and Roles.Customer are used by CustomerService authorization checks and endpoint policies."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Account creation via AccountService.OpenAsync is now gated by the customer's KYC status for Account.OwnerId."
+   },
+   "T:Bank.Modules.Audit.Application.AuditLog": {
+    "affected": "AuditLog redaction inspects PII parameters on Customer operations through AuditLog.Redact and IsPiiParameter."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "InMemoryEventBus.PublishAsync dispatches the new CustomerRegistered, CustomerVerified, and CustomerRejected events published by CustomerService."
+   },
+   "T:Bank.Modules.Auth.Application.CurrentUser": {
+    "affected": "CurrentUser.IsInRole is invoked by CustomerService.VerifyAsync and RejectAsync to enforce the ComplianceOfficer role."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "BankSettings currency and limit settings interact with AccountService.OpenAsync alongside the new KYC account-opening rule."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "AuditEventHandler.HandleAsync receives the new customer lifecycle events dispatched through IEventBus."
+   }
+  },
+  "dropped": 13
+ },
+ "c53e8216e5494be161627ac31fc69c47530f942d57bca879015afc87a49af7b8": {
+  "0": "Compliance officers cannot verify or reject customer registrations unless they also hold a customer account. Ask the author to remove the class-level policy from CustomersController so staff can review applications.",
+  "1": "Compliance staff will be blocked with access denied errors when trying to approve or reject applicants. Check CustomersController and ensure compliance endpoints do not also require customer permissions.",
+  "2": "Underage or unverified applicants are blocked from opening bank accounts, and staff cannot verify their own applications. Verify that these onboarding safeguards and conflict-of-interest rules match bank policy.",
+  "3": "The controller-level customer access rule makes individual customer endpoint rules redundant and blocks compliance staff from reviewing applications. Ask the author to restrict the customer policy to customer endpoints only.",
+  "4": "None of the four new customer and compliance endpoints have automated tests for access rules or responses. Ask the author to add tests proving unauthorized users are blocked and errors return properly.",
+  "5": "Eleven new or changed methods, including the registration, profile, and verification endpoints, lack test evidence. Ask for test coverage proving customer onboarding and staff verification work reliably before approving.",
+  "6": "Core onboarding logic and age checks match requirements, except compliance staff without customer access are blocked from verifying applicants. Confirm the controller access rules are fixed before signing off.",
+  "7": "This high-risk change affects customer onboarding and identity checks. Perform a full read of the pull request and ensure two human reviewers sign off before merging."
+ },
+ "45d5ba7b57fc43c80d07e7f203b22839b04a09fe6c8ac8c6cd842d003034906c": {
+  "headline": "Add Payments module for same-currency customer transfers between accounts",
+  "summary": "Introduces the Payments module with domain types, database table, service validation, and HTTP endpoints to submit and list payments. Enforces whole-cent positive amounts, source account ownership, currency matching, and a UTC daily transfer limit before posting transfers through the ledger.",
+  "business": "Authenticated customers can now transfer whole-cent amounts in the same currency from their own accounts to any bank account and view their payment history, subject to daily transfer limits.",
+  "business_impact": "high",
+  "notes": {
+   "P:Bank.Data.BankDbContext.Payments": {
+    "changed": "Exposes the Payments table as a database set for storing and querying payment records."
+   },
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)": {
+    "changed": "Adds a composite index on customer ID and idempotency key for the Payment entity."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentDto": {
+    "changed": "Defines the API response record for a payment, including accounts, amount, currency, status, ledger transfer ID, and timestamp."
+   },
+   "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+    "changed": "Submits a payment request and maps ownership, validation, missing-account, and state-conflict exceptions to HTTP responses."
+   },
+   "M:Bank.Modules.Payments.Api.PaymentsController.Mine(System.Threading.CancellationToken)": {
+    "changed": "Fetches and returns all payments belonging to the currently authenticated user."
+   },
+   "endpoint:POST /api/payments": {
+    "changed": "Adds the HTTP endpoint for submitting a payment between accounts."
+   },
+   "endpoint:GET /api/payments": {
+    "changed": "Adds the HTTP endpoint for retrieving the authenticated customer's payment history."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentRequest": {
+    "changed": "Carries the idempotency key, source and destination account IDs, amount, and optional reference for a payment."
+   },
+   "T:Bank.Modules.Payments.Application.DailyLimitExceededException": {
+    "changed": "Signals that executing a payment would exceed the customer's daily transfer limit."
+   },
+   "T:Bank.Modules.Payments.Application.IPaymentService": {
+    "changed": "Defines the service contract for executing payments and querying a customer's payments."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+    "changed": "Validates whole-cent amounts, account ownership, matching currencies, and the UTC daily transfer limit before posting to the ledger."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)": {
+    "changed": "Returns a customer's payments ordered from newest to oldest."
+   },
+   "T:Bank.Modules.Payments.Domain.PaymentStatus": {
+    "changed": "Defines the payment lifecycle states: Completed, Held, and Rejected."
+   },
+   "T:Bank.Modules.Payments.Domain.Payment": {
+    "changed": "Represents a customer payment record with amount, currency, accounts, status, reference, and ledger transfer link."
+   },
+   "M:Bank.Modules.Payments.Domain.Payment.Complete(System.Guid)": {
+    "changed": "Marks the payment as completed with a ledger transfer ID unless it is already rejected or completed."
+   },
+   "M:Bank.Modules.Payments.Domain.Payment.Hold": {
+    "changed": "Transitions the payment to Held unless it is already rejected or completed with a transfer ID."
+   },
+   "M:Bank.Modules.Payments.Domain.Payment.Reject": {
+    "changed": "Transitions the payment to Rejected unless it is already rejected or completed with a transfer ID."
+   },
+   "T:Bank.Modules.Payments.Domain.PaymentCompleted": {
+    "changed": "Domain event carrying payment ID, customer ID, amount, currency, and completion timestamp."
+   },
+   "M:Bank.Modules.Payments.PaymentsModule.AddPaymentsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+    "changed": "Registers the payment service in the dependency injection container."
+   },
+   "M:Program.{Main}$(System.String[])": {
+    "changed": "Registers the new Payments module during application startup."
+   },
+   "table:Payments": {
+    "changed": "Creates the Payments table storing payment amounts, currencies, account references, statuses, transfer IDs, and timestamps."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "Called during database model configuration in BankDbContext to seed internal bank accounts."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Seeded as internal bank accounts when BankDbContext configures the database model."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "Supplies DailyTransferLimit enforced by PaymentService.PayAsync before executing transfers."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "Referenced by payment tests exercising the new payment flow."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "Handles IAccountService calls from PaymentService.PayAsync to check ownership and load source and destination accounts."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "Handles ILedger.PostTransferAsync calls from PaymentService.PayAsync to transfer funds between accounts."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "Handles IEventBus.PublishAsync calls when payment events are published."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "Written by Ledger.PostTransferAsync when a payment transfer is posted."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "Resolves IEventHandler.HandleAsync to process domain events published on the event bus."
+   }
+  },
+  "dropped": 0
+ },
+ "b0de6bd1b4dba9d26f6b9e6e4c95cdeba95e540d6e9b65c3b44c1f30bb5f5d83": {
+  "0": "Duplicate payments can slip through when concurrent requests arrive because the database lacks a unique constraint on customer and idempotency key. Ask the author to enforce uniqueness in the Payment index configuration.",
+  "1": "Retried payments can move money twice or fail daily limits because idempotency is checked too late. Ask the author to check for existing payments in PayAsync before limit checks and ledger posting.",
+  "2": "Concurrent duplicate payment requests cannot be safely blocked by the database without a unique key constraint, risking double transfers. Confirm that the database index on customer and idempotency key is made unique.",
+  "3": "Customers retrying a transfer risk moving money twice or hitting false daily limit errors. Ask the author to check for an existing idempotency key in PayAsync before running limit or ledger logic.",
+  "4": "Two automated tests fail with mismatched identifiers and unexpected daily limit exceptions, showing the implementation or tests are broken. Ask the author to investigate and ensure all payment tests pass before merging.",
+  "5": "This change enables live customer money transfers and payment history access, carrying high financial and compliance risk. Review the entire change carefully and ensure all controls and limits are strictly verified.",
+  "6": "Without a unique constraint in the database, simultaneous identical payment requests can create duplicate transfers and bypass conflict handling. Verify that the composite key index on Payment enforces uniqueness.",
+  "7": "Retrying a payment moves money again in the ledger because existing keys are not checked beforehand, risking duplicate transfers. Ask the author to check prior payments in PaymentService before moving funds.",
+  "8": "Unrequested hold and reject payment behaviors add untested state changes that were explicitly out of scope, risking unintended financial states. Ask the author to remove Hold and Reject from Payment.",
+  "9": "Loading every daily payment amount into memory before summing wastes database bandwidth and slows down transfers as volume grows. Ask the author to compute the daily total directly in the database in PayAsync.",
+  "10": "Retried payment requests perform unnecessary ledger transfers and database writes instead of returning early, risking duplicate money movement and wasted resources. Ask the author to return the existing payment earlier in PayAsync.",
+  "11": "Viewing payment history tracks read-only records in memory unnecessarily, increasing server load for staff and customers. Ask the author to disable change tracking in ForCustomerAsync when querying payment history.",
+  "12": "Payment web endpoints have no test coverage, leaving customer authorization rules and error status responses unverified in production. Ask the author to add tests for PaymentsController covering access policies and error mapping.",
+  "13": "Customer payment history queries are completely untested, creating a risk that customers could view others' private payments or see wrong ordering. Ask the author to add tests for ForCustomerAsync covering filtering and sorting.",
+  "14": "Twelve changed methods, including the payment endpoints and mapping logic, lack any test evidence, leaving core customer workflows unverified. Ask the author to add tests covering PaymentsController and related helper methods.",
+  "15": "Because this change handles live customer money movement, it carries high risk. Ensure a full human review is completed and two independent sign-offs are recorded before merging."
+ },
+ "0ddfb6596cc6915e08d78d370c45e405bd1b9416c92be7eb5c6a3c321a18ee7a": {
+  "headline": "Add FX service and enable cross-currency payment conversion",
+  "summary": "Introduces the Fx module with FxService to compute exchange rates and rounded conversions across EUR, SEK, and USD. Updates PaymentService, the Payment entity, and the Payments table to record credited amounts, credited currencies, and exchange rates while removing the currency mismatch rejection.",
+  "business": "Customers can transfer funds between accounts in EUR, SEK, and USD using fixed exchange rates rounded to two decimals away from zero, and repeated requests with the same idempotency key return the existing payment.",
+  "business_impact": "high",
+  "notes": {
+   "T:Bank.Modules.Fx.Application.IFxService": {
+    "changed": "Defines the currency exchange contract with rate lookup and amount conversion methods."
+   },
+   "T:Bank.Modules.Fx.Application.FxService": {
+    "changed": "Implements currency conversion and rate calculation across EUR, SEK, and USD."
+   },
+   "F:Bank.Modules.Fx.Application.FxService.EurToSek": {
+    "changed": "Stores the fixed EUR-to-SEK base exchange rate."
+   },
+   "F:Bank.Modules.Fx.Application.FxService.EurToUsd": {
+    "changed": "Stores the fixed EUR-to-USD base exchange rate."
+   },
+   "T:Bank.Modules.Fx.FxModule": {
+    "changed": "Provides dependency injection registration for the FX module."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentService": {
+    "changed": "Injects IFxService and updates payment processing to calculate exchange rates and converted amounts."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentService._fx": {
+    "changed": "Holds the FX service used for rate lookup and amount conversion during payments."
+   },
+   "T:Bank.Modules.Payments.Domain.Payment": {
+    "changed": "Adds properties to record the credited amount, credited currency, and applied exchange rate on a payment.",
+    "affected": "Existing members Complete, CustomerId, IdempotencyKey, and Status are used by PaymentService.PayAsync, including the new idempotency lookup."
+   },
+   "P:Bank.Modules.Payments.Domain.Payment.CreditedAmount": {
+    "changed": "Stores the converted amount credited to the destination account."
+   },
+   "P:Bank.Modules.Payments.Domain.Payment.CreditedCurrency": {
+    "changed": "Stores the currency of the credited destination account."
+   },
+   "P:Bank.Modules.Payments.Domain.Payment.Rate": {
+    "changed": "Stores the exchange rate applied to the payment."
+   },
+   "M:Program.{Main}$(System.String[])": {
+    "changed": "Registers the FX module services during application startup."
+   },
+   "table:Payments": {
+    "changed": "Adds columns to persist credited amount, credited currency, and exchange rate for payments."
+   },
+   "table:Payments.CreditedAmount": {
+    "changed": "Adds a database column for the payment's credited amount."
+   },
+   "table:Payments.CreditedCurrency": {
+    "changed": "Adds a database column for the payment's credited currency."
+   },
+   "table:Payments.Rate": {
+    "changed": "Adds a database column for the exchange rate applied to the payment."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentsController": {
+    "affected": "Pay endpoint delegates to IPaymentService.PayAsync, which now supports cross-currency conversion and returns early on matching idempotency keys."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "BankAccounts.For is reached from PaymentService.PayAsync during payment execution."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Account.Currency is now used by PaymentService.PayAsync to compute FX rates and converted amounts instead of rejecting mismatches."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "DailyTransferLimit continues to be read by PaymentService.PayAsync during payment processing."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "IsOwnerAsync and GetAsync are called by PaymentService.PayAsync to verify ownership and load account currencies."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "PostTransferAsync is invoked by PaymentService.PayAsync to post ledger entries for the payment."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "PublishAsync is invoked through IEventBus when PaymentService.PayAsync completes a payment."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "LedgerEntry.Currency and Reference are populated via Ledger.PostTransferAsync called from PaymentService.PayAsync."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "HandleAsync is reached via the event bus when payment events are published by PaymentService.PayAsync."
+   }
+  },
+  "dropped": 10
+ },
+ "6001fa52514331279075e275b3387106aa29ae648d966ceb03a80cca8629e72c": {
+  "0": "Cross-currency transfers and daily EUR limits in PaymentService have no automated tests, risking wrong balances or bypassed limits. Ask for tests exercising the full payment flow to verify clearing entries, limits, and saved values.",
+  "1": "An existing test fails because an expected ledger exception is no longer thrown, meaning invalid actions could slip through. Check whether the code broke a rule or the test needs updating.",
+  "2": "Customers can transfer across EUR, SEK, and USD with fixed rates and duplicate-payment protection, directly affecting balances. Check that rate calculations, rounding, and duplicate-request handling are thoroughly verified before approving.",
+  "3": "An extra PaymentService constructor hardcodes the currency service directly, which can break startup wiring or prevent swapping rates later. Ask to remove this unused constructor and rely on standard dependency injection.",
+  "4": "A safety validation check was removed around line 81, which could allow invalid transfers or corrupted balances. Ask the author why this guard was deleted and confirm whether it must be restored.",
+  "5": "Another hardcoded constructor in PaymentService bypasses standard service registration, risking startup errors or inconsistent exchange rates. Ask the author to remove it so the service always uses the registered currency component.",
+  "6": "Daily transfer limits converted to EUR are untested, so customers might exceed daily caps across currencies unnoticed. Ask for automated tests confirming multi-currency daily totals block payments once the limit is reached.",
+  "7": "Cross-currency tests bypass PaymentService and call the ledger directly, leaving clearing steps, validations, and recorded payment fields unverified. Ask for end-to-end service tests that verify the actual payment execution.",
+  "8": "Six changed methods covering currency conversion helpers, module setup, and service construction lack test evidence, risking hidden runtime failures. Check that test coverage includes these paths or confirm unnecessary constructors are removed.",
+  "9": "Core exchange and payment logic is implemented, but required tests for cross-currency payments and EUR daily limits are missing. Ask the author to add those tests before signing off on this requirement.",
+  "10": "This change is high risk because it handles cross-currency money movement and daily limits. Perform a full manual review of the changed files and ensure two reviewers sign off before merging."
+ },
+ "9cefd51adef7b95031995245c73969d2141bd9513182be8262e9e492ea8779f1": {
+  "headline": "Adds cross-currency payment fees and a pre-payment quote endpoint.",
+  "summary": "Introduces a Fees module calculating a 0.2% fee clamped between 0.50 and 20.00 EUR converted into the source currency for cross-currency payments, and zero for same-currency payments. Exposes GET /api/payments/quote and PaymentService.QuoteAsync for customer fee and FX previews, and adds Fee persistence and quoting to payments.",
+  "business": "Customers can preview fees, exchange rates, and credited amounts before paying, and cross-currency payments carry a 0.2% fee (0.50 to 20.00 EUR equivalent) recorded on each payment.",
+  "business_impact": "high",
+  "notes": {
+   "T:Bank.Modules.Fees.Application.Fee": {
+    "changed": "Represents a calculated fee amount paired with its currency."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentDto": {
+    "changed": "Adds an optional Fee property to the payment API response record."
+   },
+   "P:Bank.Modules.Payments.Api.PaymentDto.Fee": {
+    "changed": "Exposes the payment fee amount on the payment response DTO."
+   },
+   "endpoint:GET /api/payments/quote": {
+    "changed": "New customer-authorized endpoint returning a pre-payment fee, FX rate, and credited amount quote."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentQuote": {
+    "changed": "Carries the payment amount, currency, fee, credited amount, credited currency, and exchange rate for a quote."
+   },
+   "P:Bank.Modules.Payments.Domain.Payment.Fee": {
+    "changed": "Stores the fee charged for the payment on the domain entity."
+   },
+   "M:Program.{Main}$(System.String[])": {
+    "changed": "Registers the new Fees module in the application dependency injection container."
+   },
+   "table:Payments.Fee": {
+    "changed": "Adds the Fee column to the Payments database table."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentsController": {
+    "affected": "Pay() is affected through its call to ToDto(), which now populates Fee on the returned PaymentDto."
+   },
+   "T:Bank.Modules.Payments.Domain.Payment": {
+    "affected": "Id, IdempotencyKey, CustomerId, and Currency are read alongside the new Fee property when ToDto() maps a payment."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Currency is read by PaymentService.QuoteAsync() to determine FX conversion and fees; OwnerId, Iban, and Id are reached via TestKit.Account()."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "BankAccounts.For() is called by PaymentService.PayAsync() when resolving bank ledger accounts during payment execution."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "DailyTransferLimit is read by PaymentService.PayAsync() during payment limit checks."
+   },
+   "T:Bank.Modules.Fx.Application.FxService": {
+    "affected": "Convert(), Rate(), NormalizeAndValidate(), and FromEur() are resolved through IFxService when quoting fees and payment conversions."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "GetAsync() and IsOwnerAsync() are resolved via IAccountService during both QuoteAsync() and PayAsync() account validation."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "PostTransferAsync() is resolved via ILedger when PaymentService.PayAsync() posts payment transfers."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "PublishAsync() is resolved via IEventBus when PaymentService.PayAsync() publishes payment events."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "Currency and Reference are used through Ledger.PostTransferAsync() when PaymentService.PayAsync() records ledger entries."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "HandleAsync() is resolved via IEventHandler when events published by PaymentService.PayAsync() are dispatched."
+   }
+  },
+  "dropped": 10
+ },
+ "74df806509e2e465557d801e8136bb142a0148e51c62ca2a45d3d847ff3e56e2": {
+  "0": "Customers see an unrounded credited amount on cross-currency quotes instead of exact cents. Ask the author to round the converted credited amount to two decimal places away from zero in PaymentService.QuoteAsync.",
+  "1": "Overdraft-enabled accounts can pay even when their balance cannot cover the payment plus fee. Check PaymentService.PayAsync and ask the author to enforce the total balance check unless overdrafts are intentionally allowed.",
+  "2": "One automated test fails with an unexpected exception type, leaving payment error handling broken or unverified. Ask the author to fix the failing test or update the code so both agree before merging.",
+  "3": "Customers will preview and pay a 0.2% fee (0.50 to 20.00 EUR equivalent) on cross-currency payments, directly impacting revenue and trust. Carefully verify fee calculations and customer disclosures before signing off.",
+  "4": "A hidden extra constructor in PaymentService bypasses normal service configuration, risking wrong fee rules in production. Ask the author to remove this extra constructor and rely only on the standard fee interface.",
+  "5": "An unrequested eight-parameter constructor in PaymentService hardcodes the fee calculator instead of using standard configuration, risking inconsistent behavior. Ask the author to delete the extra constructor overload.",
+  "6": "An extra PaymentService constructor directly creates the fee calculator, bypassing dependency setup and complicating future fee changes. Ask the author to remove the overload and inject only the fee interface.",
+  "7": "No tests prove that payments fail when funds cover only the principal or that fees reach the bank's income account. Ask the author to add tests covering both behaviors.",
+  "8": "The 0.2% fee math, EUR min/max limits, rounding, and zero-amount rejections are completely untested, risking mischarged customers. Ask the author to add unit tests covering all FeeCalculator.Quote rules.",
+  "9": "Customer quote endpoints lack tests for account ownership checks, missing accounts, exchange rates, and ensuring quotes do not move money. Ask for tests exercising PaymentService.QuoteAsync and the quote endpoint.",
+  "10": "Nine changed fee components lack usable test evidence, leaving fee rates and bounds unverified before release. Check the test suite and ask the author for coverage on the new fee calculator setup and limits.",
+  "11": "Quotes show unrounded amounts and overdraft accounts skip the total-balance check, risking confusion and unintended lending. Verify PaymentService rounds credited amounts and enforces balance checks for amount plus fee.",
+  "12": "Because this payment and fee change carries high financial risk, automated checks alone are not enough. Complete a full human review of the changes and obtain two sign-offs before approving."
+ },
+ "142918d91b77be2b75decf44ab60543e544e533a235a07456763e2364977d24b": {
+  "headline": "Implements the Debit Cards module for card issuance, lifecycle management, and payment authorisation.",
+  "summary": "Adds the Cards module with API endpoints, CardService business logic, Card domain entity and events, database table, and DI registration. Customers can issue, freeze, unfreeze, and cancel their cards, while staff can authorise card payments against status, a 2000 per-transaction limit, and account funds via the ledger.",
+  "business": "Customers gain debit card issuance and self-service freeze, unfreeze, and cancellation controls with masked card numbers in responses. Staff can authorise card payments up to a fixed 2000 limit per transaction, rounding amounts away from zero and moving authorised funds into a Suspense account.",
+  "business_impact": "high",
+  "notes": {
+   "P:Bank.Data.BankDbContext.Cards": {
+    "changed": "Adds the Cards dataset to BankDbContext so debit card records persist in the database."
+   },
+   "M:Program.{Main}$(System.String[])": {
+    "changed": "Registers the Cards module services in the application host startup pipeline."
+   },
+   "M:Bank.Modules.Cards.CardsModule.AddCardsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+    "changed": "Registers CardService as the scoped implementation of ICardService."
+   },
+   "T:Bank.Modules.Cards.Domain.Card": {
+    "changed": "Defines the debit card entity holding account, customer, card number, last four digits, status, and transaction limit."
+   },
+   "M:Bank.Modules.Cards.Domain.Card.Freeze": {
+    "changed": "Moves a non-cancelled card to Frozen status and rejects attempts on cancelled cards."
+   },
+   "M:Bank.Modules.Cards.Domain.Card.Unfreeze": {
+    "changed": "Restores a non-cancelled card to Active status and rejects attempts on cancelled cards."
+   },
+   "M:Bank.Modules.Cards.Domain.Card.Cancel": {
+    "changed": "Permanently sets card status to Cancelled and rejects repeated cancellation."
+   },
+   "T:Bank.Modules.Cards.Domain.CardStatus": {
+    "changed": "Defines the Active, Frozen, and Cancelled states for a debit card."
+   },
+   "T:Bank.Modules.Cards.Domain.CardIssued": {
+    "changed": "Domain event emitted with card ID, customer ID, last four digits, and timestamp on issuance."
+   },
+   "T:Bank.Modules.Cards.Domain.CardPaymentAuthorised": {
+    "changed": "Domain event recording an approved payment's card ID, amount, currency, merchant, and timestamp."
+   },
+   "T:Bank.Modules.Cards.Domain.CardPaymentDeclined": {
+    "changed": "Domain event recording a declined payment's card ID, decline reason, and timestamp."
+   },
+   "T:Bank.Modules.Cards.Application.CardAuthorisation": {
+    "changed": "Response record indicating payment approval, optional decline reason, and optional ledger transfer ID."
+   },
+   "T:Bank.Modules.Cards.Application.ICardService": {
+    "changed": "Service contract for issuing, freezing, unfreezing, cancelling, and authorising payments on debit cards."
+   },
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Verifies account ownership, creates an active card with a 2000 limit, saves it, and publishes CardIssued."
+   },
+   "M:Bank.Modules.Cards.Application.CardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Verifies card ownership, freezes the card, and persists the updated status."
+   },
+   "M:Bank.Modules.Cards.Application.CardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Verifies card ownership, reactivates the card, and persists the updated status."
+   },
+   "M:Bank.Modules.Cards.Application.CardService.CancelAsync(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Verifies card ownership, permanently cancels the card, and persists the updated status."
+   },
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+    "changed": "Rounds positive amounts, declines inactive or over-limit cards with events, and posts a ledger transfer to Suspense under an account lock."
+   },
+   "M:Bank.Modules.Cards.Application.CardService.GetOwnedCardAsync(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Loads a card by ID and rejects callers who do not own it."
+   },
+   "M:Bank.Modules.Cards.Application.CardService.GenerateCardNumber": {
+    "changed": "Generates a 16-digit card number starting with 4 using random digits."
+   },
+   "T:Bank.Modules.Cards.Api.CardsController": {
+    "changed": "Provides HTTP endpoints for debit card issuance, status changes, and payment authorisation."
+   },
+   "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)": {
+    "changed": "Issues a debit card for the requested account and maps domain or ownership errors to HTTP status codes."
+   },
+   "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Freezes the requested card and returns its masked DTO representation."
+   },
+   "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Unfreezes the requested card and returns its masked DTO representation."
+   },
+   "M:Bank.Modules.Cards.Api.CardsController.Cancel(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Cancels the requested card and returns its masked DTO representation."
+   },
+   "M:Bank.Modules.Cards.Api.CardsController.Authorise(System.Guid,Bank.Modules.Cards.Api.AuthoriseCardRequest,System.Threading.CancellationToken)": {
+    "changed": "Staff-only endpoint that authorises a payment against a card and returns the authorisation result."
+   },
+   "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)": {
+    "changed": "Maps a Card entity to CardDto, returning only the last four digits instead of the full card number."
+   },
+   "T:Bank.Modules.Cards.Api.CardDto": {
+    "changed": "API output payload exposing card ID, account, customer, last four digits, status, and transaction limit."
+   },
+   "T:Bank.Modules.Cards.Api.IssueCardRequest": {
+    "changed": "API input payload containing the account ID for card issuance."
+   },
+   "T:Bank.Modules.Cards.Api.AuthoriseCardRequest": {
+    "changed": "API input payload containing the payment amount and merchant name for authorisation."
+   },
+   "endpoint:POST /api/cards": {
+    "changed": "HTTP endpoint to issue a debit card for an account."
+   },
+   "endpoint:POST /api/cards/{id:guid}/freeze": {
+    "changed": "HTTP endpoint to freeze an existing debit card."
+   },
+   "endpoint:POST /api/cards/{id:guid}/unfreeze": {
+    "changed": "HTTP endpoint to unfreeze a frozen debit card."
+   },
+   "endpoint:POST /api/cards/{id:guid}/cancel": {
+    "changed": "HTTP endpoint to permanently cancel a debit card."
+   },
+   "endpoint:POST /api/cards/{id:guid}/authorise": {
+    "changed": "Staff-protected HTTP endpoint to authorise a debit card payment."
+   },
+   "table:Cards": {
+    "changed": "New database table storing debit card identities, full and masked numbers, status, and transaction limits."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "Reached via CardService.AuthoriseAsync calling BankAccounts.For to resolve the currency-specific Suspense account."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Account currency is read during card payment authorisation and account fields are used by test setup."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "Customer role is referenced by the card module test setup."
+   },
+   "T:Bank.Modules.Audit.Application.AuditLog": {
+    "affected": "Reached by card tests verifying PII parameter redaction on full card numbers."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "Invoked via IAccountService to check account ownership during issuance and load account details during authorisation."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "Invoked via IEventBus when CardService publishes CardIssued and CardPaymentDeclined events."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "Invoked via ILedger when CardService.AuthoriseAsync posts payment transfers to Suspense."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "Default currency and transfer limit settings are referenced by card test helpers."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "Entry currency and payment reference are populated through Ledger.PostTransferAsync during card authorisation."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "Resolved via IEventHandler when card domain events are dispatched through the event bus."
+   }
+  },
+  "dropped": 0
+ },
+ "d25891a054e2a009b4614d5c22ca1525835b40ed9d02d2dd34a5d428546805e6": {
+  "0": "Staff and card-network payment authorisations will be rejected as forbidden because the controller requires both customer and staff permissions at once. Ask the author to move customer-only permissions onto individual endpoints.",
+  "1": "Payment authorisation requests from staff or card networks will fail with forbidden errors because callers are forced to hold both customer and staff roles. Verify permissions are separated per endpoint.",
+  "2": "Customers can now issue, freeze, unfreeze, and cancel debit cards, while staff can authorise payments up to 2,000 into suspense. Confirm these limits, rounding, and card masking match bank policy.",
+  "3": "In-memory locking leaks memory over time and fails to prevent double-spending across multiple server instances. Ask the author to rely on database and ledger transactions instead of in-memory locks in CardService.",
+  "4": "Storing an uncleaned lock per account in CardService causes memory usage to grow endlessly, risking service crashes during busy payment periods. Ask how locks will be evicted or removed.",
+  "5": "Using a predictable number generator could let attackers guess other customers' debit card numbers and steal funds. Ask the author to switch to a cryptographically secure random generator.",
+  "6": "Card HTTP endpoints have no tests, leaving routing, card-number masking, and access controls unverified for customers and staff. Ask the author to add endpoint tests covering permissions and responses.",
+  "7": "The negative-amount payment test accepts any error, so real bugs could slip into production unnoticed. Ask the author to assert the exact expected validation error in that test.",
+  "8": "Twelve changed methods, including card issuance, freeze, and unfreeze endpoints in CardsController, lack test evidence. Ask for test coverage proving customer actions and access rules behave safely.",
+  "9": "Authorisation permissions block staff from approving payments and the automated test suite failed to run. Check that endpoint permissions are fixed and confirm all tests pass before signing.",
+  "10": "This high-risk payment change requires a full code read and two human sign-offs before merging. Ensure a second reviewer completes a thorough check of the card and ledger flows."
+ },
+ "7ea0adf51e98c0e654867901f4287de2a812930f700e73a289bc1ef99fec5abd": {
+  "headline": "Adds the term deposits module supporting opening, maturing, and breaking 3, 6, or 12-month fixed-rate deposits.",
+  "summary": "Introduces the Deposits module with domain entities, application service, API controller, database table, and DI registration. Customers can lock at least 500 in whole cents for 3, 6, or 12 months at fixed rates or break early without interest. Staff can mature deposits once due, transferring principal and rounded simple interest via the ledger.",
+  "business": "Customers can lock funds of at least 500 for 3, 6, or 12 months at 2.0%, 2.5%, or 3.0% annual interest, or break early to recover principal only. Staff trigger payouts after maturity.",
+  "business_impact": "high",
+  "notes": {
+   "P:Bank.Data.BankDbContext.TermDeposits": {
+    "changed": "Exposes the TermDeposits database set on BankDbContext for persisting term deposit records."
+   },
+   "T:Bank.Modules.Deposits.Api.OpenDepositRequest": {
+    "changed": "Defines the API request payload carrying account ID, principal amount, and term in months."
+   },
+   "T:Bank.Modules.Deposits.Api.TermDepositDto": {
+    "changed": "Defines the API response representation of a term deposit's terms, timestamps, status, and interest paid."
+   },
+   "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)": {
+    "changed": "Accepts customer requests to open a deposit and maps authorization, validation, missing, and conflict errors to HTTP responses."
+   },
+   "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Allows staff to mature a deposit by ID and maps missing or invalid-state errors to HTTP responses."
+   },
+   "M:Bank.Modules.Deposits.Api.DepositsController.Break(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Allows customers to break a deposit early and maps authorization, missing, and conflict errors to HTTP responses."
+   },
+   "endpoint:POST /api/deposits": {
+    "changed": "Adds the customer-authorized endpoint for opening a new term deposit."
+   },
+   "endpoint:POST /api/deposits/{id:guid}/mature": {
+    "changed": "Adds the staff-authorized endpoint for maturing an open term deposit."
+   },
+   "endpoint:POST /api/deposits/{id:guid}/break": {
+    "changed": "Adds the customer-authorized endpoint for breaking an open term deposit early."
+   },
+   "T:Bank.Modules.Deposits.Application.IDepositService": {
+    "changed": "Defines the application service contract for opening, maturing, and breaking term deposits."
+   },
+   "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)": {
+    "changed": "Validates principal, whole cents, term rate, and account ownership, transfers principal to DepositHolding, saves the deposit, and publishes DepositOpened."
+   },
+   "M:Bank.Modules.Deposits.Application.DepositService.MatureAsync(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Locks the deposit, verifies open status and maturity date, pays principal and rounded simple interest via the ledger, and emits DepositClosed."
+   },
+   "M:Bank.Modules.Deposits.Application.DepositService.BreakAsync(System.Guid,System.Threading.CancellationToken)": {
+    "changed": "Locks the deposit, verifies caller ownership and open status, returns principal from DepositHolding without interest, and emits DepositClosed."
+   },
+   "M:Bank.Modules.Deposits.DepositsModule.AddDepositsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+    "changed": "Registers IDepositService with DepositService in the dependency injection container."
+   },
+   "T:Bank.Modules.Deposits.Domain.DepositStatus": {
+    "changed": "Defines the Open, Matured, and BrokenEarly lifecycle states for a term deposit."
+   },
+   "M:Bank.Modules.Deposits.Domain.TermDeposit.Mature(System.Decimal)": {
+    "changed": "Transitions an open deposit to Matured and records non-negative interest paid, rejecting other statuses or negative interest."
+   },
+   "M:Bank.Modules.Deposits.Domain.TermDeposit.BreakEarly": {
+    "changed": "Transitions an open deposit to BrokenEarly with zero interest paid, rejecting deposits that are not open."
+   },
+   "T:Bank.Modules.Deposits.Domain.DepositOpened": {
+    "changed": "Defines the domain event emitted when a term deposit is opened."
+   },
+   "T:Bank.Modules.Deposits.Domain.DepositClosed": {
+    "changed": "Defines the domain event emitted when a term deposit matures or is broken early."
+   },
+   "M:Program.{Main}$(System.String[])": {
+    "changed": "Registers the Deposits module services in the application startup pipeline."
+   },
+   "table:TermDeposits": {
+    "changed": "Adds the TermDeposits table storing customer, account, principal, currency, term, rate, timestamps, status, and interest paid."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "BankAccounts.For() is called by DepositService.OpenAsync(), MatureAsync(), and BreakAsync() to resolve DepositHolding and InterestExpense accounts."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Account.Currency is read by DepositService.OpenAsync() to set deposit currency, and Account fields are used by TestKit.Account()."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "Roles.Customer is used by DepositTests.CreateSut() when setting up test authorization context."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "AccountService.IsOwnerAsync() and GetAsync() are resolved via IAccountService to verify account ownership and retrieve account currency in DepositService.OpenAsync()."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "Ledger.PostTransferAsync() is resolved via ILedger to move principal and interest between customer and internal accounts during deposit lifecycle operations."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "InMemoryEventBus.PublishAsync() is resolved via IEventBus to publish DepositOpened and DepositClosed domain events."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "BankSettings.DefaultCurrency and DailyTransferLimit are used via TestKit.Settings() in test setup."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "LedgerEntry.Currency and Reference are used through Ledger.PostTransferAsync() when recording deposit transfers."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "AuditEventHandler.HandleAsync() is reached via IEventHandler.HandleAsync() when deposit domain events are published."
+   }
+  },
+  "dropped": 0
+ },
+ "b73971b634a51a5600e7bea7494ee534a1ff5634e60853f10ff69ee5066571b6": {
+  "0": "Staff without customer credentials cannot trigger term deposit payouts after maturity, leaving customers waiting for their money. Ask the author to move the customer restriction off the DepositsController class onto customer-only actions.",
+  "1": "Staff cannot mature deposits and pay out customer funds because DepositsController stacks customer and staff permissions together. Ask the author to separate the policies per endpoint so staff-only access works.",
+  "2": "This change handles customer funds of 500 or more, fixed interest payouts, and early breaks. Verify the interest math, principal handling, and maturity payout rules against bank policy before signing off.",
+  "3": "Because DepositsController combines customer and staff access rules, staff cannot mature deposits for customers. Check the endpoint permissions and ask for the customer-level restriction to be moved to individual endpoints.",
+  "4": "Locking entries in DepositLocks are never cleaned up, which can slowly exhaust server memory and disrupt deposit services. Ask the author to add cleanup or a bounded cache for these locks.",
+  "5": "Uncleaned lock entries in DepositLocks pile up even for invalid deposit requests, risking server slowdown or downtime for customers. Ask the author to remove finished locks or bound the collection.",
+  "6": "DepositLocks keeps a lock in memory forever for every matured or broken deposit, risking outages over time. Ask how locks will be evicted once deposit processing finishes.",
+  "7": "DepositsController endpoints and access rules have no automated tests, leaving staff payouts and customer protections unverified. Ask for endpoint tests covering both allowed and forbidden user roles.",
+  "8": "Multi-currency deposits are untested, so interest payouts and holding accounts in non-EUR currencies could route money incorrectly. Ask for tests covering non-EUR deposits from opening through maturity and early break.",
+  "9": "There is no automated proof that only staff can trigger deposit payouts, risking unauthorized payouts or blocked operations. Ask for tests verifying that non-staff callers are rejected on maturity.",
+  "10": "Four DepositsController endpoints and constructor have no test evidence, meaning HTTP routing and access checks could fail in production. Ask for integration tests exercising all deposit endpoints.",
+  "11": "The HTTP layer in DepositsController blocks staff from maturing deposits unless they also hold customer access. Check how endpoint permissions match the requirement and ask for a fix and confirmation.",
+  "12": "This is a high-risk financial change handling locked savings and interest payouts. Perform a full read of the deposit code and ensure two human sign-offs are recorded before merging."
+ },
+ "309016bbd38eefdfe4c5686460c2a086c6e3501fea00fa06b88a850499f8f660": {
+  "headline": "Add Loans module for customer loan applications, annuity calculation, and officer approval or rejection.",
+  "summary": "Introduces the Bank.Modules.Loans module with API endpoints, application service logic, domain entity, and database persistence for fixed-rate loans. Customers can apply for and view their loans, while loan officers can inspect, approve, and reject applications with ledger disbursement and event notifications.",
+  "business": "Customers can apply for 6 to 120 month loans between 1000 and 50000 at a fixed 5.5% annual rate and receive decision notifications. Loan officers can review, approve with automatic principal disbursement to the customer account, or reject applications with a reason.",
+  "business_impact": "high",
+  "notes": {
+   "P:Bank.Data.BankDbContext.Loans": {
+    "changed": "Adds the Loans DbSet to BankDbContext so loan records can be queried and saved."
+   },
+   "T:Bank.Modules.Loans.Api.LoansController": {
+    "changed": "Adds HTTP endpoints for customers to submit and view loans and for loan officers to approve or reject them."
+   },
+   "endpoint:POST /api/loans": {
+    "changed": "Submits a new loan application for the current user and returns BadRequest or Forbid on validation or ownership errors."
+   },
+   "endpoint:POST /api/loans/{id:guid}/approve": {
+    "changed": "Requires the LoanOfficer policy, reads an optional approval note, and approves the loan."
+   },
+   "endpoint:POST /api/loans/{id:guid}/reject": {
+    "changed": "Requires the LoanOfficer policy, reads the rejection reason from the body, and rejects the loan."
+   },
+   "T:Bank.Modules.Loans.Api.ApplyLoanRequest": {
+    "changed": "Defines the request payload carrying disbursement account id, principal, and term months."
+   },
+   "T:Bank.Modules.Loans.Api.ApproveLoanRequest": {
+    "changed": "Defines the optional approval note payload for approving a loan."
+   },
+   "T:Bank.Modules.Loans.Api.RejectLoanRequest": {
+    "changed": "Defines the payload carrying the rejection reason for rejecting a loan."
+   },
+   "T:Bank.Modules.Loans.Api.LoanDto": {
+    "changed": "Defines the API response representation of a loan, including rate, monthly payment, status, and decision details."
+   },
+   "T:Bank.Modules.Loans.Application.LoanApplication": {
+    "changed": "Defines the application input carrying disbursement account id, principal, and term months."
+   },
+   "T:Bank.Modules.Loans.Application.ILoanService": {
+    "changed": "Declares loan application, lookup, approval, and rejection operations."
+   },
+   "T:Bank.Modules.Loans.Domain.LoanStatus": {
+    "changed": "Defines the Submitted, Rejected, and Disbursed states for a loan."
+   },
+   "T:Bank.Modules.Loans.Domain.Loan": {
+    "changed": "Represents a loan entity with a private-set status that starts Submitted and transitions only through Approve and Reject."
+   },
+   "T:Bank.Modules.Loans.Domain.LoanSubmitted": {
+    "changed": "Defines the domain event raised when a loan application is submitted."
+   },
+   "T:Bank.Modules.Loans.Domain.LoanApproved": {
+    "changed": "Defines the domain event raised when a loan is approved."
+   },
+   "T:Bank.Modules.Loans.Domain.LoanRejected": {
+    "changed": "Defines the domain event raised when a loan is rejected."
+   },
+   "M:Program.{Main}$(System.String[])": {
+    "changed": "Wires the Loans module into the application startup."
+   },
+   "table:Loans": {
+    "changed": "Adds the Loans database table storing loan terms, rate, monthly payment, status, and decision metadata."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "Referenced for authorization checks via LoanService.GetAsync and tests covering Customer, LoanOfficer, and Teller role rules."
+   },
+   "T:Bank.Modules.Auth.Application.CurrentUser": {
+    "affected": "Checked through ICurrentUser.IsInRole and UserId to enforce ownership and loan officer permissions."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "Called via IAccountService.IsOwnerAsync during application and GetAsync during approval to verify ownership and resolve account currency."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Provides account currency during LoanService.ApproveAsync disbursement and is used in loan approval tests."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "Called via BankAccounts.For in LoanService.ApproveAsync to resolve the LoanFunding source account for the disbursement currency."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "Invoked via ILedger.PostTransferAsync in LoanService.ApproveAsync to transfer loan principal to the customer account."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "Created indirectly when Ledger.PostTransferAsync records the loan disbursement transfer currency and reference."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "Invoked via IEventBus.PublishAsync to dispatch LoanSubmitted and LoanRejected domain events."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "Reached via IEventHandler.HandleAsync when published loan domain events trigger audit handling."
+   },
+   "T:Bank.Modules.Notifications.Application.LogNotifier": {
+    "affected": "Invoked via INotifier.NotifyAsync in LoanService.RejectAsync to notify the customer of rejection."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "Used by TestKit.Settings during loan test setup for default currency and daily transfer limit."
+   }
+  },
+  "dropped": 11
+ },
+ "564d14bebf83e517d57613942e89449c4dbb2eae758bb8ea6ad6870be16b7216": {
+  "0": "Loan officers can approve their own loans and disburse bank funds to themselves, violating four-eyes controls. Ask the author to block self-approval in LoanService.ApproveAsync before sign-off.",
+  "1": "A loan officer with a customer account can self-approve a loan and trigger unauthorized payout. Verify LoanService.ApproveAsync rejects approvals where the officer matches the borrower.",
+  "2": "Two automated tests fail, showing missing authorization checks and duplicate money transfers. Do not sign off until all failing tests are fixed and passing.",
+  "3": "Customers can borrow 1,000 to 50,000 at 5.5% for 6 to 120 months with automated payout. Carefully verify all lending, disbursement, and notification rules given the financial risk.",
+  "4": "Loan officers without customer permissions will be blocked from approving or rejecting loans. Ask the author to remove the class-level customer policy on LoansController so staff can review applications.",
+  "5": "Memory will leak over time as loans accumulate, and locks will fail across multiple servers, risking double payouts. Ask for database-level concurrency control instead of LoanLocks.",
+  "6": "Staff who are only loan officers will get access-denied errors when approving or rejecting loans. Ask the author to move the customer policy off the LoansController class to customer endpoints only.",
+  "7": "Every approved or rejected loan permanently holds memory in LoanLocks, which can eventually crash the service. Ask the author to clean up or replace this static lock storage.",
+  "8": "Unbounded memory growth from LoanLocks will steadily degrade service stability in production. Confirm with the author how lock entries will be evicted or replaced with database locking.",
+  "9": "None of the loan web endpoints or error status responses are tested, risking broken customer or staff requests. Ask for integration tests covering LoansController endpoints and error codes.",
+  "10": "Invalid loan status transitions are not tested directly on the loan record, leaving state rules unverified. Ask for unit tests confirming invalid Loan approvals and rejections are blocked.",
+  "11": "The rounding test does not check half-cent values, so incorrect rounding could miscalculate customer monthly payments. Ask for a test case whose exact payment ends in half a cent.",
+  "12": "Eighteen changed methods lack test coverage, including LoansController endpoints, leaving customer application and lookup behavior unverified. Ask for tests covering these methods before approval.",
+  "13": "The core four-eyes rule is missing in LoanService.ApproveAsync, letting officers approve their own loans and failing tests. Confirm this validation is added and all requirements pass before signing.",
+  "14": "Because this change carries high financial risk, a full human review of the code and two sign-offs are required. Ensure a second qualified reviewer signs off alongside you."
+ },
+ "390a244c7089c1366e009972be92e9193f2fdcb2df75ced0290bfc9d1fc58a02": {
+  "headline": "Adds monthly UTC account statements API and service",
+  "summary": "Introduces the Statements module with an HTTP endpoint and StatementService to compute read-only monthly account statements in UTC. Statements calculate opening balance, chronological ledger lines with running balances, and closing balance, restricted to the account owner or staff roles.",
+  "business": "Customers and authorized staff can now retrieve monthly account statements showing opening balance, chronological transactions, and closing balance in the account currency. Statement access is limited to account owners or staff, and balances round to two decimal places away from zero.",
+  "business_impact": "medium",
+  "notes": {
+   "F:Bank.Modules.Statements.Api.StatementsController._statements": {
+    "changed": "Holds the injected statement service used to generate monthly statements."
+   },
+   "P:Bank.Modules.Statements.Application.StatementLine.At": {
+    "changed": "Records the UTC timestamp of the ledger entry on the statement line."
+   },
+   "P:Bank.Modules.Statements.Application.StatementLine.Amount": {
+    "changed": "Holds the ledger entry amount rounded to two decimal places."
+   },
+   "P:Bank.Modules.Statements.Application.StatementLine.BalanceAfter": {
+    "changed": "Holds the running account balance immediately after applying this entry."
+   },
+   "P:Bank.Modules.Statements.Application.StatementLine.Reference": {
+    "changed": "Carries the reference text from the underlying ledger entry."
+   },
+   "P:Bank.Modules.Statements.Application.Statement.AccountId": {
+    "changed": "Identifies the account the monthly statement belongs to."
+   },
+   "P:Bank.Modules.Statements.Application.Statement.Year": {
+    "changed": "Specifies the four-digit calendar year of the statement."
+   },
+   "P:Bank.Modules.Statements.Application.Statement.Month": {
+    "changed": "Specifies the calendar month from 1 to 12 of the statement."
+   },
+   "P:Bank.Modules.Statements.Application.Statement.Currency": {
+    "changed": "Reflects the currency of the target account."
+   },
+   "P:Bank.Modules.Statements.Application.Statement.OpeningBalance": {
+    "changed": "Holds the sum of ledger entries strictly before the month start, rounded to two decimals."
+   },
+   "P:Bank.Modules.Statements.Application.Statement.ClosingBalance": {
+    "changed": "Holds the opening balance plus the sum of month line amounts, rounded to two decimals."
+   },
+   "P:Bank.Modules.Statements.Application.Statement.Lines": {
+    "changed": "Contains the chronological list of statement lines within the UTC month."
+   },
+   "M:Bank.Modules.Statements.Application.StatementService.IsStaff": {
+    "changed": "Checks whether the current user holds the Teller, LoanOfficer, ComplianceOfficer, or Admin role."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "Reached via IAccountService.GetAsync and IsOwnerAsync when StatementService loads the account and checks ownership."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Account.Currency is read by StatementService.ForMonthAsync, while OwnerId, Iban, and Id are used by test setup."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "Reached via ILedger.EntriesAsync and PostTransferAsync when StatementService queries entries and tests post transfers."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "LedgerEntry.Reference is read by StatementService.ForMonthAsync, and LedgerEntry.Currency is used via Ledger.PostTransferAsync."
+   },
+   "T:Bank.Modules.Auth.Application.CurrentUser": {
+    "affected": "Reached via ICurrentUser.IsInRole when StatementService enforces staff or owner authorization."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "Teller, LoanOfficer, ComplianceOfficer, and Admin constants are checked by StatementService.IsStaff for statement access."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "Reached via BankAccounts.For when statement tests initialize ledger accounts."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "DefaultCurrency and DailyTransferLimit are used via TestKit.Settings during statement test setup."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "Reached via IEventBus.PublishAsync when ledger transfers publish events during statement test runs."
+   }
+  },
+  "dropped": 10
+ },
+ "a91a545119d2c48389d9e8b239498471f566c9ae3d98dfaba9cfbb7fa6fa5018": {
+  "0": "Midnight UTC transactions on the first of a month appear in wrong-month statements and opening balances, distorting customer figures. Ask the author to fix StatementService to exclude exact month-end boundaries.",
+  "1": "Without API tests, unauthorized callers might access customer statements or receive wrong error responses. Ask for tests on StatementsController covering routing, login enforcement, and error status codes.",
+  "2": "A statement test trusts whatever transaction order the service returns, which could hide misordered entries with identical timestamps from customers and staff. Ask the author to assert the exact expected sequence.",
+  "3": "Five new methods covering statement setup and web requests have no test evidence, risking undetected runtime failures for customers and staff. Ask the author to add test coverage before merging.",
+  "4": "Customer statements will misreport balances around midnight UTC month boundaries because upper date limits are inclusive. Verify that StatementService excludes exact boundary timestamps from both opening balances and statement lines.",
+  "5": "Because this change affects customer financial statements and balances, it carries high risk for money and compliance. Perform a full manual review and ensure two authorized reviewers sign off."
+ },
+ "7fd4c3880486468ce2f8e2036bc5eb221660f62159035554360642c438a685d8": {
+  "headline": "Update BankSettings default currency to SEK and daily transfer limit to 5,000 EUR",
+  "summary": "Changes BankSettings.DefaultCurrency from EUR to SEK and halves BankSettings.DailyTransferLimit from 10,000 to 5,000 EUR equivalent. Account opening, payments, and related launch verification paths consume these updated settings.",
+  "business": "New accounts opened without an explicit currency now default to SEK instead of EUR. All customers face a halved daily transfer limit of 5,000 EUR equivalent.",
+  "business_impact": "high",
+  "notes": {
+   "T:Bank.Shared.Settings.BankSettings": {
+    "changed": "Updates the shared bank configuration defaults for the Swedish launch by changing the default currency to SEK and lowering the daily transfer limit.",
+    "affected": "SupportedCurrencies is verified by LaunchSettingsTests alongside the updated settings to confirm EUR, SEK, and USD remain supported."
+   },
+   "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+    "changed": "Default currency changes from EUR to SEK, so new accounts created without an explicit currency now default to SEK."
+   },
+   "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+    "changed": "Daily transfer limit decreases from 10,000 to 5,000 EUR equivalent for all customer transfers."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "OpenAsync reads BankSettings.DefaultCurrency when creating accounts without a currency. IsOwnerAsync, GetAsync, and ForOwnerAsync are exercised by the new SEK default account tests."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentService": {
+    "affected": "PayAsync reads BankSettings.DailyTransferLimit to enforce the reduced 5,000 EUR equivalent daily cap on outgoing transfers."
+   },
+   "T:Bank.Modules.Accounts.Api.AccountsController": {
+    "affected": "Open delegates account creation to IAccountService.OpenAsync, so requests omitting a currency now open SEK accounts."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentsController": {
+    "affected": "Pay delegates transfer execution to IPaymentService.PayAsync, enforcing the lowered 5,000 EUR daily transfer limit."
+   },
+   "T:Bank.Modules.Auth.Roles": {
+    "affected": "Roles.Customer is used by LaunchSettingsTests when verifying that customer account opening defaults to SEK."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Currency, OwnerId, Kind, and Id are inspected in LaunchSettingsTests to confirm default-currency accounts are created in SEK."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "BankAccounts.For is called by LaunchSettingsTests when verifying SEK transactions and EUR rejection on default SEK accounts."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "PostTransferAsync is resolved through ILedger during account and payment flows affected by the SEK default and transfer limit."
+   },
+   "T:Bank.Modules.Customers.Application.KycAccountOpeningRule": {
+    "affected": "EnsureMayOpenAsync is resolved via IAccountOpeningRule during account opening flows affected by the SEK default currency."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "PublishAsync is resolved via IEventBus during flows triggered by the updated default currency and transfer limit."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "Currency and Reference are used by Ledger.PostTransferAsync in transfer flows affected by the updated SEK default and limit."
+   },
+   "T:Bank.Modules.Customers.Domain.Customer": {
+    "affected": "Id and Status are used by KycAccountOpeningRule.EnsureMayOpenAsync during account opening flows using the updated default currency."
+   }
+  },
+  "dropped": 0
+ },
+ "e6cec4f065f75c0420329ddb3e0c2591a0184c4afbe23eea16044e53f77d993c": {
+  "0": "Without real transfer tests, customers could bypass the new 5,000 EUR daily limit and breach compliance rules. Ask the author to add behavioral tests covering exact 5,000.00 and over-limit transfers.",
+  "1": "The unsupported-currency test accepts any crash instead of a proper business rejection, potentially hiding bugs during account opening. Ask to assert the specific validation error in Customer_opening_account_with_unsupported_currency_is_rejected.",
+  "2": "The test suite is currently failing, meaning unrelated customer features or existing rules may be broken. Check the failing test results and ask the author to fix them before signing.",
+  "3": "This change affects critical bank settings and is rated high risk, meaning customer accounts and money flows are impacted. Perform a full line-by-line review and ensure two sign-offs are recorded.",
+  "4": "New customer accounts without a chosen currency will now default to SEK instead of EUR. Confirm this matches the Swedish launch plan and verify customer-facing defaults are accurate.",
+  "5": "All customers will be capped at 5,000 EUR equivalent in daily outgoing payments instead of 10,000 EUR. Confirm this tighter limit is approved for all customers and support teams are notified."
+ },
+ "4a6764b607363e1484cc743aed7b685eb63d87b8276485180d91732a57f10b56": {
+  "headline": "Centralize cent rounding in shared MoneyMath.ToCents across Fx, Fees, Deposits, and Loans",
+  "summary": "Introduces Bank.Shared.Money.MoneyMath.ToCents to round monetary amounts to two decimal places using midpoint away-from-zero. Replaces inline decimal.Round and Math.Round calls across DepositService, FeeCalculator, FxService, and LoanService at the same calculation steps.",
+  "business": "No user-visible change (structural).",
+  "business_impact": "none",
+  "notes": {
+   "T:Bank.Shared.Money.MoneyMath": {
+    "changed": "Added shared helper class providing centralized cent rounding for monetary amounts."
+   },
+   "T:Bank.Modules.Deposits.Application.DepositService": {
+    "changed": "Updated term deposit validation and interest calculation to use the shared cent-rounding helper."
+   },
+   "T:Bank.Modules.Fees.Application.FeeCalculator": {
+    "changed": "Updated FX fee quote calculation to round fee and bounds through MoneyMath.ToCents."
+   },
+   "T:Bank.Modules.Fx.Application.FxService": {
+    "changed": "Updated currency conversion to round the converted result via MoneyMath.ToCents.",
+    "affected": "NormalizeAndValidate and FromEur are called inside FxService.Convert before rounding the result with MoneyMath.ToCents."
+   },
+   "T:Bank.Modules.Loans.Application.LoanService": {
+    "changed": "Updated loan principal validation and monthly annuity calculation to use MoneyMath.ToCents."
+   },
+   "T:Bank.Modules.Deposits.Api.DepositsController": {
+    "affected": "Calls IDepositService.OpenAsync and MatureAsync, whose principal validation and interest rounding now use MoneyMath.ToCents."
+   },
+   "T:Bank.Modules.Payments.Application.PaymentService": {
+    "affected": "QuoteAsync and PayAsync call IFeeCalculator.Quote, which now rounds fee amounts and bounds via MoneyMath.ToCents."
+   },
+   "T:Bank.Modules.Loans.Api.LoansController": {
+    "affected": "Apply endpoint calls ILoanService.ApplyAsync, which validates whole-cent principal and rounds annuities via MoneyMath.ToCents."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentsController": {
+    "affected": "Quote and Pay endpoints call IPaymentService, reaching FeeCalculator.Quote where fees round via MoneyMath.ToCents."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "BankAccounts.For is called by DepositService.OpenAsync after principal whole-cent validation via MoneyMath.ToCents."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Account properties Currency, Id, and OwnerId are read during DepositService.OpenAsync and ownership checks."
+   },
+   "T:Bank.Modules.Deposits.Domain.TermDeposit": {
+    "affected": "TermDeposit properties and Mature are used by DepositService.OpenAsync and MatureAsync around MoneyMath.ToCents rounding."
+   },
+   "T:Bank.Modules.Loans.Domain.Loan": {
+    "affected": "Loan.Id and CustomerId are populated in LoanService.ApplyAsync alongside MoneyMath.ToCents validation and annuity rounding."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "IsOwnerAsync and GetAsync are resolved via IAccountService during DepositService.OpenAsync after whole-cent validation."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "PostTransferAsync is resolved via ILedger when DepositService posts principal and MoneyMath.ToCents-rounded interest."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "PublishAsync is resolved via IEventBus during DepositService and LoanService flows after MoneyMath.ToCents rounding."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "Currency and Reference properties are used by Ledger.PostTransferAsync during deposit opening and interest payouts."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "HandleAsync is resolved via IEventHandler when DepositService and LoanService publish domain events."
+   }
+  },
+  "dropped": 9
+ },
+ "085ba6c3270fe9d90772c4ab726895a426d1af837911fdac02654762e9c182bb": {
+  "0": "Changes in DepositService and FeeCalculator have no test evidence, risking wrong customer fees or deposit amounts. Ask for tests proving their outputs still match pre-change cent values.",
+  "1": "Because rounding affects customer balances, fees, and loans, this high-risk change requires a full human read. Verify all rounding steps remain unchanged and ensure two sign-offs are recorded."
+ },
+ "617defbe11201ca49acb33a958f1c95709376b4736855b2ec91e78fdf894955a": {
+  "headline": "Enforce database uniqueness and per-key locking for idempotent payments",
+  "summary": "BankDbContext makes the composite index on Payment(CustomerId, IdempotencyKey) unique. PaymentService adds per-key and SQLite write semaphores, extracts execution into ExecuteIdempotentPaymentAsync with refreshed account state, and adds helpers to detach dirty entries and detect idempotency unique constraint violations.",
+  "business": "Customers retrying timed-out payments or sending concurrent identical requests with the same idempotency key are not charged twice and receive the original payment, while keys remain isolated per customer.",
+  "business_impact": "high",
+  "notes": {
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)": {
+    "changed": "Marks the Payment composite index on CustomerId and IdempotencyKey as unique so the database rejects duplicate keys per customer."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentService.IdempotencyLocks": {
+    "changed": "Holds per-customer, per-idempotency-key semaphores to serialize concurrent payment requests sharing the same key."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentService.SqliteFileWriteLocks": {
+    "changed": "Holds per-data-source semaphores to serialize writes across concurrent requests on file-based SQLite databases."
+   },
+   "F:Bank.Modules.Payments.Application.PaymentService.SqliteConnectionWriteLocks": {
+    "changed": "Weakly maps SQLite connections to write semaphores for in-memory or unnamed database connections."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+    "changed": "Queries existing payments without tracking, serializes same-key requests using a key lock and SQLite write lock, and delegates to ExecuteIdempotentPaymentAsync."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)": {
+    "changed": "Visible query body is unchanged, fetching a customer's payments ordered newest first."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)": {
+    "changed": "Re-checks for an existing payment, refreshes account balance and overdraft state, computes FX and fees, and runs within a relational transaction."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.GetSqliteWriteLock": {
+    "changed": "Selects a connection- or file-scoped write lock when using relational SQLite without an active transaction."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.DetachDirtyEntries": {
+    "changed": "Detaches all added, modified, and deleted entries from the database change tracker."
+   },
+   "M:Bank.Modules.Payments.Application.PaymentService.IsIdempotencyUniqueConstraintViolation(Microsoft.EntityFrameworkCore.DbUpdateException)": {
+    "changed": "Checks SQLite error codes and exception messages to identify unique constraint failures on CustomerId and IdempotencyKey."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentsController": {
+    "affected": "Calls IPaymentService.PayAsync() and IPaymentService.ForCustomerAsync(), so API endpoints inherit the updated idempotency locking and duplicate-handling behavior."
+   },
+   "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+    "affected": "Reached by BankDbContext.OnModelCreating() via BankAccounts.For() and BankAccounts.Currencies during model configuration."
+   },
+   "T:Bank.Modules.Accounts.Domain.Account": {
+    "affected": "Reached by BankDbContext.OnModelCreating() when configuring seeded bank account properties including Id, OwnerId, Iban, and Currency."
+   },
+   "T:Bank.Modules.Payments.Domain.Payment": {
+    "affected": "CustomerId and IdempotencyKey gain a unique index in BankDbContext.OnModelCreating(), and PaymentService.PayAsync() uses Id and Currency."
+   },
+   "T:Bank.Shared.Settings.BankSettings": {
+    "affected": "Reached by PaymentService.ExecuteIdempotentPaymentAsync() through DailyTransferLimit during payment validation."
+   },
+   "T:Bank.Modules.Accounts.Application.AccountService": {
+    "affected": "Reached by PaymentService via IAccountService.GetAsync() and IAccountService.IsOwnerAsync() to fetch accounts and verify ownership."
+   },
+   "T:Bank.Shared.Events.InMemoryEventBus": {
+    "affected": "Reached via IEventBus.PublishAsync() when PaymentService publishes payment events."
+   },
+   "T:Bank.Modules.Fx.Application.FxService": {
+    "affected": "Reached by ExecuteIdempotentPaymentAsync() via IFxService.Rate() and IFxService.Convert(), which call NormalizeAndValidate() and FromEur()."
+   },
+   "T:Bank.Modules.Fees.Application.FeeCalculator": {
+    "affected": "Reached by PaymentService.ExecuteIdempotentPaymentAsync() via IFeeCalculator.Quote() when calculating transfer fees."
+   },
+   "T:Bank.Modules.Ledger.Application.Ledger": {
+    "affected": "Reached via ILedger.PostTransferAsync() during payment execution to post ledger transfers."
+   },
+   "T:Bank.Shared.Money.MoneyMath": {
+    "affected": "Reached indirectly via FxService.Convert() calling MoneyMath.ToCents() during payment currency conversion."
+   },
+   "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+    "affected": "Reached via Ledger.PostTransferAsync() using Currency and Reference when recording payment transfers."
+   },
+   "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+    "affected": "Reached via IEventHandler.HandleAsync() when payment events are published through the event bus."
+   }
+  },
+  "dropped": 0
+ },
+ "b8ed10d9ef6b7c8fad5058a585171f31b64f1fab9a4b2b8670b91e1952ccfe70": {
+  "0": "Customers' payments stay stuck on hold even after money moves, causing reconciliation errors and failed-looking payments. Ask the author to mark the payment completed once transfers succeed and save that final state.",
+  "1": "Concurrent retries can crash with an unhandled error instead of returning the original payment while the first request is still finishing. Ask the author to wait or re-query after the winning transaction commits.",
+  "2": "Correct idempotency stops customers from being double-charged on mobile retries while keeping keys separate per customer. Verify that retries return the exact original payment without moving money twice.",
+  "3": "Storing per-key locks in memory forever will eventually crash the payment server and fails to block duplicates across multiple servers. Ask the author to remove the static lock dictionary and rely on database constraints.",
+  "4": "Embedding SQLite-specific locking inside PaymentService makes production database changes risky and harder for staff to maintain. Ask the author to remove provider-specific locks and let standard database transactions handle concurrency.",
+  "5": "Keeping a lock object for every payment key ever seen will slowly exhaust server memory and cause outages. Ask the author to remove this static dictionary or ensure entries are reliably evicted.",
+  "6": "Never cleaning up per-key locks in IdempotencyLocks will steadily consume memory until the payment service crashes. Ask the author to remove this in-memory cache or evict entries once processing finishes.",
+  "7": "Tying payment business logic to SQLite connection internals risks subtle failures when running on a real bank database. Ask the author to move concurrency control out of PaymentService into standard transaction handling.",
+  "8": "Caching a lock for every payment key without expiration will cause memory to grow until the service fails under traffic. Ask the author to remove the static cache or add strict eviction.",
+  "9": "Checking the database twice for the same existing payment slows down every payment and adds unnecessary database load. Ask the author to remove the duplicate lookup in PaymentService.",
+  "10": "Reading the customer's account balance twice in a row slows payments and adds needless database load. Ask the author to fetch the account balance and overdraft setting in a single query.",
+  "11": "Customers sending many unique idempotency keys could exhaust server memory and take down payments for everyone. Ask the author to remove the unbounded in-memory lock dictionary or enforce strict cleanup.",
+  "12": "The database index configuration and new SQLite locking paths lack passing test evidence, risking undetected production bugs. Ask the author to add and run tests covering these changed areas.",
+  "13": "Tests are currently failing, payments stay stuck on hold, and concurrent retries crash instead of returning the original payment. Do not approve until tests pass and both payment completion and concurrency handling are fixed.",
+  "14": "This high-risk payment change can directly impact customer money and double-charging protection. Perform a full line-by-line review and ensure two authorized reviewers sign off before merging.",
+  "15": "Flaws in idempotency keys or memory growth could let attackers exhaust server memory or bypass duplicate-payment protections. Check that customer identity always comes from the authenticated user and memory cannot grow unboundedly."
+ },
+ "6691c01e6f7ebf0578d8c007f9897f9610391e076960688e5ca52fba0f7c8e4e": {
+  "headline": "Add compliance review workflow and endpoints for held payments",
+  "summary": "Adds a compliance review service, controller endpoints, and domain events to list, release, or reject held payments. Also injects customer notification support and a hold threshold into payment processing, alongside updated hold and reject transitions on the payment entity.",
+  "business": "Compliance officers gain dedicated endpoints to inspect held payments and release or reject others' payments with a mandatory rejection reason. Customers are notified during payment workflows, and payments reaching the hold threshold require compliance review before completion.",
+  "business_impact": "high",
+  "notes": {
+   "T:Bank.Modules.Payments.Api.RejectPaymentRequest": {
+    "changed": "Adds request payload carrying an optional rejection reason string for rejecting a held payment."
+   },
+   "T:Bank.Modules.Payments.Api.PaymentsController": {
+    "changed": "Injects the payment review service and exposes compliance-only endpoints to list, release, and reject held payments."
+   },
+   "F:Bank.Modules.Payments.Api.PaymentsController._review": {
+    "changed": "Stores the injected payment review service used by the new compliance endpoints."
+   }
+  },
+  "dropped": 2
+ },
+ "b14ee12de4ccafb0130f4a7bebbf1b220723640ce8a5295073956b8ad6d11b0d": {
+  "0": "Compliance staff without customer permissions will be blocked with 403 errors on held, release, and reject endpoints. Ask the author to fix the authorization policy on PaymentsController.",
+  "1": "Releasing a held payment debits the customer account a second time instead of using the Suspense account. Ask the author to change ReleaseAsync to transfer funds from Suspense.",
+  "2": "Rejecting a held payment leaves the customer's money stranded in Suspense with no refund. Ask the author to add the Suspense-to-payer refund transfer in RejectAsync.",
+  "3": "Every payment is temporarily saved as held even when no review is needed, risking wrong statuses for customers if something fails. Ask the author to evaluate hold rules before calling Payment.Hold().",
+  "4": "When a payment is held, money stays in the customer's account instead of moving to Suspense, so it could still be spent. Ask the author to transfer amount plus fee to Suspense upon hold.",
+  "5": "Releasing a held payment tries to debit the customer again while leaving money stuck in Suspense. Ask the author to update ReleaseAsync so it pays out from the Suspense account.",
+  "6": "Rejecting a held payment never returns sequestered funds from Suspense back to the customer. Ask the author to post the refund transfer in RejectAsync when a payment is rejected.",
+  "7": "Held payments skip reserving funds in Suspense, letting customers withdraw or spend money during compliance review. Ask the author to post the transfer to Suspense when a payment is held in PaymentService.",
+  "8": "This change adds high-impact fraud controls affecting customer notifications, compliance reviews, and money flows. Verify that compliance staff workflows, rejection reasons, and the 5,000 EUR hold threshold match bank policy.",
+  "9": "Compliance officers will get 403 errors because the controller requires both customer and compliance permissions together. Ask the author to separate compliance endpoints or remove the class-level customer restriction on PaymentsController.",
+  "10": "A lock entry is created for every payment and never removed, slowly leaking memory in long-running services. Ask the author to clean up or bound the PaymentLocks cache after review completes.",
+  "11": "Releasing a payment debits the customer's account directly instead of Suspense, risking double charges or failed payouts. Ask the author to source both amount and fee from Suspense in ReleaseAsync.",
+  "12": "Rejected payments change status without returning held money from Suspense, leaving customers out of pocket. Ask the author to refund amount plus fee from Suspense to the payer in RejectAsync.",
+  "13": "Held payments do not move money into Suspense, breaking the bank's fraud-hold protection. Ask the author to transfer amount plus fee from the payer to Suspense whenever a payment is held.",
+  "14": "Reading the request body manually bypasses standard validation and adds unnecessary maintenance risk for staff. Ask the author to replace ReadOptionalJsonBodyAsync with standard ASP.NET Core model binding.",
+  "15": "Normal payments are briefly stored as held before checking the rules, distorting payment history and adding database load. Ask the author to only transition status to held after confirming hold criteria apply.",
+  "16": "Storing a permanent lock object per reviewed payment will steadily consume server memory over time. Ask the author to remove entries after use or use a bounded locking mechanism in PaymentLocks.",
+  "17": "Compliance staff cannot access review endpoints unless they also hold a customer role, blocking fraud operations. Ask the author to ensure Held, Release, and Reject on PaymentsController do not require the Customer policy.",
+  "18": "Retaining a lock entry forever for every reviewed payment causes unbounded memory growth in PaymentReviewService. Ask the author to clean up or bound PaymentLocks so production stability is not affected.",
+  "19": "There are no tests checking whether large payments to new payees are actually held or routed to Suspense. Ask the author to add PaymentService.PayAsync tests covering hold thresholds, repeat payees, and Suspense transfers.",
+  "20": "Happy paths for releasing and rejecting held payments are untested, leaving fund transfers and notifications unverified. Ask the author to add tests in FraudHoldTests confirming Suspense payouts, refunds, statuses, and events.",
+  "21": "Self-approval blocks and invalid-status checks lack tests, risking compliance officers releasing their own payments or non-held payments. Ask the author to add negative tests for these rules in FraudHoldTests.",
+  "22": "Thirteen changed methods, including PaymentsController endpoints, lack usable test evidence, leaving edge cases unverified before release. Check which controller and service paths still need automated tests before signing off.",
+  "23": "Core Suspense accounting and hold sequencing are broken, putting customer balances and fraud stops at risk. Ask the author to fix Suspense transfers on hold, release, and reject, and only hold qualifying payments.",
+  "24": "Because this change touches high-risk payment flows and compliance controls, a full code read and two sign-offs are required. Check that all critical accounting and authorization fixes are completed before approving."
+ }
+}

@@ -1,0 +1,29 @@
+# Team settings for the AI reviewer and PR World. Copy to prworld.yaml and edit; see ../CUSTOMIZE.md.
+# Start from a preset and change only what you need. Anything you leave out comes from the preset.
+# Check it any time with:  .venv/bin/python backend/review.py settings check backend/prworld.yaml
+version: "1"
+preset: balanced                 # strict-bank | balanced | fast-team | critical-only
+approved_by: ""                  # a named person must approve these settings (shown on every review until filled)
+approved_on: ""                  # e.g. 2026-11-14
+
+coverage:
+  default: essential             # full | essential | custom
+  by_tier: {high: full}          # the rulebook's risk tier per area
+  by_area: {}                    # e.g. {Payments: full, Reports: essential}
+  # custom: {base: essential, enable: [validator_panel], disable: [specialist.performance]}
+
+# models:                        # one provider + model per role; mixing families for judge / validator is recommended
+#   roles:
+#     requirement_judge: {provider: openai, model: gpt-4.1}
+#     panel: [{provider: gemini, model: gemini-4-hydrogen}, {provider: anthropic, model: claude-sonnet-5-5}]
+#   providers:
+#     openai: {price_in_per_mtok: 0, price_out_per_mtok: 0}   # fill in your prices to make the cost cap work
+
+budget: {max_calls: 40, max_cost_eur: 5}
+local_only: []                   # areas whose code never leaves this machine (needs models.providers.local)
+integrations: {dry_run: true}    # dry run writes integration-<name>.json next to the review instead of sending
+# merge_policy:
+#   protected_areas: [Payments, Ledger]
+#   rules:
+#     - {name: low-risk, max_tier: low, max_severity: ShouldFix, min_trust: high, signed_by: "Full Name (role)", signed_on: "2026-11-14"}
+#   # then sign it:  (cd world-v5/server && python -m prw_server sign-rule low-risk)   with PRW_POLICY_SIGNING_KEY set

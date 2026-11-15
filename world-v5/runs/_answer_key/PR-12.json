@@ -1,0 +1,14 @@
+{
+ "id": "BUG-3",
+ "pr": "PR-12",
+ "category": "requirement not met / fraud hold",
+ "description": "When a payment is held for review, do NOT move the money (amount + fee) out of the payer's account into the Suspense account: only set the payment status to Held and notify the customer. On release, transfer from the payer to the payee as a normal payment; on reject, just mark it Rejected. Keep the 5,000 EUR threshold, the new-payee rule, the compliance-officer checks and the events. Keep everything compiling.",
+ "applied": true,
+ "method": "llm",
+ "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+ "lines": [
+  346,
+  348
+ ],
+ "explanation": "Removed the Suspense account transfer when holding a payment in PaymentService.ExecuteIdempotentPaymentAsync, updated PaymentReviewService.ReleaseAsync to debit payment.FromAccountId instead of Suspense, and removed the Suspense refund transfer in PaymentReviewService.RejectAsync."
+}

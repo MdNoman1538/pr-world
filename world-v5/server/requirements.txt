@@ -1,0 +1,8 @@
+# PR World server (install into the same venv as the reviewer: ../../ai-reviewer/.venv)
+starlette>=0.37
+uvicorn>=0.29
+itsdangerous>=2.1
+PyJWT[crypto]>=2.8
+requests>=2.31
+pyyaml>=6.0
+jsonschema>=4.18

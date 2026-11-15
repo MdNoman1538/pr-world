@@ -1,0 +1,51 @@
+version: '1'
+preset: balanced
+coverage:
+  default: custom
+  custom:
+    base: essential
+    enable: []
+    disable:
+    - writer
+approved_by: noman
+approved_on: '2026-11-14'
+models:
+  default:
+    provider: gemini
+    model: gemini-3.8-flash
+  roles:
+    specialist:
+      provider: gemini
+      model: gemini-3.8-flash
+    validator:
+      provider: gemini
+      model: gemini-3.8-flash
+    investigator:
+      provider: gemini
+      model: gemini-3.8-flash
+    requirement_analyst:
+      provider: gemini
+      model: gemini-3.8-flash
+    change_interpreter:
+      provider: gemini
+      model: gemini-3.8-flash
+    requirement_judge:
+      provider: gemini
+      model: gemini-3.8-flash
+    radar:
+      provider: gemini
+      model: gemini-3.8-flash
+    fixer:
+      provider: gemini
+      model: gemini-3.8-flash
+    writer:
+      provider: gemini
+      model: gemini-3.8-flash
+    draft_policy:
+      provider: gemini
+      model: gemini-3.8-flash
+    panel:
+    - provider: gemini
+      model: gemini-4-hydrogen
+    - provider: gemini
+      model: gemini-3.8-flash

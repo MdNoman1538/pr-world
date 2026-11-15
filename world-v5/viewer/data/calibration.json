@@ -1,0 +1,215 @@
+{
+ "rows": [
+  {
+   "pr": "PR-1",
+   "conf": 0.521,
+   "lo": 0.325,
+   "hi": 0.713,
+   "trust": "low",
+   "label": "fix",
+   "decision": "BLOCKED",
+   "requirement": null,
+   "correct": 1,
+   "planted": false
+  },
+  {
+   "pr": "PR-2",
+   "conf": 0.068,
+   "lo": 0.005,
+   "hi": 0.202,
+   "trust": "low",
+   "label": "fix",
+   "decision": "BLOCKED",
+   "requirement": null,
+   "correct": 0,
+   "planted": true
+  },
+  {
+   "pr": "PR-3",
+   "conf": 0.036,
+   "lo": 0.0,
+   "hi": 0.173,
+   "trust": "low",
+   "label": "fix",
+   "decision": "BLOCKED",
+   "requirement": null,
+   "correct": 1,
+   "planted": false
+  },
+  {
+   "pr": "PR-4",
+   "conf": 0.036,
+   "lo": 0.0,
+   "hi": 0.173,
+   "trust": "low",
+   "label": "fix",
+   "decision": "BLOCKED",
+   "requirement": null,
+   "correct": 1,
+   "planted": false
+  },
+  {
+   "pr": "PR-5",
+   "conf": 0.569,
+   "lo": 0.389,
+   "hi": 0.74,
+   "trust": "low",
+   "label": "fix",
+   "decision": "BLOCKED",
+   "requirement": null,
+   "correct": 1,
+   "planted": false
+  },
+  {
+   "pr": "PR-6",
+   "conf": 0.475,
+   "lo": 0.266,
+   "hi": 0.688,
+   "trust": "low",
+   "label": "fix",
+   "decision": "BLOCKED",
+   "requirement": null,
+   "correct": 1,
+   "planted": false
+  },
+  {
+   "pr": "PR-7",
+   "conf": 0.121,
+   "lo": 0.031,
+   "hi": 0.259,
+   "trust": "low",
+   "label": "fix",
+   "decision": "BLOCKED",
+   "requirement": null,
+   "correct": 0,
+   "planted": true
+  },
+  {
+   "pr": "PR-8",
+   "conf": 0.188,
+   "lo": 0.016,
+   "hi": 0.501,
+   "trust": "low",
+   "label": "fix",
+   "decision": "BLOCKED",
+   "requirement": null,
+   "correct": 1,
+   "planted": false
+  },
+  {
+   "pr": "PR-9",
+   "conf": 0.833,
+   "lo": 0.333,
+   "hi": 1.0,
+   "trust": "medium",
+   "label": "check",
+   "decision": "BLOCKED",
+   "requirement": null,
+   "correct": 1,
+   "planted": false
+  },
+  {
+   "pr": "PR-10",
+   "conf": 0.75,
+   "lo": 0.456,
+   "hi": 0.951,
+   "trust": "medium",
+   "label": "check",
+   "decision": "BLOCKED",
+   "requirement": null,
+   "correct": 1,
+   "planted": false
+  },
+  {
+   "pr": "PR-11",
+   "conf": 0.5,
+   "lo": 0.224,
+   "hi": 0.776,
+   "trust": "low",
+   "label": "fix",
+   "decision": "BLOCKED",
+   "requirement": null,
+   "correct": 1,
+   "planted": false
+  },
+  {
+   "pr": "PR-12",
+   "conf": 0.312,
+   "lo": 0.148,
+   "hi": 0.507,
+   "trust": "low",
+   "label": "fix",
+   "decision": "BLOCKED",
+   "requirement": null,
+   "correct": 0,
+   "planted": true
+  }
+ ],
+ "brier": 0.305,
+ "bins": [
+  {
+   "from": 0.0,
+   "to": 0.2,
+   "n": 5,
+   "mean_conf": 0.09,
+   "share_correct": 0.6
+  },
+  {
+   "from": 0.2,
+   "to": 0.4,
+   "n": 1,
+   "mean_conf": 0.312,
+   "share_correct": 0.0
+  },
+  {
+   "from": 0.4,
+   "to": 0.6,
+   "n": 4,
+   "mean_conf": 0.516,
+   "share_correct": 1.0
+  },
+  {
+   "from": 0.6,
+   "to": 0.8,
+   "n": 1,
+   "mean_conf": 0.75,
+   "share_correct": 1.0
+  },
+  {
+   "from": 0.8,
+   "to": 1.0,
+   "n": 1,
+   "mean_conf": 0.833,
+   "share_correct": 1.0
+  }
+ ],
+ "by": {
+  "trust": {
+   "low": {
+    "n": 10,
+    "correct": 7
+   },
+   "medium": {
+    "n": 2,
+    "correct": 2
+   }
+  },
+  "label": {
+   "fix": {
+    "n": 10,
+    "correct": 7
+   },
+   "check": {
+    "n": 2,
+    "correct": 2
+   }
+  }
+ },
+ "requirement": {
+  "pr_with_contradicted_or_missing": 0,
+  "of_which_planted": 0,
+  "planted_with_check": 0,
+  "clean_with_check": 0
+ },
+ "note": "Outcome = no planted defect (answer key). Confidence is read as the chance the PR is correct. 12 PRs: far too few to calibrate; the points show the method, not a result. Brier score: 0 is perfect, 0.25 is what always saying 50% scores."
+}

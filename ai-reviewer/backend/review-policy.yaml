@@ -1,0 +1,100 @@
+# review-policy.yaml — the rulebook the AI reviewer must follow.
+#
+# Lifecycle (from our concept): the AI drafts it  →  a named human verifies it  →  the reviewer applies it.
+# Until `approved_by` is filled in, every review report carries a "policy not approved" warning.
+#
+# This file is a STARTING DRAFT for the MessagePack-CSharp challenge repo, written by hand from the
+# repo's general layout. Regenerate a repo-specific draft with:
+#     python review.py draft-policy --repo <path> --rev <branch>
+# then compare, edit, and approve.
+
+version: "0.2-draft"
+approved_by: null          # e.g. "Md Abdullah Al Noman"  ← a named human, not "AI"
+approved_on: null          # e.g. "2026-11-14"
+
+default_tier: medium       # code that matches no area below
+
+areas:
+  - name: Wire format (reader/writer)
+    paths: ["src/MessagePack/MessagePackReader*.cs", "src/MessagePack/MessagePackWriter*.cs", "src/MessagePack/MessagePackCode.cs"]
+    tier: high
+    why: "The binary wire format is a public contract; a mistake corrupts data for every consumer"
+  - name: Security settings
+    paths: ["src/MessagePack/MessagePackSecurity.cs"]
+    tier: high
+    guarded: true
+    why: "Untrusted-data protections (hash collision, depth limits)"
+  - name: Formatters
+    paths: ["src/MessagePack/Formatters/**"]
+    tier: high
+    why: "Formatters define how every type is serialized"
+  - name: Resolvers
+    paths: ["src/MessagePack/Resolvers/**"]
+    tier: high
+    why: "Resolvers choose formatters at runtime; dynamic code generation lives here"
+  - name: Compression (LZ4)
+    paths: ["src/MessagePack/LZ4/**", "**/*Lz4*.cs", "**/*LZ4*.cs"]
+    tier: high
+    why: "Low-level buffer code; memory safety"
+  - name: Serializer API
+    paths: ["src/MessagePack/MessagePackSerializer*.cs", "src/MessagePack/MessagePackSerializerOptions.cs"]
+    tier: high
+    why: "Public entry points used by all callers"
+  - name: Source generator and analyzers
+    paths: ["src/MessagePack.SourceGenerator/**", "src/MessagePack.Analyzers/**", "src/MessagePack.Analyzers.CodeFixes/**"]
+    tier: medium
+    why: "Generated code ships inside user projects"
+  - name: Annotations
+    paths: ["src/MessagePack.Annotations/**"]
+    tier: medium
+    why: "Public attributes; changes are API changes"
+  - name: Other library code
+    paths: ["src/**"]
+    tier: medium
+    why: "Library code not covered by a more specific area"
+  - name: Tests
+    paths: ["tests/**", "**/*Tests/**", "**/*.Tests/**"]
+    tier: low
+    why: "Test code (test weakening is checked separately)"
+  - name: Samples, sandbox, benchmarks
+    paths: ["sandbox/**", "benchmark/**", "samples/**"]
+    tier: low
+    why: "Not shipped"
+
+content_rules:            # regex on ADDED lines; a match raises the tier
+  - name: unsafe or raw memory code
+    pattern: '\bunsafe\b|\bstackalloc\b|\bMarshal\.|\bUnsafe\.|\bfixed\s*\('
+    tier: high
+  - name: dynamic code generation / reflection emit
+    pattern: '\bILGenerator\b|\bDynamicMethod\b|\bReflection\.Emit\b|\bActivator\.CreateInstance\b'
+    tier: high
+  - name: security setting touched
+    pattern: '\bMessagePackSecurity\b|\bUntrustedData\b|\bMaximumObjectGraphDepth\b'
+    tier: high
+  - name: crypto or hashing
+    pattern: '\bSHA\d*\b|\bMD5\b|\bHMAC\b|\bRandomNumberGenerator\b|\bAes\b'
+    tier: high
+
+change_rules:
+  dependency_files: ["**/*.csproj", "**/Directory.Packages.props", "**/Directory.Build.props", "**/Directory.Build.targets", "**/packages.config", "global.json", "**/*.nuspec"]
+  dependency_tier: high
+  docs_paths: ["**/*.md", "doc/**", "docs/**", "**/*.txt", "LICENSE*"]
+  docs_only_tier: low
+  test_paths: ["tests/**", "**/*Tests/**", "**/*.Tests/**", "**/*Test.cs", "**/*Tests.cs"]
+  # Research (optimization trap): AI performance/memory optimizations most often introduce memory-safety flaws.
+  # If the requirement or commit messages match, the tier goes one level up and safety/performance get a warning.
+  optimization_pattern: '(?i)\b(optimi[sz]\w*|performance|perf\b|faster|speed[- ]?up|allocation[- ]free|zero[- ]alloc\w*|benchmark|throughput|latency|hot ?path)'
+  optimization_raises_tier: true
+
+no_go:                    # the AI may flag these, never clear them: always a full human read
+  - paths: ["src/MessagePack/MessagePackSecurity.cs"]
+    why: "Security posture for untrusted input"
+
+gates:
+  high_signoffs: 2
+  medium_signoffs: 1
+  low_signoffs: 1
+  large_change_lines: 400        # bigger PRs go one tier up
+  min_blocker_confidence: 0.6    # validator demotes Blockers below this to ShouldFix
+  show_nits: false               # research: nit noise kills trust; keep them out of the report by default
+  auto_pass_low_tier: true       # low tier + all areas verified → owner confirms in one click (still signed)

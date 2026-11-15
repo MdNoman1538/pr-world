@@ -1,0 +1,14 @@
+{
+ "id": "BUG-2",
+ "pr": "PR-7",
+ "category": "business rule / four-eyes",
+ "description": "Remove the rule that stops a loan officer from approving their own loan (keep the rule for rejecting and keep the loan-officer role check).",
+ "applied": true,
+ "method": "llm",
+ "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+ "lines": [
+  130,
+  130
+ ],
+ "explanation": "Removed the self-approval check in LoanService.ApproveAsync so a loan officer can approve their own loan application while preserving the loan-officer role check and the self-rejection restriction."
+}

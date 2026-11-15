@@ -1,0 +1,725 @@
+### FILE: src/Bank.Api/Data/BankDbContext.cs  (slice: leftflow)
+    1| using Bank.Modules.Accounts.Domain;
+    2| using Bank.Modules.Audit.Domain;
+    3| using Bank.Modules.Customers.Domain;
+    4| using Bank.Modules.Ledger.Domain;
++   5| using Bank.Modules.Payments.Domain;
+    6| using Microsoft.EntityFrameworkCore;
+    7| using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+    8| 
+    9| namespace Bank.Data;
+   10| 
+   11| public sealed class BankDbContext : DbContext
+     ⋮
++  21|     public DbSet<Payment> Payments => Set<Payment>();
+     ⋮
+   30|     protected override void OnModelCreating(ModelBuilder modelBuilder)
+   31|     {
+   32|         // The bank's own accounts: one per purpose and currency (see BankAccounts).
+   33|         var seed = new List<Account>();
+   34|         foreach (var kind in Enum.GetValues<BankAccountKind>())
+   35|         foreach (var currency in BankAccounts.Currencies)
+   36|             seed.Add(new Account
+   37|             {
+   38|                 Id = BankAccounts.For(kind, currency),
+   39|                 OwnerId = "bank",
+   40|                 Iban = $"FI00BANK{(int)kind:D2}{currency}",
+   41|                 Currency = currency,
+   42|                 Kind = AccountKind.Internal,
+   43|                 AllowOverdraft = true,
+   44|                 Balance = 0m,
+   45|                 OpenedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+   46|             });
+   47|         modelBuilder.Entity<Account>().HasData(seed);
++  48| 
++  49|         modelBuilder.Entity<Payment>()
++  50|             .HasIndex(p => new { p.CustomerId, p.IdempotencyKey });
+   51|     }
+
+### FILE: src/Bank.Api/Modules/Payments/Api/PaymentsController.cs  (slice: leftflow)
++   1| using Bank.Modules.Auth;
++   2| using Bank.Modules.Auth.Application;
++   3| using Bank.Modules.Payments.Application;
++   4| using Bank.Modules.Payments.Domain;
++   5| using Microsoft.AspNetCore.Authorization;
++   6| using Microsoft.AspNetCore.Mvc;
++   7| 
++   8| namespace Bank.Modules.Payments.Api;
++   9| 
++  10| public sealed record PaymentDto(
++  11|     Guid Id,
++  12|     string IdempotencyKey,
++  13|     string CustomerId,
++  14|     Guid FromAccountId,
++  15|     Guid ToAccountId,
++  16|     decimal Amount,
++  17|     string Currency,
++  18|     PaymentStatus Status,
++  19|     Guid? TransferId,
++  20|     string? Reference,
++  21|     DateTimeOffset CreatedAt);
++  22| 
++  23| [ApiController]
++  24| [Route("api/payments")]
++  25| [Authorize(Policy = Policies.Customer)]
++  26| public sealed class PaymentsController : ControllerBase
++  27| {
++  28|     private readonly IPaymentService _payments;
++  29|     private readonly ICurrentUser _user;
++  30| 
++  31|     public PaymentsController(IPaymentService payments, ICurrentUser user)
++  32|     {
++  33|         _payments = payments;
++  34|         _user = user;
++  35|     }
++  36| 
++  37|     [HttpPost]
++  38|     public async Task<ActionResult<PaymentDto>> Pay(PaymentRequest request, CancellationToken ct)
++  39|     {
++  40|         try
++  41|         {
++  42|             var payment = await _payments.PayAsync(request, ct);
++  43|             return ToDto(payment);
++  44|         }
++  45|         catch (UnauthorizedAccessException)
++  46|         {
++  47|             return Forbid();
++  48|         }
++  49|         catch (ArgumentException ex)
++  50|         {
++  51|             return BadRequest(ex.Message);
++  52|         }
++  53|         catch (KeyNotFoundException ex)
++  54|         {
++  55|             return NotFound(ex.Message);
++  56|         }
++  57|         catch (InvalidOperationException ex)
++  58|         {
++  59|             return Conflict(ex.Message);
++  60|         }
++  61|     }
++  62| 
++  63|     [HttpGet]
++  64|     public async Task<IEnumerable<PaymentDto>> Mine(CancellationToken ct) =>
++  65|         (await _payments.ForCustomerAsync(_user.UserId, ct)).Select(ToDto);
++  66| 
++  67|     private static PaymentDto ToDto(Payment p) =>
++  68|         new(
++  69|             p.Id,
++  70|             p.IdempotencyKey,
++  71|             p.CustomerId,
++  72|             p.FromAccountId,
++  73|             p.ToAccountId,
++  74|             p.Amount,
++  75|             p.Currency,
++  76|             p.Status,
++  77|             p.TransferId,
++  78|             p.Reference,
++  79|             p.CreatedAt);
++  80| }
+
+### FILE: src/Bank.Api/Modules/Payments/Application/PaymentService.cs  (slice: leftflow)
++   1| using Bank.Data;
++   2| using Bank.Modules.Accounts.Application;
++   3| using Bank.Modules.Auth.Application;
++   4| using Bank.Modules.Ledger.Application;
++   5| using Bank.Modules.Payments.Domain;
++   6| using Bank.Shared.Events;
++   7| using Bank.Shared.Settings;
++   8| using Bank.Shared.Time;
++   9| using Microsoft.EntityFrameworkCore;
++  10| using Microsoft.EntityFrameworkCore.Storage;
++  11| 
++  12| namespace Bank.Modules.Payments.Application;
++  13| 
++  14| public sealed record PaymentRequest(string IdempotencyKey, Guid FromAccountId, Guid ToAccountId, decimal Amount, string? Reference);
++  15| 
++  16| public sealed class DailyLimitExceededException : InvalidOperationException
++  17| {
++  18|     public DailyLimitExceededException() : base("Daily transfer limit exceeded.")
++  19|     {
++  20|     }
++  21| 
++  22|     public DailyLimitExceededException(string message) : base(message)
++  23|     {
++  24|     }
++  25| }
++  26| 
++  27| public interface IPaymentService
++  28| {
++  29|     Task<Payment> PayAsync(PaymentRequest request, CancellationToken ct = default);
++  30|     Task<IReadOnlyList<Payment>> ForCustomerAsync(string customerId, CancellationToken ct = default);
++  31| }
++  32| 
++  33| public sealed class PaymentService : IPaymentService
++  34| {
++  35|     private readonly BankDbContext _db;
++  36|     private readonly ILedger _ledger;
++  37|     private readonly IAccountService _accounts;
++  38|     private readonly ICurrentUser _user;
++  39|     private readonly IClock _clock;
++  40|     private readonly BankSettings _settings;
++  41|     private readonly IEventBus _bus;
++  42| 
++  43|     public PaymentService(
++  44|         BankDbContext db,
++  45|         ILedger ledger,
++  46|         IAccountService accounts,
++  47|         ICurrentUser user,
++  48|         IClock clock,
++  49|         BankSettings settings,
++  50|         IEventBus bus)
++  51|     {
++  52|         _db = db;
++  53|         _ledger = ledger;
++  54|         _accounts = accounts;
++  55|         _user = user;
++  56|         _clock = clock;
++  57|         _settings = settings;
++  58|         _bus = bus;
++  59|     }
++  60| 
++  61|     public async Task<Payment> PayAsync(PaymentRequest request, CancellationToken ct = default)
++  62|     {
++  63|         ArgumentNullException.ThrowIfNull(request);
++  64|         if (string.IsNullOrWhiteSpace(request.IdempotencyKey))
++  65|             throw new ArgumentException("Idempotency key is required.", nameof(request));
++  66|         if (request.Amount <= 0m)
++  67|             throw new ArgumentException("Amount must be positive.", nameof(request));
++  68|         if (request.Amount != Math.Round(request.Amount, 2, MidpointRounding.AwayFromZero))
++  69|             throw new ArgumentException("Amount must be whole cents.", nameof(request));
++  70| 
++  71|         var customerId = _user.UserId;
++  72| 
++  73|         if (!await _accounts.IsOwnerAsync(request.FromAccountId, customerId, ct))
++  74|             throw new UnauthorizedAccessException("Source account is not owned by the caller.");
++  75| 
++  76|         var fromAccount = await _accounts.GetAsync(request.FromAccountId, ct)
++  77|             ?? throw new KeyNotFoundException($"Account {request.FromAccountId} not found.");
++  78|         var toAccount = await _accounts.GetAsync(request.ToAccountId, ct)
++  79|             ?? throw new KeyNotFoundException($"Account {request.ToAccountId} not found.");
++  80|         if (!string.Equals(fromAccount.Currency, toAccount.Currency, StringComparison.OrdinalIgnoreCase))
++  81|             throw new CurrencyMismatchException(fromAccount.Currency, toAccount.Currency);
++  82| 
++  83|         var now = _clock.UtcNow;
++  84|         var dayStart = new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero);
++  85|         var dayEnd = dayStart.AddDays(1);
++  86| 
++  87|         Payment payment;
++  88|         IDbContextTransaction? transaction = null;
++  89|         if (_db.Database.IsRelational() && _db.Database.CurrentTransaction is null)
++  90|             transaction = await _db.Database.BeginTransactionAsync(ct);
++  91| 
++  92|         try
++  93|         {
++  94|             var todayAmounts = await _db.Payments
++  95|                 .Where(p => p.CustomerId == customerId
++  96|                     && p.Status == PaymentStatus.Completed
++  97|                     && p.CreatedAt >= dayStart
++  98|                     && p.CreatedAt < dayEnd)
++  99|                 .Select(p => p.Amount)
++ 100|                 .ToListAsync(ct);
++ 101| 
++ 102|             if (todayAmounts.Sum() + request.Amount > _settings.DailyTransferLimit)
++ 103|                 throw new DailyLimitExceededException();
++ 104| 
++ 105|             var transferId = await _ledger.PostTransferAsync(
++ 106|                 request.FromAccountId,
++ 107|                 request.ToAccountId,
++ 108|                 request.Amount,
++ 109|                 request.Reference ?? "",
++ 110|                 ct);
++ 111| 
++ 112|             payment = new Payment
++ 113|             {
++ 114|                 IdempotencyKey = request.IdempotencyKey,
++ 115|                 CustomerId = customerId,
++ 116|                 FromAccountId = request.FromAccountId,
++ 117|                 ToAccountId = request.ToAccountId,
++ 118|                 Amount = request.Amount,
++ 119|                 Currency = fromAccount.Currency,
++ 120|                 Reference = request.Reference,
++ 121|                 CreatedAt = now,
++ 122|             };
++ 123|             payment.Complete(transferId);
++ 124| 
++ 125|             _db.Payments.Add(payment);
++ 126|             await _db.SaveChangesAsync(ct);
++ 127| 
++ 128|             if (transaction is not null)
++ 129|                 await transaction.CommitAsync(ct);
++ 130|         }
++ 131|         catch (DbUpdateException)
++ 132|         {
++ 133|             if (transaction is not null)
++ 134|                 await transaction.RollbackAsync(ct);
++ 135| 
++ 136|             foreach (var entry in _db.ChangeTracker.Entries<Payment>().Where(e => e.State == EntityState.Added).ToList())
++ 137|                 entry.State = EntityState.Detached;
++ 138| 
++ 139|             var concurrent = await _db.Payments.AsNoTracking().FirstOrDefaultAsync(
++ 140|                 p => p.CustomerId == customerId && p.IdempotencyKey == request.IdempotencyKey,
++ 141|                 ct);
++ 142|             if (concurrent is not null)
++ 143|                 return concurrent;
++ 144| 
++ 145|             throw;
++ 146|         }
++ 147|         catch
++ 148|         {
++ 149|             if (transaction is not null)
++ 150|                 await transaction.RollbackAsync(ct);
++ 151|             throw;
++ 152|         }
++ 153|         finally
++ 154|         {
++ 155|             if (transaction is not null)
++ 156|                 await transaction.DisposeAsync();
++ 157|         }
++ 158| 
++ 159|         await _bus.PublishAsync(
++ 160|             new PaymentCompleted(payment.Id, customerId, payment.Amount, payment.Currency, now),
++ 161|             ct);
++ 162| 
++ 163|         return payment;
++ 164|     }
++ 165| 
++ 166|     public async Task<IReadOnlyList<Payment>> ForCustomerAsync(string customerId, CancellationToken ct = default) =>
++ 167|         await _db.Payments
++ 168|             .Where(p => p.CustomerId == customerId)
++ 169|             .OrderByDescending(p => p.CreatedAt)
++ 170|             .ToListAsync(ct);
++ 171| }
+
+### FILE: src/Bank.Api/Modules/Payments/Domain/Payment.cs  (slice: leftflow)
++   1| using Bank.Shared.Events;
++   2| 
++   3| namespace Bank.Modules.Payments.Domain;
++   4| 
++   5| public enum PaymentStatus
++   6| {
++   7|     Completed,
++   8|     Held,
++   9|     Rejected,
++  10| }
++  11| 
++  12| public sealed class Payment
++  13| {
++  14|     public Payment()
++  15|     {
++  16|     }
++  17| 
++  18|     public Guid Id { get; set; } = Guid.NewGuid();
++  19|     public string IdempotencyKey { get; set; } = "";
++  20|     public string CustomerId { get; set; } = "";
++  21|     public Guid FromAccountId { get; set; }
++  22|     public Guid ToAccountId { get; set; }
++  23|     public decimal Amount { get; set; }
++  24|     public string Currency { get; set; } = "EUR";
++  25|     public PaymentStatus Status { get; private set; } = PaymentStatus.Completed;
++  26|     public Guid? TransferId { get; set; }
++  27|     public string? Reference { get; set; }
++  28|     public DateTimeOffset CreatedAt { get; set; }
++  29| 
++  30|     public void Complete(Guid transferId)
++  31|     {
++  32|         if (Status == PaymentStatus.Rejected || (Status == PaymentStatus.Completed && TransferId is not null))
++  33|             throw new InvalidOperationException($"Cannot complete payment in status {Status}.");
++  34|         Status = PaymentStatus.Completed;
++  35|         TransferId = transferId;
++  36|     }
++  37| 
++  38|     public void Hold()
++  39|     {
++  40|         if (Status == PaymentStatus.Rejected || (Status == PaymentStatus.Completed && TransferId is not null))
++  41|             throw new InvalidOperationException($"Cannot hold payment in status {Status}.");
++  42|         Status = PaymentStatus.Held;
++  43|     }
++  44| 
++  45|     public void Reject()
++  46|     {
++  47|         if (Status == PaymentStatus.Rejected || (Status == PaymentStatus.Completed && TransferId is not null))
++  48|             throw new InvalidOperationException($"Cannot reject payment in status {Status}.");
++  49|         Status = PaymentStatus.Rejected;
++  50|     }
++  51| }
++  52| 
++  53| public sealed record PaymentCompleted(Guid PaymentId, string CustomerId, decimal Amount, string Currency, DateTimeOffset OccurredAt) : IDomainEvent;
+
+### FILE: src/Bank.Api/Modules/Payments/PaymentsModule.cs  (slice: leftflow)
++   1| using Bank.Modules.Payments.Application;
++   2| 
++   3| namespace Bank.Modules.Payments;
++   4| 
++   5| public static class PaymentsModule
++   6| {
++   7|     public static IServiceCollection AddPaymentsModule(this IServiceCollection services)
++   8|     {
++   9|         services.AddScoped<IPaymentService, PaymentService>();
++  10|         return services;
++  11|     }
++  12| }
+
+### FILE: src/Bank.Api/Program.cs  (slice: leftflow)
+    2| using Bank.Modules.Accounts;
+    3| using Bank.Modules.Audit;
+    4| using Bank.Modules.Auth;
+    5| using Bank.Modules.Customers;
+    6| using Bank.Modules.Ledger;
+    7| using Bank.Modules.Notifications;
++   8| using Bank.Modules.Payments;
+    9| using Bank.Shared;
+   10| using Bank.Shared.Events;
+   11| using Microsoft.EntityFrameworkCore;
+   12| 
+   13| var builder = WebApplication.CreateBuilder(args);
+   14| builder.Services.AddDbContext<BankDbContext>(o =>
+     ⋮
+   19| builder.Services.AddAuthModule();
+   20| builder.Services.AddAccountsModule();
+   21| builder.Services.AddLedgerModule();
+   22| builder.Services.AddAuditModule();
+   23| builder.Services.AddNotificationsModule();
+   24| builder.Services.AddCustomersModule();
++  25| builder.Services.AddPaymentsModule();
+   26| // MODULES: register new modules above this line
+   27| 
+   28| var app = builder.Build();
+   29| using (var scope = app.Services.CreateScope())
+   30| {
+   31|     scope.ServiceProvider.GetRequiredService<BankDbContext>().Database.EnsureCreated();
+
+### FILE: tests/Bank.Tests/Payments/PaymentTests.cs  (slice: leftflow, truncated)
++   1| using Bank.Data;
++   2| using Bank.Modules.Accounts.Application;
++   3| using Bank.Modules.Auth;
++   4| using Bank.Modules.Ledger.Application;
++   5| using Bank.Modules.Payments.Application;
++   6| using Bank.Modules.Payments.Domain;
++   7| using Bank.Shared.Settings;
++   8| using Xunit;
++   9| 
++  10| namespace Bank.Tests.Payments;
++  11| 
++  12| public sealed class PaymentTests
++  13| {
++  14|     private static PaymentService CreateService(
++  15|         BankDbContext db,
++  16|         FakeUser user,
++  17|         FakeClock? clock = null,
++  18|         RecordingBus? bus = null,
++  19|         BankSettings? settings = null)
++  20|     {
++  21|         var effectiveClock = clock ?? new FakeClock();
++  22|         var effectiveBus = bus ?? new RecordingBus();
++  23|         var effectiveSettings = settings ?? TestKit.Settings();
++  24|         var ledger = TestKit.Ledger(db, clock: effectiveClock);
++  25|         var accounts = new AccountService(db, user, effectiveSettings, effectiveClock, new RecordingBus(), Array.Empty<IAccountOpeningRule>());
++  26|         return new PaymentService(db, ledger, accounts, user, effectiveClock, effectiveSettings, effectiveBus);
++  27|     }
++  28| 
++  29|     [Fact]
++  30|     public async Task PayAsync_valid_transfer_moves_money_persists_completed_payment_and_publishes_event()
++  31|     {
++  32|         using var db = TestKit.Db();
++  33|         var clock = new FakeClock();
++  34|         var bus = new RecordingBus();
++  35|         var user = new FakeUser("alice", Roles.Customer);
++  36|         var fromId = TestKit.Account(db, "alice", 500m, "EUR");
++  37|         var toId = TestKit.Account(db, "bob", 10m, "EUR");
++  38|         var service = CreateService(db, user, clock, bus);
++  39| 
++  40|         var payment = await service.PayAsync(new PaymentRequest("pay-1", fromId, toId, 125.50m, "dinner"));
++  41| 
++  42|         Assert.NotEqual(Guid.Empty, payment.Id);
++  43|         Assert.Equal("pay-1", payment.IdempotencyKey);
++  44|         Assert.Equal("alice", payment.CustomerId);
++  45|         Assert.Equal(fromId, payment.FromAccountId);
++  46|         Assert.Equal(toId, payment.ToAccountId);
++  47|         Assert.Equal(125.50m, payment.Amount);
++  48|         Assert.Equal("EUR", payment.Currency);
++  49|         Assert.Equal(PaymentStatus.Completed, payment.Status);
++  50|         Assert.NotNull(payment.TransferId);
++  51|         Assert.NotEqual(Guid.Empty, payment.TransferId!.Value);
++  52|         Assert.Equal("dinner", payment.Reference);
++  53|         Assert.Equal(clock.UtcNow, payment.CreatedAt);
++  54| 
++  55|         Assert.Equal(374.50m, TestKit.Balance(db, fromId));
++  56|         Assert.Equal(135.50m, TestKit.Balance(db, toId));
++  57| 
++  58|         var persisted = db.Payments.Single(p => p.Id == payment.Id);
++  59|         Assert.Equal(PaymentStatus.Completed, persisted.Status);
++  60|         Assert.Equal(payment.TransferId, persisted.TransferId);
++  61|         Assert.Equal("alice", persisted.CustomerId);
++  62|         Assert.Equal(125.50m, persisted.Amount);
++  63|         Assert.Equal("EUR", persisted.Currency);
++  64|         Assert.Equal(clock.UtcNow, persisted.CreatedAt);
++  65| 
++  66|         var ledgerEntries = db.LedgerEntries.Where(e => e.TransferId == payment.TransferId!.Value).ToList();
++  67|         Assert.Equal(2, ledgerEntries.Count);
++  68|         Assert.Equal(0m, ledgerEntries.Sum(e => e.Amount));
++  69| 
++  70|         var completedEvent = Assert.Single(bus.Events.OfType<PaymentCompleted>());
++  71|         Assert.Equal(payment.Id, completedEvent.PaymentId);
++  72|         Assert.Equal("alice", completedEvent.CustomerId);
++  73|         Assert.Equal(125.50m, completedEvent.Amount);
++  74|         Assert.Equal("EUR", completedEvent.Currency);
++  75|         Assert.Equal(clock.UtcNow, completedEvent.OccurredAt);
++  76|     }
++  77| 
++  78|     [Fact]
++  79|     public async Task PayAsync_allows_null_reference()
++  80|     {
++  81|         using var db = TestKit.Db();
++  82|         var user = new FakeUser("alice", Roles.Customer);
++  83|         var fromId = TestKit.Account(db, "alice", 100m, "EUR");
++  84|         var toId = TestKit.Account(db, "bob", 0m, "EUR");
++  85|         var service = CreateService(db, user);
++  86| 
++  87|         var payment = await service.PayAsync(new PaymentRequest("pay-null-ref", fromId, toId, 25m, null));
++  88| 
++  89|         Assert.Equal(PaymentStatus.Completed, payment.Status);
++  90|         Assert.Null(payment.Reference);
++  91|         Assert.Equal(75m, TestKit.Balance(db, fromId));
++  92|         Assert.Equal(25m, TestKit.Balance(db, toId));
++  93|     }
++  94| 
++  95|     [Fact]
++  96|     public async Task PayAsync_allows_transfer_between_customers_own_accounts()
++  97|     {
++  98|         using var db = TestKit.Db();
++  99|         var user = new FakeUser("alice", Roles.Customer);
++ 100|         var checkingId = TestKit.Account(db, "alice", 200m, "EUR");
++ 101|         var savingsId = TestKit.Account(db, "alice", 50m, "EUR");
++ 102|         var service = CreateService(db, user);
++ 103| 
++ 104|         var payment = await service.PayAsync(new PaymentRequest("own-transfer", checkingId, savingsId, 75m, "savings"));
++ 105| 
++ 106|         Assert.Equal(PaymentStatus.Completed, payment.Status);
++ 107|         Assert.Equal(125m, TestKit.Balance(db, checkingId));
++ 108|         Assert.Equal(125m, TestKit.Balance(db, savingsId));
++ 109|     }
++ 110| 
++ 111|     [Fact]
++ 112|     public async Task PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException()
++ 113|     {
++ 114|         using var db = TestKit.Db();
++ 115|         var bus = new RecordingBus();
++ 116|         var user = new FakeUser("alice", Roles.Customer);
++ 117|         var bobsAccount = TestKit.Account(db, "bob", 500m, "EUR");
++ 118|         var alicesAccount = TestKit.Account(db, "alice", 10m, "EUR");
++ 119|         var service = CreateService(db, user, bus: bus);
++ 120| 
++ 121|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
++ 122|             service.PayAsync(new PaymentRequest("steal-1", bobsAccount, alicesAccount, 100m, "nope")));
++ 123| 
++ 124|         Assert.Equal(500m, TestKit.Balance(db, bobsAccount));
++ 125|         Assert.Equal(10m, TestKit.Balance(db, alicesAccount));
++ 126|         Assert.Empty(db.Payments);
++ 127|         Assert.Empty(bus.Events.OfType<PaymentCompleted>());
++ 128|     }
++ 129| 
++ 130|     [Fact]
++ 131|     public async Task PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException()
++ 132|     {
++ 133|         using var db = TestKit.Db();
++ 134|         var bus = new RecordingBus();
++ 135|         var user = new FakeUser("alice", Roles.Customer);
++ 136|         var toId = TestKit.Account(db, "bob", 10m, "EUR");
++ 137|         var service = CreateService(db, user, bus: bus);
++ 138| 
++ 139|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
++ 140|             service.PayAsync(new PaymentRequest("missing-src", Guid.NewGuid(), toId, 10m, "nope")));
++ 141| 
++ 142|         Assert.Equal(10m, TestKit.Balance(db, toId));
++ 143|         Assert.Empty(db.Payments);
++ 144|         Assert.Empty(bus.Events.OfType<PaymentCompleted>());
++ 145|     }
++ 146| 
++ 147|     [Fact]
++ 148|     public async Task PayAsync_uses_current_user_identity_when_caller_switches()
++ 149|     {
++ 150|         using var db = TestKit.Db();
++ 151|         var user = new FakeUser("alice", Roles.Customer);
++ 152|         var aliceAccount = TestKit.Account(db, "alice", 200m, "EUR");
++ 153|         var bobAccount = TestKit.Account(db, "bob", 200m, "EUR");
++ 154|         var recipient = TestKit.Account(db, "charlie", 0m, "EUR");
++ 155|         var service = CreateService(db, user);
++ 156| 
++ 157|         var p1 = await service.PayAsync(new PaymentRequest("k-alice", aliceAccount, recipient, 50m, "from alice"));
++ 158|         Assert.Equal("alice", p1.CustomerId);
++ 159| 
++ 160|         user.UserId = "bob";
++ 161| 
++ 162|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
++ 163|             service.PayAsync(new PaymentRequest("k-bob-bad", aliceAccount, recipient, 10m, "hijack")));
++ 164| 
++ 165|         var p2 = await service.PayAsync(new PaymentRequest("k-bob-ok", bobAccount, recipient, 30m, "from bob"));
++ 166|         Assert.Equal("bob", p2.CustomerId);
++ 167|         Assert.Equal(80m, TestKit.Balance(db, recipient));
++ 168|     }
++ 169| 
++ 170|     [Theory]
++ 171|     [InlineData(0)]
++ 172|     [InlineData(-0.01)]
++ 173|     [InlineData(-100)]
++ 174|     public async Task PayAsync_zero_or_negative_amount_throws_ArgumentException(decimal invalidAmount)
++ 175|     {
++ 176|         using var db = TestKit.Db();
++ 177|         var bus = new RecordingBus();
++ 178|         var user = new FakeUser("alice", Roles.Customer);
++ 179|         var fromId = TestKit.Account(db, "alice", 500m, "EUR");
++ 180|         var toId = TestKit.Account(db, "bob", 10m, "EUR");
++ 181|         var service = CreateService(db, user, bus: bus);
++ 182| 
++ 183|         await Assert.ThrowsAsync<ArgumentException>(() =>
++ 184|             service.PayAsync(new PaymentRequest("bad-amt", fromId, toId, invalidAmount, "invalid")));
++ 185| 
++ 186|         Assert.Equal(500m, TestKit.Balance(db, fromId));
++ 187|         Assert.Equal(10m, TestKit.Balance(db, toId));
++ 188|         Assert.Empty(db.Payments);
++ 189|         Assert.Empty(bus.Events.OfType<PaymentCompleted>());
++ 190|     }
++ 191| 
++ 192|     [Theory]
++ 193|     [InlineData(10.001)]
++ 194|     [InlineData(0.005)]
++ 195|     [InlineData(1.234)]
++ 196|     public async Task PayAsync_fractional_cents_throws_ArgumentException(decimal fractionalAmount)
++ 197|     {
++ 198|         using var db = TestKit.Db();
++ 199|         var bus = new RecordingBus();
++ 200|         var user = new FakeUser("alice", Roles.Customer);
++ 201|         var fromId = TestKit.Account(db, "alice", 500m, "EUR");
++ 202|         var toId = TestKit.Account(db, "bob", 10m, "EUR");
++ 203|         var service = CreateService(db, user, bus: bus);
++ 204| 
++ 205|         await Assert.ThrowsAsync<ArgumentException>(() =>
++ 206|             service.PayAsync(new PaymentRequest("frac-amt", fromId, toId, fractionalAmount, "fractional")));
++ 207| 
++ 208|         Assert.Equal(500m, TestKit.Balance(db, fromId));
++ 209|         Assert.Equal(10m, TestKit.Balance(db, toId));
++ 210|         Assert.Empty(db.Payments);
++ 211|         Assert.Empty(bus.Events.OfType<PaymentCompleted>());
++ 212|     }
++ 213| 
++ 214|     [Fact]
++ 215|     public async Task PayAsync_smallest_valid_amount_one_cent_succeeds()
++ 216|     {
++ 217|         using var db = TestKit.Db();
++ 218|         var user = new FakeUser("alice", Roles.Customer);
++ 219|         var fromId = TestKit.Account(db, "alice", 1.00m, "EUR");
++ 220|         var toId = TestKit.Account(db, "bob", 0m, "EUR");
++ 221|         var service = CreateService(db, user);
++ 222| 
++ 223|         var payment = await service.PayAsync(new PaymentRequest("one-cent", fromId, toId, 0.01m, "penny"));
++ 224| 
++ 225|         Assert.Equal(0.01m, payment.Amount);
++ 226|         Assert.Equal(PaymentStatus.Completed, payment.Status);
++ 227|         Assert.Equal(0.99m, TestKit.Balance(db, fromId));
++ 228|         Assert.Equal(0.01m, TestKit.Balance(db, toId));
++ 229|     }
++ 230| 
++ 231|     [Fact]
++ 232|     public async Task PayAsync_different_currencies_throws_CurrencyMismatchException()
++ 233|     {
++ 234|         using var db = TestKit.Db();
++ 235|         var bus = new RecordingBus();
++ 236|         var user = new FakeUser("alice", Roles.Customer);
++ 237|         var eurId = TestKit.Account(db, "alice", 500m, "EUR");
++ 238|         var sekId = TestKit.Account(db, "bob", 100m, "SEK");
++ 239|         var service = CreateService(db, user, bus: bus);
++ 240| 
++ 241|         await Assert.ThrowsAsync<CurrencyMismatchException>(() =>
++ 242|             service.PayAsync(new PaymentRequest("fx-nope", eurId, sekId, 50m, "cross currency")));
++ 243| 
++ 244|         Assert.Equal(500m, TestKit.Balance(db, eurId));
++ 245|         Assert.Equal(100m, TestKit.Balance(db, sekId));
++ 246|         Assert.Empty(db.Payments);
++ 247|         Assert.Empty(bus.Events.OfType<PaymentCompleted>());
++ 248|     }
++ 249| 
++ 250|     [Fact]
++ 251|     public async Task PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing()
++ 252|     {
++ 253|         using var db = TestKit.Db();
++ 254|         var bus = new RecordingBus();
++ 255|         var user = new FakeUser("alice", Roles.Customer);
++ 256|         var fromId = TestKit.Account(db, "alice", 500m, "EUR");
++ 257|         var toId = TestKit.Account(db, "bob", 0m, "EUR");
++ 258|         var service = CreateService(db, user, bus: bus);
++ 259| 
++ 260|         var first = await service.PayAsync(new PaymentRequest("idem-1", fromId, toId, 100m, "rent"));
++ 261|         var second = await service.PayAsync(new PaymentRequest("idem-1", fromId, toId, 100m, "rent"));
++ 262| 
++ 263|         Assert.Equal(first.Id, second.Id);
++ 264|         Assert.Equal(first.TransferId, second.TransferId);
++ 265|         Assert.Equal(400m, TestKit.Balance(db, fromId));
++ 266|         Assert.Equal(100m, TestKit.Balance(db, toId));
++ 267|         Assert.Single(db.Payments);
++ 268|         Assert.Single(bus.Events.OfType<PaymentCompleted>());
++ 269|     }
++ 270| 
++ 271|     [Fact]
++ 272|     public async Task PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit()
++ 273|     {
++ 274|         using var db = TestKit.Db();
++ 275|         var user = new FakeUser("alice", Roles.Customer);
++ 276|         var fromId = TestKit.Account(db, "alice", 500m, "EUR");
++ 277|         var toId = TestKit.Account(db, "bob", 0m, "EUR");
++ 278|         var settings = TestKit.Settings(dailyTransferLimit: 100m);
++ 279|         var service = CreateService(db, user, settings: settings);
++ 280| 
++ 281|         var first = await service.PayAs
+     ⋮ (truncated: change too large)
+
+
+# IMPACT
+- Payments (src/Bank.Api/Data/BankDbContext.cs): 0 caller(s) [none found]; test references: NONE
+- OnModelCreating (src/Bank.Api/Data/BankDbContext.cs): 0 caller(s) [none found]; test references: NONE
+- PaymentsController (src/Bank.Api/Modules/Payments/Api/PaymentsController.cs): 0 caller(s) [none found]; test references: NONE
+- Pay (src/Bank.Api/Modules/Payments/Api/PaymentsController.cs): 0 caller(s) [none found]; test references: NONE
+- Mine (src/Bank.Api/Modules/Payments/Api/PaymentsController.cs): 0 caller(s) [none found]; test references: NONE
+- ToDto (src/Bank.Api/Modules/Payments/Api/PaymentsController.cs): 0 caller(s) [none found]; test references: NONE
+- DailyLimitExceededException (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- ForCustomerAsync (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- PaymentService (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- Payment (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- Id (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- IdempotencyKey (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- CustomerId (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- FromAccountId (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- ToAccountId (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- Amount (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- Currency (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- Status (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- TransferId (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- Reference (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- CreatedAt (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- Complete (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- Hold (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- Reject (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- AddPaymentsModule (src/Bank.Api/Modules/Payments/PaymentsModule.cs): 0 caller(s) [none found]; test references: NONE
+- CreateService (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_valid_transfer_moves_money_persists_completed_payment_and_publishes_event (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_allows_null_reference (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_allows_transfer_between_customers_own_accounts (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_uses_current_user_identity_when_caller_switches (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_zero_or_negative_amount_throws_ArgumentException (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_fractional_cents_throws_ArgumentException (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_smallest_valid_amount_one_cent_succeeds (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_different_currencies_throws_CurrencyMismatchException (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_same_idempotency_key_for_different_customers_executes_independently (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_exactly_at_daily_transfer_limit_succeeds (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_one_cent_over_daily_transfer_limit_throws_DailyLimitExceededException (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_daily_limit_resets_at_utc_midnight (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_daily_limit_is_isolated_per_customer (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_insufficient_funds_throws_InsufficientFundsException_and_persists_nothing (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync_exact_account_balance_succeeds (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE
+- ForCustomerAsync_returns_only_specified_customers_payments (tests/Bank.Tests/Payments/PaymentTests.cs): 0 caller(s) [none found]; test references: NONE

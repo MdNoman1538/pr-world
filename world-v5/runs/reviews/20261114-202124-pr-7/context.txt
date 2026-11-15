@@ -1,0 +1,819 @@
+### FILE: src/Bank.Api/Data/BankDbContext.cs  (slice: leftflow)
+    1| using Bank.Modules.Accounts.Domain;
+    2| using Bank.Modules.Audit.Domain;
+    3| using Bank.Modules.Cards.Domain;
+    4| using Bank.Modules.Customers.Domain;
+    5| using Bank.Modules.Deposits.Domain;
+    6| using Bank.Modules.Ledger.Domain;
++   7| using Bank.Modules.Loans.Domain;
+    8| using Bank.Modules.Payments.Domain;
+    9| using Microsoft.EntityFrameworkCore;
+   10| using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+   11| 
+   12| namespace Bank.Data;
+   13| 
+     ⋮
++  27|     public DbSet<Loan> Loans => Set<Loan>();
+
+### FILE: src/Bank.Api/Modules/Loans/Api/LoansController.cs  (slice: leftflow)
++   1| using System.Text.Json;
++   2| using Bank.Modules.Auth;
++   3| using Bank.Modules.Loans.Application;
++   4| using Bank.Modules.Loans.Domain;
++   5| using Microsoft.AspNetCore.Authorization;
++   6| using Microsoft.AspNetCore.Mvc;
++   7| 
++   8| namespace Bank.Modules.Loans.Api;
++   9| 
++  10| public sealed record ApplyLoanRequest(Guid DisbursementAccountId, decimal Principal, int TermMonths);
++  11| 
++  12| public sealed record ApproveLoanRequest(string? Note);
++  13| 
++  14| public sealed record RejectLoanRequest(string? Reason);
++  15| 
++  16| public sealed record LoanDto(
++  17|     Guid Id,
++  18|     string CustomerId,
++  19|     Guid DisbursementAccountId,
++  20|     decimal Principal,
++  21|     int TermMonths,
++  22|     decimal AnnualRatePercent,
++  23|     decimal MonthlyPayment,
++  24|     LoanStatus Status,
++  25|     string? DecidedBy,
++  26|     string? DecisionNote,
++  27|     DateTimeOffset AppliedAt);
++  28| 
++  29| [ApiController]
++  30| [Route("api/loans")]
++  31| [Authorize(Policy = Policies.Customer)]
++  32| public sealed class LoansController : ControllerBase
++  33| {
++  34|     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
++  35| 
++  36|     private readonly ILoanService _loans;
++  37| 
++  38|     public LoansController(ILoanService loans) => _loans = loans;
++  39| 
++  40|     [HttpPost]
++  41|     public async Task<ActionResult<LoanDto>> Apply(ApplyLoanRequest request, CancellationToken ct)
++  42|     {
++  43|         try
++  44|         {
++  45|             var loan = await _loans.ApplyAsync(new LoanApplication(request.DisbursementAccountId, request.Principal, request.TermMonths), ct);
++  46|             return ToDto(loan);
++  47|         }
++  48|         catch (UnauthorizedAccessException)
++  49|         {
++  50|             return Forbid();
++  51|         }
++  52|         catch (ArgumentException ex)
++  53|         {
++  54|             return BadRequest(ex.Message);
++  55|         }
++  56|     }
++  57| 
++  58|     [HttpGet("{id:guid}")]
++  59|     public async Task<ActionResult<LoanDto>> Get(Guid id, CancellationToken ct)
++  60|     {
++  61|         try
++  62|         {
++  63|             var loan = await _loans.GetAsync(id, ct);
++  64|             return ToDto(loan);
++  65|         }
++  66|         catch (KeyNotFoundException ex)
++  67|         {
++  68|             return NotFound(ex.Message);
++  69|         }
++  70|         catch (UnauthorizedAccessException)
++  71|         {
++  72|             return Forbid();
++  73|         }
++  74|     }
++  75| 
++  76|     [HttpPost("{id:guid}/approve")]
++  77|     [Authorize(Policy = Policies.LoanOfficer)]
++  78|     public async Task<ActionResult<LoanDto>> Approve(Guid id, CancellationToken ct)
++  79|     {
++  80|         try
++  81|         {
++  82|             var request = await ReadOptionalJsonBodyAsync<ApproveLoanRequest>(ct);
++  83|             var loan = await _loans.ApproveAsync(id, request?.Note, ct);
++  84|             return ToDto(loan);
++  85|         }
++  86|         catch (JsonException ex)
++  87|         {
++  88|             return BadRequest(ex.Message);
++  89|         }
++  90|         catch (UnauthorizedAccessException)
++  91|         {
++  92|             return Forbid();
++  93|         }
++  94|         catch (KeyNotFoundException ex)
++  95|         {
++  96|             return NotFound(ex.Message);
++  97|         }
++  98|         catch (InvalidOperationException ex)
++  99|         {
++ 100|             return Conflict(ex.Message);
++ 101|         }
++ 102|         catch (ArgumentException ex)
++ 103|         {
++ 104|             return BadRequest(ex.Message);
++ 105|         }
++ 106|     }
++ 107| 
++ 108|     [HttpPost("{id:guid}/reject")]
++ 109|     [Authorize(Policy = Policies.LoanOfficer)]
++ 110|     public async Task<ActionResult<LoanDto>> Reject(Guid id, CancellationToken ct)
++ 111|     {
++ 112|         try
++ 113|         {
++ 114|             var request = await ReadOptionalJsonBodyAsync<RejectLoanRequest>(ct);
++ 115|             var loan = await _loans.RejectAsync(id, request?.Reason ?? "", ct);
++ 116|             return ToDto(loan);
++ 117|         }
++ 118|         catch (JsonException ex)
++ 119|         {
++ 120|             return BadRequest(ex.Message);
++ 121|         }
++ 122|         catch (UnauthorizedAccessException)
++ 123|         {
++ 124|             return Forbid();
++ 125|         }
++ 126|         catch (KeyNotFoundException ex)
++ 127|         {
++ 128|             return NotFound(ex.Message);
++ 129|         }
++ 130|         catch (InvalidOperationException ex)
++ 131|         {
++ 132|             return Conflict(ex.Message);
++ 133|         }
++ 134|         catch (ArgumentException ex)
++ 135|         {
++ 136|             return BadRequest(ex.Message);
++ 137|         }
++ 138|     }
++ 139| 
++ 140|     private async Task<T?> ReadOptionalJsonBodyAsync<T>(CancellationToken ct)
++ 141|     {
++ 142|         if (!Request.HasJsonContentType())
++ 143|             return default;
++ 144| 
++ 145|         using var reader = new StreamReader(Request.Body);
++ 146|         var body = await reader.ReadToEndAsync(ct);
++ 147|         if (string.IsNullOrWhiteSpace(body))
++ 148|             return default;
++ 149| 
++ 150|         return JsonSerializer.Deserialize<T>(body, JsonOptions);
++ 151|     }
++ 152| 
++ 153|     private static LoanDto ToDto(Loan loan) =>
++ 154|         new(
++ 155|             loan.Id,
++ 156|             loan.CustomerId,
++ 157|             loan.DisbursementAccountId,
++ 158|             loan.Principal,
++ 159|             loan.TermMonths,
++ 160|             loan.AnnualRatePercent,
++ 161|             loan.MonthlyPayment,
++ 162|             loan.Status,
++ 163|             loan.DecidedBy,
++ 164|             loan.DecisionNote,
++ 165|             loan.AppliedAt);
++ 166| }
+
+### FILE: src/Bank.Api/Modules/Loans/Application/LoanService.cs  (slice: leftflow)
++   1| using System.Collections.Concurrent;
++   2| using Bank.Data;
++   3| using Bank.Modules.Accounts.Application;
++   4| using Bank.Modules.Auth;
++   5| using Bank.Modules.Auth.Application;
++   6| using Bank.Modules.Ledger.Application;
++   7| using Bank.Modules.Ledger.Domain;
++   8| using Bank.Modules.Loans.Domain;
++   9| using Bank.Modules.Notifications.Application;
++  10| using Bank.Shared.Events;
++  11| using Bank.Shared.Time;
++  12| using Microsoft.EntityFrameworkCore;
++  13| using Microsoft.EntityFrameworkCore.Storage;
++  14| 
++  15| namespace Bank.Modules.Loans.Application;
++  16| 
++  17| public sealed record LoanApplication(Guid DisbursementAccountId, decimal Principal, int TermMonths);
++  18| 
++  19| public interface ILoanService
++  20| {
++  21|     Task<Loan> ApplyAsync(LoanApplication application, CancellationToken ct = default);
++  22|     Task<Loan> GetAsync(Guid loanId, CancellationToken ct = default);
++  23|     Task<Loan> ApproveAsync(Guid loanId, string? note, CancellationToken ct = default);
++  24|     Task<Loan> RejectAsync(Guid loanId, string reason, CancellationToken ct = default);
++  25| }
++  26| 
++  27| public sealed class LoanService : ILoanService
++  28| {
++  29|     private const decimal MinPrincipal = 1000m;
++  30|     private const decimal MaxPrincipal = 50000m;
++  31|     private const int MinTermMonths = 6;
++  32|     private const int MaxTermMonths = 120;
++  33|     private const decimal FixedAnnualRatePercent = 5.5m;
++  34| 
++  35|     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> LoanLocks = new();
++  36| 
++  37|     private readonly BankDbContext _db;
++  38|     private readonly ILedger _ledger;
++  39|     private readonly IAccountService _accounts;
++  40|     private readonly ICurrentUser _user;
++  41|     private readonly IClock _clock;
++  42|     private readonly IEventBus _bus;
++  43|     private readonly INotifier _notifier;
++  44| 
++  45|     public LoanService(
++  46|         BankDbContext db,
++  47|         ILedger ledger,
++  48|         IAccountService accounts,
++  49|         ICurrentUser user,
++  50|         IClock clock,
++  51|         IEventBus bus,
++  52|         INotifier notifier)
++  53|     {
++  54|         _db = db;
++  55|         _ledger = ledger;
++  56|         _accounts = accounts;
++  57|         _user = user;
++  58|         _clock = clock;
++  59|         _bus = bus;
++  60|         _notifier = notifier;
++  61|     }
++  62| 
++  63|     public async Task<Loan> ApplyAsync(LoanApplication application, CancellationToken ct = default)
++  64|     {
++  65|         ArgumentNullException.ThrowIfNull(application);
++  66| 
++  67|         if (application.Principal < MinPrincipal || application.Principal > MaxPrincipal)
++  68|             throw new ArgumentException($"Principal must be between {MinPrincipal} and {MaxPrincipal}.", nameof(application));
++  69|         if (decimal.Round(application.Principal, 2) != application.Principal)
++  70|             throw new ArgumentException("Principal must be whole cents.", nameof(application));
++  71|         if (application.TermMonths < MinTermMonths || application.TermMonths > MaxTermMonths)
++  72|             throw new ArgumentException($"Term must be between {MinTermMonths} and {MaxTermMonths} months.", nameof(application));
++  73| 
++  74|         var customerId = _user.UserId;
++  75|         if (!await _accounts.IsOwnerAsync(application.DisbursementAccountId, customerId, ct))
++  76|             throw new UnauthorizedAccessException("Disbursement account is not owned by the caller.");
++  77| 
++  78|         var monthlyPayment = CalculateMonthlyAnnuity(application.Principal, application.TermMonths);
++  79|         var now = _clock.UtcNow;
++  80| 
++  81|         var loan = new Loan
++  82|         {
++  83|             CustomerId = customerId,
++  84|             DisbursementAccountId = application.DisbursementAccountId,
++  85|             Principal = application.Principal,
++  86|             TermMonths = application.TermMonths,
++  87|             AnnualRatePercent = FixedAnnualRatePercent,
++  88|             MonthlyPayment = monthlyPayment,
++  89|             AppliedAt = now,
++  90|         };
++  91| 
++  92|         _db.Loans.Add(loan);
++  93|         await _db.SaveChangesAsync(ct);
++  94|         await _bus.PublishAsync(new LoanSubmitted(loan.Id, customerId, loan.Principal, now), ct);
++  95| 
++  96|         return loan;
++  97|     }
++  98| 
++  99|     public async Task<Loan> GetAsync(Guid loanId, CancellationToken ct = default)
++ 100|     {
++ 101|         var loan = await _db.Loans.FirstOrDefaultAsync(l => l.Id == loanId, ct)
++ 102|             ?? throw new KeyNotFoundException($"Loan {loanId} not found.");
++ 103| 
++ 104|         if (loan.CustomerId != _user.UserId && !_user.IsInRole(Roles.LoanOfficer))
++ 105|             throw new UnauthorizedAccessException("Caller is not authorized to view this loan.");
++ 106| 
++ 107|         return loan;
++ 108|     }
++ 109| 
++ 110|     public async Task<Loan> ApproveAsync(Guid loanId, string? note, CancellationToken ct = default)
++ 111|     {
++ 112|         if (!_user.IsInRole(Roles.LoanOfficer))
++ 113|             throw new UnauthorizedAccessException("Only a loan officer may approve a loan.");
++ 114| 
++ 115|         var officerId = _user.UserId;
++ 116|         var loanLock = LoanLocks.GetOrAdd(loanId, _ => new SemaphoreSlim(1, 1));
++ 117|         Loan loan;
++ 118| 
++ 119|         await loanLock.WaitAsync(ct);
++ 120|         try
++ 121|         {
++ 122|             IDbContextTransaction? transaction = null;
++ 123|             if (_db.Database.IsRelational() && _db.Database.CurrentTransaction is null)
++ 124|                 transaction = await _db.Database.BeginTransactionAsync(ct);
++ 125| 
++ 126|             try
++ 127|             {
++ 128|                 loan = await _db.Loans.FirstOrDefaultAsync(l => l.Id == loanId, ct)
++ 129|                     ?? throw new KeyNotFoundException($"Loan {loanId} not found.");
++ 130| 
++ 131|                 if (loan.Status != LoanStatus.Submitted)
++ 132|                     throw new InvalidOperationException($"Cannot approve loan in status {loan.Status}.");
++ 133| 
++ 134|                 var account = await _accounts.GetAsync(loan.DisbursementAccountId, ct)
++ 135|                     ?? throw new KeyNotFoundException($"Account {loan.DisbursementAccountId} not found.");
++ 136| 
++ 137|                 var fundingAccountId = BankAccounts.For(BankAccountKind.LoanFunding, account.Currency);
++ 138|                 await _ledger.PostTransferAsync(
++ 139|                     fundingAccountId,
++ 140|                     loan.DisbursementAccountId,
++ 141|                     loan.Principal,
++ 142|                     $"Loan {loan.Id} disbursement",
++ 143|                     ct);
++ 144| 
++ 145|                 loan.Approve(officerId, note);
++ 146|                 await _db.SaveChangesAsync(ct);
++ 147| 
++ 148|                 if (transaction is not null)
++ 149|                     await transaction.CommitAsync(ct);
++ 150|             }
++ 151|             catch
++ 152|             {
++ 153|                 if (transaction is not null)
++ 154|                     await transaction.RollbackAsync(ct);
++ 155|                 throw;
++ 156|             }
++ 157|             finally
++ 158|             {
++ 159|                 if (transaction is not null)
++ 160|                     await transaction.DisposeAsync();
++ 161|             }
++ 162|         }
++ 163|         finally
++ 164|         {
++ 165|             loanLock.Release();
++ 166|         }
++ 167| 
++ 168|         var now = _clock.UtcNow;
++ 169|         await _bus.PublishAsync(new LoanApproved(loan.Id, loan.CustomerId, loan.Principal, now), ct);
++ 170|         await _notifier.NotifyAsync(loan.CustomerId, $"Your loan application {loan.Id} has been approved and disbursed.", ct);
++ 171|         return loan;
++ 172|     }
++ 173| 
++ 174|     public async Task<Loan> RejectAsync(Guid loanId, string reason, CancellationToken ct = default)
++ 175|     {
++ 176|         if (!_user.IsInRole(Roles.LoanOfficer))
++ 177|             throw new UnauthorizedAccessException("Only a loan officer may reject a loan.");
++ 178| 
++ 179|         var officerId = _user.UserId;
++ 180| 
++ 181|         if (string.IsNullOrWhiteSpace(reason))
++ 182|             throw new ArgumentException("Rejection reason is required.", nameof(reason));
++ 183| 
++ 184|         var loanLock = LoanLocks.GetOrAdd(loanId, _ => new SemaphoreSlim(1, 1));
++ 185|         Loan loan;
++ 186| 
++ 187|         await loanLock.WaitAsync(ct);
++ 188|         try
++ 189|         {
++ 190|             loan = await _db.Loans.FirstOrDefaultAsync(l => l.Id == loanId, ct)
++ 191|                 ?? throw new KeyNotFoundException($"Loan {loanId} not found.");
++ 192| 
++ 193|             if (loan.CustomerId == officerId)
++ 194|                 throw new UnauthorizedAccessException("Loan officers cannot reject their own loan.");
++ 195| 
++ 196|             loan.Reject(officerId, reason);
++ 197|             await _db.SaveChangesAsync(ct);
++ 198|         }
++ 199|         finally
++ 200|         {
++ 201|             loanLock.Release();
++ 202|         }
++ 203| 
++ 204|         var now = _clock.UtcNow;
++ 205|         await _bus.PublishAsync(new LoanRejected(loan.Id, loan.CustomerId, now), ct);
++ 206|         await _notifier.NotifyAsync(loan.CustomerId, $"Your loan application {loan.Id} has been rejected.", ct);
++ 207|         return loan;
++ 208|     }
++ 209| 
++ 210|     private static decimal CalculateMonthlyAnnuity(decimal principal, int termMonths)
++ 211|     {
++ 212|         var monthlyRate = (FixedAnnualRatePercent / 100m) / 12m;
++ 213|         var onePlusRate = 1m + monthlyRate;
++ 214|         var compoundFactor = 1m;
++ 215|         for (var i = 0; i < termMonths; i++)
++ 216|             compoundFactor *= onePlusRate;
++ 217| 
++ 218|         var payment = principal * monthlyRate / (1m - 1m / compoundFactor);
++ 219|         return Math.Round(payment, 2, MidpointRounding.AwayFromZero);
++ 220|     }
++ 221| }
+
+### FILE: src/Bank.Api/Modules/Loans/Domain/Loan.cs  (slice: leftflow)
++   1| using Bank.Shared.Events;
++   2| 
++   3| namespace Bank.Modules.Loans.Domain;
++   4| 
++   5| public enum LoanStatus
++   6| {
++   7|     Submitted,
++   8|     Rejected,
++   9|     Disbursed,
++  10| }
++  11| 
++  12| public sealed class Loan
++  13| {
++  14|     public Loan()
++  15|     {
++  16|     }
++  17| 
++  18|     public Guid Id { get; set; } = Guid.NewGuid();
++  19|     public string CustomerId { get; set; } = "";
++  20|     public Guid DisbursementAccountId { get; set; }
++  21|     public decimal Principal { get; set; }
++  22|     public int TermMonths { get; set; }
++  23|     public decimal AnnualRatePercent { get; set; }
++  24|     public decimal MonthlyPayment { get; set; }
++  25|     public LoanStatus Status { get; private set; } = LoanStatus.Submitted;
++  26|     public string? DecidedBy { get; set; }
++  27|     public string? DecisionNote { get; set; }
++  28|     public DateTimeOffset AppliedAt { get; set; }
++  29| 
++  30|     public void Approve(string officerId, string? note)
++  31|     {
++  32|         if (Status != LoanStatus.Submitted)
++  33|             throw new InvalidOperationException($"Cannot approve loan in status {Status}.");
++  34|         Status = LoanStatus.Disbursed;
++  35|         DecidedBy = officerId;
++  36|         DecisionNote = note;
++  37|     }
++  38| 
++  39|     public void Reject(string officerId, string reason)
++  40|     {
++  41|         if (Status != LoanStatus.Submitted)
++  42|             throw new InvalidOperationException($"Cannot reject loan in status {Status}.");
++  43|         Status = LoanStatus.Rejected;
++  44|         DecidedBy = officerId;
++  45|         DecisionNote = reason;
++  46|     }
++  47| }
++  48| 
++  49| public sealed record LoanSubmitted(Guid LoanId, string CustomerId, decimal Principal, DateTimeOffset OccurredAt) : IDomainEvent;
++  50| 
++  51| public sealed record LoanApproved(Guid LoanId, string CustomerId, decimal Principal, DateTimeOffset OccurredAt) : IDomainEvent;
++  52| 
++  53| public sealed record LoanRejected(Guid LoanId, string CustomerId, DateTimeOffset OccurredAt) : IDomainEvent;
+
+### FILE: src/Bank.Api/Modules/Loans/LoansModule.cs  (slice: leftflow)
++   1| using Bank.Modules.Loans.Application;
++   2| 
++   3| namespace Bank.Modules.Loans;
++   4| 
++   5| public static class LoansModule
++   6| {
++   7|     public static IServiceCollection AddLoansModule(this IServiceCollection services)
++   8|     {
++   9|         services.AddScoped<ILoanService, LoanService>();
++  10|         return services;
++  11|     }
++  12| }
+
+### FILE: src/Bank.Api/Program.cs  (slice: leftflow)
+    5| using Bank.Modules.Cards;
+    6| using Bank.Modules.Customers;
+    7| using Bank.Modules.Deposits;
+    8| using Bank.Modules.Fees;
+    9| using Bank.Modules.Fx;
+   10| using Bank.Modules.Ledger;
++  11| using Bank.Modules.Loans;
+   12| using Bank.Modules.Notifications;
+   13| using Bank.Modules.Payments;
+   14| using Bank.Shared;
+   15| using Bank.Shared.Events;
+   16| using Microsoft.EntityFrameworkCore;
+   17| 
+     ⋮
+   29| builder.Services.AddCustomersModule();
+   30| builder.Services.AddPaymentsModule();
+   31| builder.Services.AddFxModule();
+   32| builder.Services.AddFeesModule();
+   33| builder.Services.AddCardsModule();
+   34| builder.Services.AddDepositsModule();
++  35| builder.Services.AddLoansModule();
+   36| // MODULES: register new modules above this line
+   37| 
+   38| var app = builder.Build();
+   39| using (var scope = app.Services.CreateScope())
+   40| {
+   41|     scope.ServiceProvider.GetRequiredService<BankDbContext>().Database.EnsureCreated();
+
+### FILE: tests/Bank.Tests/Loans/LoanTests.cs  (slice: leftflow, truncated)
++   1| using Bank.Data;
++   2| using Bank.Modules.Accounts.Application;
++   3| using Bank.Modules.Auth;
++   4| using Bank.Modules.Auth.Application;
++   5| using Bank.Modules.Ledger.Domain;
++   6| using Bank.Modules.Loans.Application;
++   7| using Bank.Modules.Loans.Domain;
++   8| using Bank.Tests;
++   9| using Xunit;
++  10| 
++  11| namespace Bank.Tests.Loans;
++  12| 
++  13| public sealed class LoanTests
++  14| {
++  15|     private static LoanService CreateService(
++  16|         BankDbContext db,
++  17|         ICurrentUser user,
++  18|         FakeClock? clock = null,
++  19|         RecordingBus? bus = null,
++  20|         RecordingNotifier? notifier = null)
++  21|     {
++  22|         clock ??= new FakeClock();
++  23|         bus ??= new RecordingBus();
++  24|         notifier ??= new RecordingNotifier();
++  25|         var ledger = TestKit.Ledger(db, bus, clock);
++  26|         var accounts = new AccountService(db, user, TestKit.Settings(), clock, bus, Array.Empty<IAccountOpeningRule>());
++  27|         return new LoanService(db, ledger, accounts, user, clock, bus, notifier);
++  28|     }
++  29| 
++  30|     [Fact]
++  31|     public async Task Apply_persists_submitted_loan_and_publishes_event()
++  32|     {
++  33|         using var db = TestKit.Db();
++  34|         var clock = new FakeClock();
++  35|         var bus = new RecordingBus();
++  36|         var accountId = TestKit.Account(db, "alice");
++  37|         var service = CreateService(db, new FakeUser("alice", Roles.Customer), clock, bus);
++  38| 
++  39|         var created = await service.ApplyAsync(new LoanApplication(accountId, 10_000m, 12));
++  40| 
++  41|         var saved = db.Loans.Single(l => l.Id == created.Id);
++  42|         Assert.Equal("alice", saved.CustomerId);
++  43|         Assert.Equal(accountId, saved.DisbursementAccountId);
++  44|         Assert.Equal(10_000m, saved.Principal);
++  45|         Assert.Equal(12, saved.TermMonths);
++  46|         Assert.Equal(5.5m, saved.AnnualRatePercent);
++  47|         Assert.Equal(858.37m, saved.MonthlyPayment);
++  48|         Assert.Equal(LoanStatus.Submitted, saved.Status);
++  49|         Assert.Null(saved.DecidedBy);
++  50|         Assert.Null(saved.DecisionNote);
++  51|         Assert.Equal(clock.UtcNow, saved.AppliedAt);
++  52| 
++  53|         var submitted = Assert.IsType<LoanSubmitted>(Assert.Single(bus.Events));
++  54|         Assert.Equal(created.Id, submitted.LoanId);
++  55|         Assert.Equal("alice", submitted.CustomerId);
++  56|         Assert.Equal(10_000m, submitted.Principal);
++  57|         Assert.Equal(clock.UtcNow, submitted.OccurredAt);
++  58|     }
++  59| 
++  60|     [Theory]
++  61|     [InlineData(1000, 6, 169.35)]
++  62|     [InlineData(10000, 12, 858.37)]
++  63|     [InlineData(50000, 120, 542.63)]
++  64|     public async Task Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero(
++  65|         decimal principal, int termMonths, decimal expectedMonthlyPayment)
++  66|     {
++  67|         using var db = TestKit.Db();
++  68|         var accountId = TestKit.Account(db, "alice");
++  69|         var service = CreateService(db, new FakeUser("alice", Roles.Customer));
++  70| 
++  71|         var loan = await service.ApplyAsync(new LoanApplication(accountId, principal, termMonths));
++  72| 
++  73|         Assert.Equal(5.5m, loan.AnnualRatePercent);
++  74|         Assert.Equal(expectedMonthlyPayment, loan.MonthlyPayment);
++  75|         Assert.Equal(LoanStatus.Submitted, loan.Status);
++  76|     }
++  77| 
++  78|     [Theory]
++  79|     [InlineData(999.99, 12)]
++  80|     [InlineData(50000.01, 12)]
++  81|     [InlineData(0, 12)]
++  82|     [InlineData(-1000, 12)]
++  83|     [InlineData(10000, 5)]
++  84|     [InlineData(10000, 121)]
++  85|     [InlineData(10000, 0)]
++  86|     [InlineData(10000, -6)]
++  87|     public async Task Apply_rejects_out_of_range_principal_or_term(decimal principal, int termMonths)
++  88|     {
++  89|         using var db = TestKit.Db();
++  90|         var bus = new RecordingBus();
++  91|         var accountId = TestKit.Account(db, "alice");
++  92|         var service = CreateService(db, new FakeUser("alice", Roles.Customer), bus: bus);
++  93| 
++  94|         await Assert.ThrowsAsync<ArgumentException>(() =>
++  95|             service.ApplyAsync(new LoanApplication(accountId, principal, termMonths)));
++  96| 
++  97|         Assert.Empty(db.Loans);
++  98|         Assert.Empty(bus.Events);
++  99|     }
++ 100| 
++ 101|     [Fact]
++ 102|     public async Task Apply_throws_when_disbursement_account_not_owned_by_caller()
++ 103|     {
++ 104|         using var db = TestKit.Db();
++ 105|         var bus = new RecordingBus();
++ 106|         var bobsAccountId = TestKit.Account(db, "bob");
++ 107|         var service = CreateService(db, new FakeUser("alice", Roles.Customer), bus: bus);
++ 108| 
++ 109|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
++ 110|             service.ApplyAsync(new LoanApplication(bobsAccountId, 5_000m, 12)));
++ 111|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
++ 112|             service.ApplyAsync(new LoanApplication(Guid.NewGuid(), 5_000m, 12)));
++ 113| 
++ 114|         Assert.Empty(db.Loans);
++ 115|         Assert.Empty(bus.Events);
++ 116|     }
++ 117| 
++ 118|     [Fact]
++ 119|     public async Task Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown()
++ 120|     {
++ 121|         using var db = TestKit.Db();
++ 122|         var accountId = TestKit.Account(db, "alice");
++ 123|         var aliceService = CreateService(db, new FakeUser("alice", Roles.Customer));
++ 124|         var loan = await aliceService.ApplyAsync(new LoanApplication(accountId, 2_000m, 12));
++ 125| 
++ 126|         var ownerView = await aliceService.GetAsync(loan.Id);
++ 127|         Assert.Equal(loan.Id, ownerView.Id);
++ 128| 
++ 129|         var officerService = CreateService(db, new FakeUser("officer-1", Roles.LoanOfficer));
++ 130|         var officerView = await officerService.GetAsync(loan.Id);
++ 131|         Assert.Equal(loan.Id, officerView.Id);
++ 132| 
++ 133|         var otherCustomerService = CreateService(db, new FakeUser("bob", Roles.Customer));
++ 134|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => otherCustomerService.GetAsync(loan.Id));
++ 135| 
++ 136|         var tellerService = CreateService(db, new FakeUser("teller-1", Roles.Teller));
++ 137|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => tellerService.GetAsync(loan.Id));
++ 138| 
++ 139|         await Assert.ThrowsAsync<KeyNotFoundException>(() => officerService.GetAsync(Guid.NewGuid()));
++ 140|     }
++ 141| 
++ 142|     [Fact]
++ 143|     public async Task Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii()
++ 144|     {
++ 145|         using var db = TestKit.Db();
++ 146|         var clock = new FakeClock();
++ 147|         var bus = new RecordingBus();
++ 148|         var notifier = new RecordingNotifier();
++ 149|         var accountId = TestKit.Account(db, "alice-customer", 100m, "SEK");
++ 150|         var iban = db.Accounts.Single(a => a.Id == accountId).Iban;
++ 151| 
++ 152|         var customerService = CreateService(db, new FakeUser("alice-customer", Roles.Customer), clock, bus, notifier);
++ 153|         var loan = await customerService.ApplyAsync(new LoanApplication(accountId, 5_000m, 24));
++ 154|         bus.Events.Clear();
++ 155| 
++ 156|         clock.Advance(TimeSpan.FromHours(2));
++ 157|         var officerService = CreateService(db, new FakeUser("officer-1", Roles.LoanOfficer), clock, bus, notifier);
++ 158|         var approved = await officerService.ApproveAsync(loan.Id, "Verified income");
++ 159| 
++ 160|         var saved = db.Loans.Single(l => l.Id == loan.Id);
++ 161|         Assert.Equal(LoanStatus.Disbursed, approved.Status);
++ 162|         Assert.Equal(LoanStatus.Disbursed, saved.Status);
++ 163|         Assert.Equal("officer-1", saved.DecidedBy);
++ 164|         Assert.Equal("Verified income", saved.DecisionNote);
++ 165| 
++ 166|         Assert.Equal(5_100m, TestKit.Balance(db, accountId));
++ 167|         Assert.Equal(-5_000m, TestKit.Balance(db, BankAccounts.For(BankAccountKind.LoanFunding, "SEK")));
++ 168|         Assert.Equal(0m, TestKit.Balance(db, BankAccounts.For(BankAccountKind.LoanFunding, "EUR")));
++ 169| 
++ 170|         var evt = Assert.IsType<LoanApproved>(Assert.Single(bus.Events));
++ 171|         Assert.Equal(loan.Id, evt.LoanId);
++ 172|         Assert.Equal("alice-customer", evt.CustomerId);
++ 173|         Assert.Equal(5_000m, evt.Principal);
++ 174|         Assert.Equal(clock.UtcNow, evt.OccurredAt);
++ 175| 
++ 176|         var notification = Assert.Single(notifier.Sent);
++ 177|         Assert.Equal("alice-customer", notification.CustomerId);
++ 178|         Assert.False(string.IsNullOrWhiteSpace(notification.Message));
++ 179|         Assert.DoesNotContain("alice-customer", notification.Message, StringComparison.OrdinalIgnoreCase);
++ 180|         Assert.DoesNotContain(iban, notification.Message, StringComparison.OrdinalIgnoreCase);
++ 181|         Assert.DoesNotContain(accountId.ToString(), notification.Message, StringComparison.OrdinalIgnoreCase);
++ 182|     }
++ 183| 
++ 184|     [Fact]
++ 185|     public async Task Approve_allows_null_note()
++ 186|     {
++ 187|         using var db = TestKit.Db();
++ 188|         var accountId = TestKit.Account(db, "alice");
++ 189|         var customerService = CreateService(db, new FakeUser("alice", Roles.Customer));
++ 190|         var loan = await customerService.ApplyAsync(new LoanApplication(accountId, 1_500m, 12));
++ 191| 
++ 192|         var officerService = CreateService(db, new FakeUser("officer-1", Roles.LoanOfficer));
++ 193|         var approved = await officerService.ApproveAsync(loan.Id, null);
++ 194| 
++ 195|         Assert.Equal(LoanStatus.Disbursed, approved.Status);
++ 196|         Assert.Null(approved.DecisionNote);
++ 197|     }
++ 198| 
++ 199|     [Fact]
++ 200|     public async Task Approve_enforces_role_four_eyes_and_submitted_status()
++ 201|     {
++ 202|         using var db = TestKit.Db();
++ 203|         var bus = new RecordingBus();
++ 204|         var notifier = new RecordingNotifier();
++ 205|         var accountId = TestKit.Account(db, "alice-officer", 0m, "EUR");
++ 206| 
++ 207|         var dualRoleService = CreateService(db, new FakeUser("alice-officer", Roles.Customer, Roles.LoanOfficer), bus: bus, notifier: notifier);
++ 208|         var loan = await dualRoleService.ApplyAsync(new LoanApplication(accountId, 3_000m, 12));
++ 209|         bus.Events.Clear();
++ 210| 
++ 211|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
++ 212|             dualRoleService.ApproveAsync(loan.Id, "Self-approved"));
++ 213| 
++ 214|         var tellerService = CreateService(db, new FakeUser("teller-1", Roles.Teller), bus: bus, notifier: notifier);
++ 215|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
++ 216|             tellerService.ApproveAsync(loan.Id, "Not an officer"));
++ 217| 
++ 218|         var customerService = CreateService(db, new FakeUser("bob", Roles.Customer), bus: bus, notifier: notifier);
++ 219|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
++ 220|             customerService.ApproveAsync(loan.Id, "Not an officer"));
++ 221| 
++ 222|         Assert.Equal(LoanStatus.Submitted, db.Loans.Single(l => l.Id == loan.Id).Status);
++ 223|         Assert.Equal(0m, TestKit.Balance(db, accountId));
++ 224|         Assert.Empty(bus.Events);
++ 225|         Assert.Empty(notifier.Sent);
++ 226| 
++ 227|         var independentOfficer = CreateService(db, new FakeUser("officer-2", Roles.LoanOfficer), bus: bus, notifier: notifier);
++ 228|         await Assert.ThrowsAsync<KeyNotFoundException>(() => independentOfficer.ApproveAsync(Guid.NewGuid(), "missing"));
++ 229| 
++ 230|         await independentOfficer.ApproveAsync(loan.Id, "Approved");
++ 231|         await Assert.ThrowsAsync<InvalidOperationException>(() => independentOfficer.ApproveAsync(loan.Id, "Duplicate"));
++ 232|         Assert.Equal(3_000m, TestKit.Balance(db, accountId));
++ 233|     }
++ 234| 
++ 235|     [Fact]
++ 236|     public async Task Reject_transitions_loan_publishes_event_and_notifies_without_pii()
++ 237|     {
++ 238|         using var db = TestKit.Db();
++ 239|         var clock = new FakeClock();
++ 240|         var bus = new RecordingBus();
++ 241|         var notifier = new RecordingNotifier();
++ 242|         var accountId = TestKit.Account(db, "alice-customer", 50m, "EUR");
++ 243|         var iban = db.Accounts.Single(a => a.Id == accountId).Iban;
++ 244| 
++ 245|         var customerService = CreateService(db, new FakeUser("alice-customer", Roles.Customer), clock, bus, notifier);
++ 246|         var loan = await customerService.ApplyAsync(new LoanApplication(accountId, 4_000m, 18));
++ 247|         bus.Events.Clear();
++ 248| 
++ 249|         clock.Advance(TimeSpan.FromHours(1));
++ 250|         var officerService = CreateService(db, new FakeUser("officer-2", Roles.LoanOfficer), clock, bus, notifier);
++ 251|         var rejected = await officerService.RejectAsync(loan.Id, "Insufficient credit history");
++ 252| 
++ 253|         var saved = db.Loans.Single(l => l.Id == loan.Id);
++ 254|         Assert.Equal(LoanStatus.Rejected, rejected.Status);
++ 255|         Assert.Equal(LoanStatus.Rejected, saved.Status);
++ 256|         Assert.Equal("officer-2", saved.DecidedBy);
++ 257|         Assert.Equal("Insufficient credit history", saved.DecisionNote);
++ 258|         Assert.Equal(50m, TestKit.Balance(db, accountId));
++ 259|         Assert.Equal(0m, TestKit.Balance(db, BankAccounts.For(BankAccountKind.LoanFunding, "EUR")));
++ 260| 
++ 261|         var evt = Assert.IsType<LoanRejected>(Assert.Single(bus.Events));
++ 262|         Assert.Equal(loan.Id, evt.LoanId);
++ 263|         Assert.Equal("alice-customer", evt.CustomerId);
++ 264|         Assert.Equal(clock.UtcNow, evt.OccurredAt);
++ 265| 
++ 266|         var notification = Assert.Single(notifier.Sent);
++ 267| 
+     ⋮ (truncated: change too large)
+
+
+# IMPACT
+- Loans (src/Bank.Api/Data/BankDbContext.cs): 0 caller(s) [none found]; test references: NONE
+- LoansController (src/Bank.Api/Modules/Loans/Api/LoansController.cs): 0 caller(s) [none found]; test references: NONE
+- Apply (src/Bank.Api/Modules/Loans/Api/LoansController.cs): 0 caller(s) [none found]; test references: NONE
+- Get (src/Bank.Api/Modules/Loans/Api/LoansController.cs): 0 caller(s) [none found]; test references: NONE
+- Approve (src/Bank.Api/Modules/Loans/Api/LoansController.cs): 0 caller(s) [none found]; test references: NONE
+- Reject (src/Bank.Api/Modules/Loans/Api/LoansController.cs): 0 caller(s) [none found]; test references: NONE
+- ReadOptionalJsonBodyAsync (src/Bank.Api/Modules/Loans/Api/LoansController.cs): 0 caller(s) [none found]; test references: NONE
+- ToDto (src/Bank.Api/Modules/Loans/Api/LoansController.cs): 0 caller(s) [none found]; test references: NONE
+- ApplyAsync (src/Bank.Api/Modules/Loans/Application/LoanService.cs): 0 caller(s) [none found]; test references: NONE
+- GetAsync (src/Bank.Api/Modules/Loans/Application/LoanService.cs): 0 caller(s) [none found]; test references: NONE
+- ApproveAsync (src/Bank.Api/Modules/Loans/Application/LoanService.cs): 0 caller(s) [none found]; test references: NONE
+- RejectAsync (src/Bank.Api/Modules/Loans/Application/LoanService.cs): 0 caller(s) [none found]; test references: NONE
+- LoanService (src/Bank.Api/Modules/Loans/Application/LoanService.cs): 0 caller(s) [none found]; test references: NONE
+- CalculateMonthlyAnnuity (src/Bank.Api/Modules/Loans/Application/LoanService.cs): 0 caller(s) [none found]; test references: NONE
+- Loan (src/Bank.Api/Modules/Loans/Domain/Loan.cs): 0 caller(s) [none found]; test references: NONE
+- Id (src/Bank.Api/Modules/Loans/Domain/Loan.cs): 0 caller(s) [none found]; test references: NONE
+- CustomerId (src/Bank.Api/Modules/Loans/Domain/Loan.cs): 0 caller(s) [none found]; test references: NONE
+- DisbursementAccountId (src/Bank.Api/Modules/Loans/Domain/Loan.cs): 0 caller(s) [none found]; test references: NONE
+- Principal (src/Bank.Api/Modules/Loans/Domain/Loan.cs): 0 caller(s) [none found]; test references: NONE
+- TermMonths (src/Bank.Api/Modules/Loans/Domain/Loan.cs): 0 caller(s) [none found]; test references: NONE
+- AnnualRatePercent (src/Bank.Api/Modules/Loans/Domain/Loan.cs): 0 caller(s) [none found]; test references: NONE
+- MonthlyPayment (src/Bank.Api/Modules/Loans/Domain/Loan.cs): 0 caller(s) [none found]; test references: NONE
+- Status (src/Bank.Api/Modules/Loans/Domain/Loan.cs): 0 caller(s) [none found]; test references: NONE
+- DecidedBy (src/Bank.Api/Modules/Loans/Domain/Loan.cs): 0 caller(s) [none found]; test references: NONE
+- DecisionNote (src/Bank.Api/Modules/Loans/Domain/Loan.cs): 0 caller(s) [none found]; test references: NONE
+- AppliedAt (src/Bank.Api/Modules/Loans/Domain/Loan.cs): 0 caller(s) [none found]; test references: NONE
+- Approve (src/Bank.Api/Modules/Loans/Domain/Loan.cs): 0 caller(s) [none found]; test references: NONE
+- Reject (src/Bank.Api/Modules/Loans/Domain/Loan.cs): 0 caller(s) [none found]; test references: NONE
+- AddLoansModule (src/Bank.Api/Modules/Loans/LoansModule.cs): 0 caller(s) [none found]; test references: NONE
+- CreateService (tests/Bank.Tests/Loans/LoanTests.cs): 0 caller(s) [none found]; test references: NONE
+- Apply_persists_submitted_loan_and_publishes_event (tests/Bank.Tests/Loans/LoanTests.cs): 0 caller(s) [none found]; test references: NONE
+- Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero (tests/Bank.Tests/Loans/LoanTests.cs): 0 caller(s) [none found]; test references: NONE
+- Apply_rejects_out_of_range_principal_or_term (tests/Bank.Tests/Loans/LoanTests.cs): 0 caller(s) [none found]; test references: NONE
+- Apply_throws_when_disbursement_account_not_owned_by_caller (tests/Bank.Tests/Loans/LoanTests.cs): 0 caller(s) [none found]; test references: NONE
+- Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown (tests/Bank.Tests/Loans/LoanTests.cs): 0 caller(s) [none found]; test references: NONE
+- Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii (tests/Bank.Tests/Loans/LoanTests.cs): 0 caller(s) [none found]; test references: NONE
+- Approve_allows_null_note (tests/Bank.Tests/Loans/LoanTests.cs): 0 caller(s) [none found]; test references: NONE
+- Approve_enforces_role_four_eyes_and_submitted_status (tests/Bank.Tests/Loans/LoanTests.cs): 0 caller(s) [none found]; test references: NONE
+- Reject_transitions_loan_publishes_event_and_notifies_without_pii (tests/Bank.Tests/Loans/LoanTests.cs): 0 caller(s) [none found]; test references: NONE
+- Reject_enforces_role_four_eyes_reason_and_submitted_status (tests/Bank.Tests/Loans/LoanTests.cs): 0 caller(s) [none found]; test references: NONE
+- Reject_after_disbursement_throws_invalid_operation (tests/Bank.Tests/Loans/LoanTests.cs): 0 caller(s) [none found]; test references: NONE

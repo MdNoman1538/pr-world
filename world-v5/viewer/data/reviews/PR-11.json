@@ -1,0 +1,327 @@
+{
+ "decision": "BLOCKED",
+ "reason": "Merge locked: Tests: Tests failed; Correctness: 2 Blocker(s) Not checked: Requirement. WARNING: review-policy.yaml is not approved by a named human yet.",
+ "tier": "high",
+ "ai_error": "",
+ "findings": [
+  {
+   "id": "C01",
+   "dimension": "correctness",
+   "severity": "Blocker",
+   "title": "Payment entity is placed on hold and never completed or persisted as successful",
+   "claim": "PaymentService calls payment.Hold() before saving the payment entity, but never transitions the payment to completed after the ledger transfers succeed. As a result, the payment remains in a held status in the database and is returned in an incomplete state to callers.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 298,
+   "line_end": 301,
+   "evidence": "            payment.Hold();\n\n            _db.Payments.Add(payment);\n            await _db.SaveChangesAsync(ct);",
+   "evidence_verified": true,
+   "suggested_fix": "Remove payment.Hold() or update the payment state to completed and persist the changes after ILedger.PostTransferAsync operations succeed.",
+   "patch": "",
+   "requirement_link": "When IPaymentService.PayAsync is called sequentially by the same customer with an IdempotencyKey that already exists for that CustomerId, it returns the existing first payment without calling ILedger.PostTransferAsync or moving money again.",
+   "source": "specialist:correctness",
+   "confidence": 0.95
+  },
+  {
+   "id": "C02",
+   "dimension": "correctness",
+   "severity": "Blocker",
+   "title": "Unique constraint exception handler fails to retrieve in-flight payment and throws",
+   "claim": "When a concurrent request catches a DbUpdateException unique constraint violation, the winning request is still executing ILedger transfers and has not yet committed its transaction. The losing request immediately queries for the existing payment via AsNoTracking, finds null because the winning transaction is uncommitted, and throws an unhandled exception instead of returning the payment.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 368,
+   "line_end": 374,
+   "evidence": "            var concurrent = await _db.Payments.AsNoTracking().FirstOrDefaultAsync(\n                p => p.CustomerId == customerId && p.IdempotencyKey == request.IdempotencyKey,\n                ct);\n            if (concurrent is not null)\n                return (concurrent, false);\n\n            throw;",
+   "evidence_verified": true,
+   "suggested_fix": "Commit or release the idempotency reservation record before moving to non-transactional ledger transfers, or implement a retry/poll mechanism to wait for the concurrent transaction to commit before querying.",
+   "patch": "",
+   "requirement_link": "When two requests with the same CustomerId and IdempotencyKey execute concurrently, at most one payment record is persisted and ILedger.PostTransferAsync is called at most once (with decimal amount rounded using Math.Round(x, 2, MidpointRounding.AwayFromZero)); the second request handles the database unique constraint violation and returns the existing first payment rather than failing with an unhandled exception.",
+   "source": "specialist:correctness",
+   "confidence": 0.92
+  },
+  {
+   "id": "A02",
+   "dimension": "architecture",
+   "severity": "ShouldFix",
+   "title": "Unbounded static semaphore dictionary introduces stateful memory leak in application service",
+   "claim": "IdempotencyLocks stores a SemaphoreSlim instance for every processed customer and idempotency key without any removal or cache expiration policy. This introduces stateful in-process synchronization that will leak memory over time and does not coordinate across multi-instance API deployments.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 46,
+   "line_end": 46,
+   "evidence": "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Remove the static IdempotencyLocks semaphore map. Let concurrent executions attempt persistence and handle the database unique constraint violation as specified in the acceptance criteria.",
+   "patch": "",
+   "requirement_link": "When two requests with the same CustomerId and IdempotencyKey execute concurrently, at most one payment record is persisted and ILedger.PostTransferAsync is called at most once (with decimal amount rounded using Math.Round(x, 2, MidpointRounding.AwayFromZero)); the second request handles the database unique constraint violation and returns the existing first payment rather than failing with an unhandled exception.",
+   "source": "specialist:architecture",
+   "confidence": 0.92
+  },
+  {
+   "id": "A01",
+   "dimension": "architecture",
+   "severity": "ShouldFix",
+   "title": "PaymentService leaks SQLite engine and connection-level locking into application layer",
+   "claim": "PaymentService imports Microsoft.Data.Sqlite and implements provider-specific write serialization via GetSqliteWriteLock and SQLite connection tracking. Application services should remain decoupled from underlying database engine implementations and let EF Core and database transactions manage concurrency.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 400,
+   "line_end": 403,
+   "evidence": "    private SemaphoreSlim? GetSqliteWriteLock()\n    {\n        if (!_db.Database.IsRelational() || !_db.Database.IsSqlite() || _db.Database.CurrentTransaction is not null)\n            return null;",
+   "evidence_verified": true,
+   "suggested_fix": "Remove SQLite-specific write locks and connection inspections from PaymentService. Rely on standard EF Core transaction management and DbUpdateException handling.",
+   "patch": "",
+   "requirement_link": "When two requests with the same CustomerId and IdempotencyKey execute concurrently, at most one payment record is persisted and ILedger.PostTransferAsync is called at most once (with decimal amount rounded using Math.Round(x, 2, MidpointRounding.AwayFromZero)); the second request handles the database unique constraint violation and returns the existing first payment rather than failing with an unhandled exception.",
+   "source": "specialist:architecture",
+   "confidence": 0.95
+  },
+  {
+   "id": "C03",
+   "dimension": "correctness",
+   "severity": "ShouldFix",
+   "title": "Unbounded static dictionary IdempotencyLocks causes a memory leak",
+   "claim": "IdempotencyLocks stores a new SemaphoreSlim for every customerId and IdempotencyKey pair and never evicts or removes keys. Under ongoing production traffic, this static collection will grow monotonically and leak memory.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 46,
+   "line_end": 46,
+   "evidence": "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Remove in-memory static semaphores in favor of database constraint enforcement, or ensure semaphores are removed from the dictionary after execution.",
+   "patch": "",
+   "requirement_link": "none",
+   "source": "specialist:correctness",
+   "confidence": 0.9
+  },
+  {
+   "id": "M01",
+   "dimension": "maintainability",
+   "severity": "ShouldFix",
+   "title": "Unbounded memory growth in static IdempotencyLocks dictionary",
+   "claim": "IdempotencyLocks stores a SemaphoreSlim for every unique customer and idempotency key combination but never removes them. In a long-running service, this static dictionary will grow indefinitely and leak memory.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 46,
+   "line_end": 46,
+   "evidence": "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Remove the semaphore entry when the operation finishes (or when no callers are queued) rather than accumulating entries permanently in a static dictionary.",
+   "patch": "",
+   "requirement_link": "none",
+   "source": "specialist:maintainability",
+   "confidence": 0.95
+  },
+  {
+   "id": "M02",
+   "dimension": "maintainability",
+   "severity": "ShouldFix",
+   "title": "SQLite-specific concurrency workarounds coupled to application service",
+   "claim": "PaymentService inspects low-level database connection properties and maintains static SQLite file/connection locks inside GetSqliteWriteLock. Mixing database provider-specific synchronization into the application domain increases maintenance overhead and breaks separation of concerns.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 400,
+   "line_end": 403,
+   "evidence": "    private SemaphoreSlim? GetSqliteWriteLock()\n    {\n        if (!_db.Database.IsRelational() || !_db.Database.IsSqlite() || _db.Database.CurrentTransaction is not null)\n            return null;",
+   "evidence_verified": true,
+   "suggested_fix": "Rely on database transaction semantics or isolate database-engine test workarounds outside the core PaymentService.",
+   "patch": "",
+   "requirement_link": "none",
+   "source": "specialist:maintainability",
+   "confidence": 0.9
+  },
+  {
+   "id": "P01",
+   "dimension": "performance",
+   "severity": "ShouldFix",
+   "title": "Unbounded static ConcurrentDictionary leaks memory over time",
+   "claim": "The static dictionary `IdempotencyLocks` caches a `SemaphoreSlim` for every processed idempotency key without any removal, TTL, or eviction. In a long-running service processing continuous payment traffic, this causes unbounded memory growth.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 46,
+   "line_end": 46,
+   "evidence": "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Clean up entries when processing completes (e.g., via `TryRemove`), or rely on the unique database constraint and transaction isolation rather than an unbounded static dictionary.",
+   "patch": "",
+   "requirement_link": "When two requests with the same CustomerId and IdempotencyKey execute concurrently, at most one payment record is persisted and ILedger.PostTransferAsync is called at most once",
+   "source": "specialist:performance",
+   "confidence": 0.95
+  },
+  {
+   "id": "P02",
+   "dimension": "performance",
+   "severity": "ShouldFix",
+   "title": "Redundant duplicate query for existing payment on execution path",
+   "claim": "PaymentService queries the database for existing payments with the same CustomerId and IdempotencyKey at lines 173-175 under the lock, and then executes the exact same query again at lines 226-228 inside ExecuteIdempotentPaymentAsync without any intervening state change, introducing redundant database round-trips.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 226,
+   "line_end": 228,
+   "evidence": "        var existing = await _db.Payments.AsNoTracking().FirstOrDefaultAsync(\n            p => p.CustomerId == customerId && p.IdempotencyKey == request.IdempotencyKey,\n            ct);",
+   "evidence_verified": true,
+   "suggested_fix": "Eliminate the second query in ExecuteIdempotentPaymentAsync and rely on the result checked immediately beforehand in PayAsync.",
+   "patch": "",
+   "requirement_link": "When IPaymentService.PayAsync is called sequentially by the same customer with an IdempotencyKey that already exists for that CustomerId, it returns the existing first payment without calling ILedger.PostTransferAsync or moving money again.",
+   "source": "specialist:performance",
+   "confidence": 0.9
+  },
+  {
+   "id": "P03",
+   "dimension": "performance",
+   "severity": "ShouldFix",
+   "title": "Consecutive redundant database round-trips reloading account balance",
+   "claim": "The method reloads `fromAccount` from the database via ReloadAsync and then immediately queries Accounts a second time for Balance and AllowOverdraft. This creates two consecutive round-trips to read the same account state on every payment.",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 232,
+   "line_end": 238,
+   "evidence": "        if (_db.Entry(fromAccount).State != EntityState.Detached)\n            await _db.Entry(fromAccount).ReloadAsync(ct);\n\n        var latestAccount = await _db.Accounts.AsNoTracking()\n            .Where(a => a.Id == request.FromAccountId)\n            .Select(a => new { a.Balance, a.AllowOverdraft })\n            .FirstOrDefaultAsync(ct);",
+   "evidence_verified": true,
+   "suggested_fix": "Use either ReloadAsync or the projected AsNoTracking query to inspect the latest account balance, rather than executing both.",
+   "patch": "",
+   "requirement_link": "none",
+   "source": "specialist:performance",
+   "confidence": 0.88
+  },
+  {
+   "id": "S01",
+   "dimension": "safety",
+   "severity": "ShouldFix",
+   "title": "Unbounded memory growth in static IdempotencyLocks dictionary (Resource Exhaustion)",
+   "claim": "PaymentService registers a SemaphoreSlim in the static dictionary IdempotencyLocks for every distinct customer and idempotency key combination. Because entries are never evicted or removed after the lock is released, untrusted user-supplied idempotency keys accumulate indefinitely, leading to memory exhaustion and denial of service (CWE-400).",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "line_start": 46,
+   "line_end": 46,
+   "evidence": "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Evict the key from IdempotencyLocks once execution completes, or rely on database-level unique constraints and transactions for concurrency control rather than an unbounded static cache.",
+   "patch": "",
+   "requirement_link": "none",
+   "source": "specialist:safety",
+   "confidence": 0.95
+  }
+ ],
+ "areas": [
+  {
+   "area": "What",
+   "status": "human",
+   "reason": "Requirement match is partial: While the composite unique index is configured on BankDbContext and amount rounding is applied, test execution failed (dotnet_test exit 1). The implementation leaves payments in a held status without completing them, and the DbUpdateException handling immediately rethrows when a concurrent transaction has not yet committed.",
+   "evidence": []
+  },
+  {
+   "area": "Where",
+   "status": "human",
+   "reason": "Tier HIGH → full human read and 2 sign-off(s) required",
+   "evidence": [
+    "src/Bank.Api/Data/BankDbContext.cs: area 'Platform' is high (Database schema, wiring and bank-wide settings touch every module)",
+    "src/Bank.Api/Modules/Payments/Application/PaymentService.cs: area 'Payments' is high (Customer money leaves the account)"
+   ]
+  },
+  {
+   "area": "Why",
+   "status": "verified",
+   "reason": "Linked to a requirement",
+   "evidence": []
+  },
+  {
+   "area": "Security",
+   "status": "human",
+   "reason": "Safety concerns to check",
+   "evidence": [
+    "S01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:46"
+   ]
+  },
+  {
+   "area": "Build",
+   "status": "verified",
+   "reason": "Build succeeded",
+   "evidence": []
+  },
+  {
+   "area": "Tests",
+   "status": "blocked",
+   "reason": "Tests failed",
+   "evidence": [
+    "Failed!  - Failed:     4, Passed:   249, Skipped:     0, Total:   253, Duration: 3 s - Bank.Tests.dll (net10.0)"
+   ]
+  },
+  {
+   "area": "Correctness",
+   "status": "blocked",
+   "reason": "2 Blocker(s)",
+   "evidence": [
+    "C01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:298",
+    "C02 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:368"
+   ]
+  },
+  {
+   "area": "Architecture",
+   "status": "verified",
+   "reason": "No blocking issue; 2 ShouldFix noted (does not hold the merge)",
+   "evidence": [
+    "A02 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:46",
+    "A01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:400"
+   ]
+  },
+  {
+   "area": "Maintainability",
+   "status": "verified",
+   "reason": "No blocking issue; 2 ShouldFix noted (does not hold the merge)",
+   "evidence": [
+    "M01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:46",
+    "M02 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:400"
+   ]
+  },
+  {
+   "area": "Performance",
+   "status": "verified",
+   "reason": "No blocking issue; 3 ShouldFix noted (does not hold the merge)",
+   "evidence": [
+    "P01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:46",
+    "P02 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:226",
+    "P03 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:232"
+   ]
+  },
+  {
+   "area": "Impact",
+   "status": "verified",
+   "reason": "7 changed member(s); callers covered by tests or none",
+   "evidence": []
+  },
+  {
+   "area": "Requirement",
+   "status": "not_checked",
+   "reason": "Not checked: requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho",
+   "evidence": []
+  }
+ ],
+ "run_id": "20261114-204439-pr-11",
+ "sensors": [
+  {
+   "name": "secret_scan",
+   "result": null,
+   "summary": "No secret patterns in added lines"
+  },
+  {
+   "name": "package_check",
+   "result": null,
+   "summary": "No package references added"
+  },
+  {
+   "name": "test_integrity",
+   "result": null,
+   "summary": "No test files edited"
+  },
+  {
+   "name": "removed_guards",
+   "result": null,
+   "summary": "No validation/guard lines removed"
+  },
+  {
+   "name": "risky_code",
+   "result": null,
+   "summary": "0 pattern hit(s) in added code"
+  },
+  {
+   "name": "dotnet_build",
+   "result": null,
+   "summary": "Build succeeded"
+  },
+  {
+   "name": "dotnet_test",
+   "result": null,
+   "summary": "Tests failed (exit 1)"
+  }
+ ]
+}

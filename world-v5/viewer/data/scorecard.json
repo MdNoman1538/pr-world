@@ -1,0 +1,416 @@
+{
+ "bugs": [
+  {
+   "id": "BUG-1",
+   "pr": "PR-2",
+   "category": "money / idempotency",
+   "description": "Make PaymentService.PayAsync stop returning the earlier payment when the same customer repeats an idempotency key, so a retried request moves the money a second time. Keep the rest of the payment logic.",
+   "applied": true,
+   "method": "llm",
+   "file": "src/Bank.Api/Data/BankDbContext.cs",
+   "lines": [
+    50,
+    50
+   ],
+   "explanation": "Removed the idempotency pre-check in PaymentService.PayAsync and dropped the unique constraint on (CustomerId, IdempotencyKey) in BankDbContext so retried requests with the same idempotency key execute the transfer again and persist a new payment instead of returning the earlier one.",
+   "member": "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "member_name": "OnModelCreating",
+   "caught_by_reviewer": [
+    {
+     "id": "C02",
+     "severity": "Blocker",
+     "title": "Composite index on CustomerId and IdempotencyKey is not configured as unique"
+    },
+    {
+     "id": "S02",
+     "severity": "Blocker",
+     "title": "CustomerId and IdempotencyKey database index is not unique"
+    },
+    {
+     "id": "A02",
+     "severity": "ShouldFix",
+     "title": "Idempotency database index lacks unique constraint"
+    }
+   ],
+   "failed_tests_in_pr": [
+    "Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+    "Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit"
+   ],
+   "verdict": "caught by reviewer"
+  },
+  {
+   "id": "BUG-2",
+   "pr": "PR-7",
+   "category": "business rule / four-eyes",
+   "description": "Remove the rule that stops a loan officer from approving their own loan (keep the rule for rejecting and keep the loan-officer role check).",
+   "applied": true,
+   "method": "llm",
+   "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+   "lines": [
+    130,
+    130
+   ],
+   "explanation": "Removed the self-approval check in LoanService.ApproveAsync so a loan officer can approve their own loan application while preserving the loan-officer role check and the self-rejection restriction.",
+   "member": "M:Bank.Modules.Loans.Application.LoanService.ApproveAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "member_name": "ApproveAsync",
+   "caught_by_reviewer": [
+    {
+     "id": "C01",
+     "severity": "Blocker",
+     "title": "Missing four-eyes check in LoanService.ApproveAsync"
+    },
+    {
+     "id": "S01",
+     "severity": "Blocker",
+     "title": "Missing four-eyes check allows loan officers to approve their own loans"
+    }
+   ],
+   "failed_tests_in_pr": [
+    "Bank.Tests.Loans.LoanTests.Approve_enforces_role_four_eyes_and_submitted_status",
+    "Bank.Tests.Loans.LoanTests.Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+    "Bank.Tests.Payments.PaymentTests.PayAsync_different_currencies_throws_CurrencyMismatchException",
+    "Bank.Tests.Payments.PaymentTests.PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+   ],
+   "verdict": "caught by reviewer"
+  },
+  {
+   "id": "BUG-3",
+   "pr": "PR-12",
+   "category": "requirement not met / fraud hold",
+   "description": "When a payment is held for review, do NOT move the money (amount + fee) out of the payer's account into the Suspense account: only set the payment status to Held and notify the customer. On release, transfer from the payer to the payee as a normal payment; on reject, just mark it Rejected. Keep the 5,000 EUR threshold, the new-payee rule, the compliance-officer checks and the events. Keep everything compiling.",
+   "applied": true,
+   "method": "llm",
+   "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+   "lines": [
+    346,
+    348
+   ],
+   "explanation": "Removed the Suspense account transfer when holding a payment in PaymentService.ExecuteIdempotentPaymentAsync, updated PaymentReviewService.ReleaseAsync to debit payment.FromAccountId instead of Suspense, and removed the Suspense refund transfer in PaymentReviewService.RejectAsync.",
+   "member": "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "member_name": "ExecuteIdempotentPaymentAsync",
+   "caught_by_reviewer": [
+    {
+     "id": "C04",
+     "severity": "Blocker",
+     "title": "Payment.Hold() is called unconditionally for all payments"
+    },
+    {
+     "id": "C01",
+     "severity": "Blocker",
+     "title": "Held payments do not transfer funds to the Suspense account"
+    },
+    {
+     "id": "S01",
+     "severity": "Blocker",
+     "title": "Held payments do not transfer funds to the Suspense account"
+    },
+    {
+     "id": "A01",
+     "severity": "ShouldFix",
+     "title": "Held payments bypass Suspense account in hold workflow"
+    },
+    {
+     "id": "M01",
+     "severity": "ShouldFix",
+     "title": "Unconditional call to payment.Hold() misrepresents domain lifecycle"
+    }
+   ],
+   "failed_tests_in_pr": [
+    "Bank.Tests.Loans.LoanTests.Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+    "Bank.Tests.Payments.PaymentTests.PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+    "Bank.Tests.Loans.LoanTests.Approve_enforces_role_four_eyes_and_submitted_status",
+    "Bank.Tests.Payments.PaymentTests.PayAsync_different_currencies_throws_CurrencyMismatchException"
+   ],
+   "verdict": "caught by reviewer"
+  }
+ ],
+ "prs": [
+  {
+   "id": "PR-1",
+   "decision": "BLOCKED",
+   "tier": "high",
+   "findings": 4,
+   "matched_planted": 0,
+   "other_findings": 4,
+   "tests": {
+    "passed": 45,
+    "failed": 0
+   },
+   "builder": {
+    "source": "model",
+    "attempts": 1,
+    "fallback": false
+   },
+   "clean": true,
+   "critical_on_clean": [
+    {
+     "id": "C01",
+     "title": "Class-level Customer policy prevents compliance officers from verifying or rejecting registrations"
+    },
+    {
+     "id": "S01",
+     "title": "Class-level Authorize attribute inadvertently requires Customer policy on Compliance endpoints"
+    }
+   ]
+  },
+  {
+   "id": "PR-2",
+   "decision": "BLOCKED",
+   "tier": "high",
+   "findings": 12,
+   "matched_planted": 3,
+   "other_findings": 9,
+   "tests": {
+    "passed": 68,
+    "failed": 2
+   },
+   "builder": {
+    "source": "model",
+    "attempts": 2,
+    "fallback": false
+   }
+  },
+  {
+   "id": "PR-3",
+   "decision": "BLOCKED",
+   "tier": "high",
+   "findings": 6,
+   "matched_planted": 0,
+   "other_findings": 6,
+   "tests": {
+    "passed": 116,
+    "failed": 1
+   },
+   "builder": {
+    "source": "model",
+    "attempts": 2,
+    "fallback": false
+   },
+   "clean": true,
+   "critical_on_clean": [
+    {
+     "id": "C01",
+     "title": "Missing test coverage for PaymentService cross-currency flows and EUR daily limits"
+    }
+   ]
+  },
+  {
+   "id": "PR-4",
+   "decision": "BLOCKED",
+   "tier": "high",
+   "findings": 8,
+   "matched_planted": 0,
+   "other_findings": 8,
+   "tests": {
+    "passed": 121,
+    "failed": 2
+   },
+   "builder": {
+    "source": "model",
+    "attempts": 1,
+    "fallback": false
+   },
+   "clean": true,
+   "critical_on_clean": [
+    {
+     "id": "C01",
+     "title": "PaymentService.QuoteAsync returns unrounded CreditedAmount"
+    },
+    {
+     "id": "C02",
+     "title": "Payer balance validation bypasses accounts where AllowOverdraft is true"
+    }
+   ]
+  },
+  {
+   "id": "PR-5",
+   "decision": "BLOCKED",
+   "tier": "high",
+   "findings": 7,
+   "matched_planted": 0,
+   "other_findings": 7,
+   "tests": {
+    "passed": 144,
+    "failed": 2
+   },
+   "builder": {
+    "source": "model",
+    "attempts": 2,
+    "fallback": false
+   },
+   "clean": true,
+   "critical_on_clean": [
+    {
+     "id": "C01",
+     "title": "Class-level Customer authorization policy blocks Staff access to Authorise endpoint"
+    },
+    {
+     "id": "S01",
+     "title": "Class-level Customer authorization policy blocks Staff from payment authorisation"
+    }
+   ]
+  },
+  {
+   "id": "PR-6",
+   "decision": "BLOCKED",
+   "tier": "high",
+   "findings": 9,
+   "matched_planted": 0,
+   "other_findings": 9,
+   "tests": {
+    "passed": 171,
+    "failed": 2
+   },
+   "builder": {
+    "source": "model",
+    "attempts": 1,
+    "fallback": false
+   },
+   "clean": true,
+   "critical_on_clean": [
+    {
+     "id": "C01",
+     "title": "Controller-level Customer policy prevents Staff from calling mature endpoint"
+    },
+    {
+     "id": "S01",
+     "title": "Controller-level Customer policy blocks Staff access to Mature endpoint"
+    }
+   ]
+  },
+  {
+   "id": "PR-7",
+   "decision": "BLOCKED",
+   "tier": "high",
+   "findings": 10,
+   "matched_planted": 2,
+   "other_findings": 8,
+   "tests": {
+    "passed": 189,
+    "failed": 4
+   },
+   "builder": {
+    "source": "model",
+    "attempts": 2,
+    "fallback": false
+   }
+  },
+  {
+   "id": "PR-8",
+   "decision": "BLOCKED",
+   "tier": "high",
+   "findings": 3,
+   "matched_planted": 0,
+   "other_findings": 3,
+   "tests": {
+    "passed": 213,
+    "failed": 4
+   },
+   "builder": {
+    "source": "model",
+    "attempts": 1,
+    "fallback": false
+   },
+   "clean": true,
+   "critical_on_clean": [
+    {
+     "id": "C01",
+     "title": "Inclusive upper bounds in ledger queries violate UTC month boundary exclusion"
+    }
+   ]
+  },
+  {
+   "id": "PR-9",
+   "decision": "BLOCKED",
+   "tier": "high",
+   "findings": 2,
+   "matched_planted": 0,
+   "other_findings": 2,
+   "tests": {
+    "passed": 225,
+    "failed": 4
+   },
+   "builder": {
+    "source": "model",
+    "attempts": 1,
+    "fallback": false
+   },
+   "clean": true,
+   "critical_on_clean": []
+  },
+  {
+   "id": "PR-10",
+   "decision": "BLOCKED",
+   "tier": "high",
+   "findings": 0,
+   "matched_planted": 0,
+   "other_findings": 0,
+   "tests": {
+    "passed": 249,
+    "failed": 4
+   },
+   "builder": {
+    "source": "model",
+    "attempts": 1,
+    "fallback": false
+   },
+   "clean": true,
+   "critical_on_clean": []
+  },
+  {
+   "id": "PR-11",
+   "decision": "BLOCKED",
+   "tier": "high",
+   "findings": 11,
+   "matched_planted": 0,
+   "other_findings": 11,
+   "tests": {
+    "passed": 249,
+    "failed": 4
+   },
+   "builder": {
+    "source": "model",
+    "attempts": 1,
+    "fallback": false
+   },
+   "clean": true,
+   "critical_on_clean": [
+    {
+     "id": "C01",
+     "title": "Payment entity is placed on hold and never completed or persisted as successful"
+    },
+    {
+     "id": "C02",
+     "title": "Unique constraint exception handler fails to retrieve in-flight payment and throws"
+    }
+   ]
+  },
+  {
+   "id": "PR-12",
+   "decision": "BLOCKED",
+   "tier": "high",
+   "findings": 21,
+   "matched_planted": 5,
+   "other_findings": 16,
+   "tests": {
+    "passed": 269,
+    "failed": 4
+   },
+   "builder": {
+    "source": "model",
+    "attempts": 1,
+    "fallback": false
+   }
+  }
+ ],
+ "summary": {
+  "planted": 3,
+  "caught_by_reviewer": 3,
+  "tests_failed": 0,
+  "missed": 0,
+  "not_planted": 0,
+  "clean_prs": 9,
+  "clean_prs_with_critical": 7
+ },
+ "note": "Other findings are not automatically false alarms: a human must judge them."
+}

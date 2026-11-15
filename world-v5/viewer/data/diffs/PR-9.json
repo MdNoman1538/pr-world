@@ -1,0 +1,1667 @@
+{
+ "changed": {
+  "T:Bank.Shared.Settings.BankSettings": "contains",
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": "modified",
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": "modified",
+  "T:Bank.Tests.Settings.LaunchSettingsTests": "new",
+  "M:Bank.Tests.Settings.LaunchSettingsTests.BankSettings_defaults_to_SEK_currency_and_5000_daily_transfer_limit": "new",
+  "M:Bank.Tests.Settings.LaunchSettingsTests.BankSettings_supported_currencies_remain_EUR_SEK_and_USD": "new",
+  "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK": "new",
+  "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_explicit_supported_currency_uses_requested_currency(System.String)": "new",
+  "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_unsupported_currency_is_rejected(System.String)": "new",
+  "M:Bank.Tests.Settings.LaunchSettingsTests.Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened": "new",
+  "M:Bank.Tests.Settings.LaunchSettingsTests.Opening_rule_rejection_prevents_creating_default_SEK_account": "new",
+  "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match": "new",
+  "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer": "new",
+  "T:Bank.Tests.Settings.LaunchSettingsTests.RejectingOpeningRule": "new",
+  "M:Bank.Tests.Settings.LaunchSettingsTests.RejectingOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": "new"
+ },
+ "removed_nodes": [],
+ "new_edges": [
+  [
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Tests.Settings.LaunchSettingsTests.RejectingOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.BankSettings_defaults_to_SEK_currency_and_5000_daily_transfer_limit",
+   "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.BankSettings_defaults_to_SEK_currency_and_5000_daily_transfer_limit",
+   "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.BankSettings_supported_currencies_remain_EUR_SEK_and_USD",
+   "P:Bank.Shared.Settings.BankSettings.SupportedCurrencies",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_explicit_supported_currency_uses_requested_currency(System.String)",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_explicit_supported_currency_uses_requested_currency(System.String)",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_explicit_supported_currency_uses_requested_currency(System.String)",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_explicit_supported_currency_uses_requested_currency(System.String)",
+   "P:Bank.Modules.Accounts.Domain.Account.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_explicit_supported_currency_uses_requested_currency(System.String)",
+   "P:Bank.Modules.Accounts.Domain.Account.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_explicit_supported_currency_uses_requested_currency(System.String)",
+   "table:Accounts",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_unsupported_currency_is_rejected(System.String)",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_unsupported_currency_is_rejected(System.String)",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_unsupported_currency_is_rejected(System.String)",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_unsupported_currency_is_rejected(System.String)",
+   "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_unsupported_currency_is_rejected(System.String)",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_with_unsupported_currency_is_rejected(System.String)",
+   "table:Accounts",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "P:Bank.Modules.Accounts.Domain.Account.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "P:Bank.Modules.Accounts.Domain.Account.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "P:Bank.Modules.Accounts.Domain.Account.Kind",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "table:Accounts",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+   "P:Bank.Modules.Accounts.Domain.Account.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+   "P:Bank.Modules.Accounts.Domain.Account.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+   "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+   "table:Accounts",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+   "M:Bank.Modules.Accounts.Application.AccountService.ForOwnerAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+   "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+   "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+   "P:Bank.Modules.Accounts.Domain.Account.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+   "P:Bank.Modules.Accounts.Domain.Account.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "P:Bank.Modules.Accounts.Domain.Account.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Opening_rule_rejection_prevents_creating_default_SEK_account",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Opening_rule_rejection_prevents_creating_default_SEK_account",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Opening_rule_rejection_prevents_creating_default_SEK_account",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Opening_rule_rejection_prevents_creating_default_SEK_account",
+   "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Opening_rule_rejection_prevents_creating_default_SEK_account",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Opening_rule_rejection_prevents_creating_default_SEK_account",
+   "table:Accounts",
+   "reads"
+  ],
+  [
+   "T:Bank.Tests.Settings.LaunchSettingsTests.RejectingOpeningRule",
+   "T:Bank.Modules.Accounts.Application.IAccountOpeningRule",
+   "implements"
+  ]
+ ],
+ "removed_edges": [],
+ "upstream": {
+  "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)": 1,
+  "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)": 1,
+  "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": 1,
+  "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": 1,
+  "M:Bank.Tests.AccountsTests.New_account_uses_the_default_currency_and_belongs_to_the_caller": 2,
+  "M:Bank.Tests.AccountsTests.Unsupported_currency_is_refused": 2,
+  "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening": 2,
+  "M:Bank.Modules.Accounts.Application.IAccountService.OpenAsync(System.String,System.Threading.CancellationToken)": 2,
+  "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])": 2,
+  "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])": 2,
+  "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)": 2,
+  "M:Bank.Tests.Payments.PaymentTests.CreateService(Bank.Data.BankDbContext,Bank.Tests.FakeUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Shared.Settings.BankSettings)": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_exactly_at_daily_transfer_limit_succeeds": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_one_cent_over_daily_transfer_limit_throws_DailyLimitExceededException": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_daily_limit_resets_at_utc_midnight": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_daily_limit_is_isolated_per_customer": 2,
+  "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_valid_transfer_moves_money_persists_completed_payment_and_publishes_event": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_allows_null_reference": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_allows_transfer_between_customers_own_accounts": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_uses_current_user_identity_when_caller_switches": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_zero_or_negative_amount_throws_ArgumentException(System.Decimal)": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_fractional_cents_throws_ArgumentException(System.Decimal)": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_smallest_valid_amount_one_cent_succeeds": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_different_currencies_throws_CurrencyMismatchException": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_same_idempotency_key_for_different_customers_executes_independently": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_insufficient_funds_throws_InsufficientFundsException_and_persists_nothing": 2,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_exact_account_balance_succeeds": 2,
+  "M:Bank.Tests.Payments.PaymentTests.ForCustomerAsync_returns_only_specified_customers_payments": 2,
+  "M:Bank.Modules.Payments.Application.IPaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": 2,
+  "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_blocks_unknown_pending_and_rejected_customers": 2,
+  "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_allows_verified_customer": 2,
+  "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)": 3,
+  "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued": 3,
+  "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_non_owner_with_UnauthorizedAccessException": 3,
+  "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_unknown_account_with_UnauthorizedAccessException": 3,
+  "M:Bank.Tests.Cards.CardTests.FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen": 3,
+  "M:Bank.Tests.Cards.CardTests.CancelAsync_cancels_active_and_frozen_cards": 3,
+  "M:Bank.Tests.Cards.CardTests.Lifecycle_operations_reject_non_owner_without_changing_status": 3,
+  "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods": 3,
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event": 3,
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_uses_account_currency_for_Suspense_and_event": 3,
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance": 3,
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places(System.Decimal,System.Decimal)": 3,
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(System.Decimal)": 3,
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds": 3,
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_cancelled_card_without_moving_funds": 3,
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit(System.Decimal)": 3,
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_account_has_insufficient_funds": 3,
+  "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number": 3,
+  "M:Bank.Tests.Deposits.DepositTests.Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event": 3,
+  "M:Bank.Tests.Deposits.DepositTests.Open_maps_term_months_to_expected_annual_rate_and_maturity_date(System.Int32,System.Decimal)": 3,
+  "M:Bank.Tests.Deposits.DepositTests.Open_rejects_principal_below_500(System.Decimal)": 3,
+  "M:Bank.Tests.Deposits.DepositTests.Open_rejects_unsupported_term_months(System.Int32)": 3,
+  "M:Bank.Tests.Deposits.DepositTests.Open_by_non_owner_throws_UnauthorizedAccessException": 3,
+  "M:Bank.Tests.Deposits.DepositTests.Open_with_insufficient_funds_throws_and_does_not_create_deposit": 3,
+  "M:Bank.Tests.Deposits.DepositTests.Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero(System.Decimal,System.Int32,System.Decimal)": 3,
+  "M:Bank.Tests.Deposits.DepositTests.Mature_succeeds_without_owner_check_when_called_by_different_user": 3,
+  "M:Bank.Tests.Deposits.DepositTests.Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact": 3,
+  "M:Bank.Tests.Deposits.DepositTests.Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event": 3,
+  "M:Bank.Tests.Deposits.DepositTests.Break_by_non_owner_throws_UnauthorizedAccessException": 3,
+  "M:Bank.Tests.Deposits.DepositTests.Cannot_mature_or_break_an_already_matured_deposit": 3,
+  "M:Bank.Tests.Deposits.DepositTests.Cannot_break_or_mature_an_already_broken_deposit": 3,
+  "M:Bank.Tests.Deposits.DepositTests.Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense": 3,
+  "M:Bank.Tests.Loans.LoanTests.Apply_persists_submitted_loan_and_publishes_event": 3,
+  "M:Bank.Tests.Loans.LoanTests.Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero(System.Decimal,System.Int32,System.Decimal)": 3,
+  "M:Bank.Tests.Loans.LoanTests.Apply_rejects_out_of_range_principal_or_term(System.Decimal,System.Int32)": 3,
+  "M:Bank.Tests.Loans.LoanTests.Apply_throws_when_disbursement_account_not_owned_by_caller": 3,
+  "M:Bank.Tests.Loans.LoanTests.Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown": 3,
+  "M:Bank.Tests.Loans.LoanTests.Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii": 3,
+  "M:Bank.Tests.Loans.LoanTests.Approve_allows_null_note": 3,
+  "M:Bank.Tests.Loans.LoanTests.Approve_enforces_role_four_eyes_and_submitted_status": 3,
+  "M:Bank.Tests.Loans.LoanTests.Reject_transitions_loan_publishes_event_and_notifies_without_pii": 3,
+  "M:Bank.Tests.Loans.LoanTests.Reject_enforces_role_four_eyes_reason_and_submitted_status": 3,
+  "M:Bank.Tests.Loans.LoanTests.Reject_after_disbursement_throws_invalid_operation": 3,
+  "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance": 3,
+  "M:Bank.Tests.Statements.StatementTests.Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end": 3,
+  "M:Bank.Tests.Statements.StatementTests.Year_rollover_december_to_january_respects_utc_boundaries": 3,
+  "M:Bank.Tests.Statements.StatementTests.Leap_year_february_includes_feb_29_and_excludes_mar_1": 3,
+  "M:Bank.Tests.Statements.StatementTests.Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance": 3,
+  "M:Bank.Tests.Statements.StatementTests.Statement_currency_matches_account_currency": 3,
+  "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total": 3,
+  "M:Bank.Tests.Statements.StatementTests.Entries_from_other_accounts_are_isolated": 3,
+  "M:Bank.Tests.Statements.StatementTests.Staff_roles_can_read_any_customer_statement(System.String)": 3,
+  "M:Bank.Tests.Statements.StatementTests.Non_owner_customer_and_unauthorized_users_are_rejected(System.String)": 3,
+  "M:Bank.Tests.Statements.StatementTests.Unknown_account_throws_KeyNotFoundException(System.String)": 3,
+  "M:Bank.Tests.Statements.StatementTests.Invalid_year_or_month_throws_ArgumentOutOfRangeException(System.Int32,System.Int32)": 3,
+  "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries": 3,
+  "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": 3,
+  "endpoint:POST /api/accounts": 4,
+  "endpoint:POST /api/payments": 4
+ },
+ "downstream": {
+  "P:Bank.Shared.Settings.BankSettings.SupportedCurrencies": 1,
+  "M:Bank.Tests.TestKit.Db": 1,
+  "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)": 1,
+  "table:Accounts": 1,
+  "F:Bank.Modules.Auth.Roles.Customer": 1,
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": 1,
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": 1,
+  "P:Bank.Modules.Accounts.Domain.Account.Kind": 1,
+  "P:Bank.Tests.FakeClock.UtcNow": 1,
+  "P:Bank.Modules.Accounts.Domain.Account.Id": 1,
+  "P:Bank.Tests.RecordingBus.Events": 1,
+  "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)": 1,
+  "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)": 1,
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": 1,
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": 1,
+  "M:Bank.Modules.Accounts.Application.AccountService.ForOwnerAsync(System.String,System.Threading.CancellationToken)": 1,
+  "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)": 1,
+  "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": 1,
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": 1,
+  "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": 2,
+  "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 2,
+  "T:Bank.Modules.Accounts.Domain.AccountOpened": 2,
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": 2,
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": 2,
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": 3,
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 3,
+  "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 3,
+  "T:Bank.Modules.Ledger.Domain.TransferPosted": 3,
+  "table:LedgerEntries": 3,
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": 3,
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": 3,
+  "table:Customers": 4,
+  "P:Bank.Modules.Customers.Domain.Customer.Id": 4,
+  "P:Bank.Modules.Customers.Domain.Customer.Status": 4,
+  "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)": 4
+ },
+ "up_via": {
+  "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)": [
+   "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+   "uses"
+  ],
+  "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)": [
+   "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+   "uses"
+  ],
+  "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": [
+   "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+   "uses"
+  ],
+  "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.RejectingOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Tests.AccountsTests.New_account_uses_the_default_currency_and_belongs_to_the_caller": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.AccountsTests.Unsupported_currency_is_refused": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Accounts.Application.IAccountService.OpenAsync(System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.CreateService(Bank.Data.BankDbContext,Bank.Tests.FakeUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Shared.Settings.BankSettings)": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_exactly_at_daily_transfer_limit_succeeds": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_one_cent_over_daily_transfer_limit_throws_DailyLimitExceededException": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_daily_limit_resets_at_utc_midnight": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_daily_limit_is_isolated_per_customer": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_valid_transfer_moves_money_persists_completed_payment_and_publishes_event": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_allows_null_reference": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_allows_transfer_between_customers_own_accounts": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_uses_current_user_identity_when_caller_switches": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_zero_or_negative_amount_throws_ArgumentException(System.Decimal)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_fractional_cents_throws_ArgumentException(System.Decimal)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_smallest_valid_amount_one_cent_succeeds": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_different_currencies_throws_CurrencyMismatchException": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_same_idempotency_key_for_different_customers_executes_independently": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_insufficient_funds_throws_InsufficientFundsException_and_persists_nothing": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_exact_account_balance_succeeds": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.ForCustomerAsync_returns_only_specified_customers_payments": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Payments.Application.IPaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_blocks_unknown_pending_and_rejected_customers": [
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_allows_verified_customer": [
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Accounts.Application.IAccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_non_owner_with_UnauthorizedAccessException": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_unknown_account_with_UnauthorizedAccessException": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.CancelAsync_cancels_active_and_frozen_cards": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.Lifecycle_operations_reject_non_owner_without_changing_status": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_uses_account_currency_for_Suspense_and_event": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places(System.Decimal,System.Decimal)": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(System.Decimal)": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_cancelled_card_without_moving_funds": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit(System.Decimal)": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_account_has_insufficient_funds": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event": [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Open_maps_term_months_to_expected_annual_rate_and_maturity_date(System.Int32,System.Decimal)": [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Open_rejects_principal_below_500(System.Decimal)": [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Open_rejects_unsupported_term_months(System.Int32)": [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Open_by_non_owner_throws_UnauthorizedAccessException": [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Open_with_insufficient_funds_throws_and_does_not_create_deposit": [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero(System.Decimal,System.Int32,System.Decimal)": [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Mature_succeeds_without_owner_check_when_called_by_different_user": [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact": [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event": [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Break_by_non_owner_throws_UnauthorizedAccessException": [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Cannot_mature_or_break_an_already_matured_deposit": [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Cannot_break_or_mature_an_already_broken_deposit": [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense": [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.Loans.LoanTests.Apply_persists_submitted_loan_and_publishes_event": [
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  "M:Bank.Tests.Loans.LoanTests.Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero(System.Decimal,System.Int32,System.Decimal)": [
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  "M:Bank.Tests.Loans.LoanTests.Apply_rejects_out_of_range_principal_or_term(System.Decimal,System.Int32)": [
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  "M:Bank.Tests.Loans.LoanTests.Apply_throws_when_disbursement_account_not_owned_by_caller": [
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  "M:Bank.Tests.Loans.LoanTests.Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown": [
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  "M:Bank.Tests.Loans.LoanTests.Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii": [
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  "M:Bank.Tests.Loans.LoanTests.Approve_allows_null_note": [
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  "M:Bank.Tests.Loans.LoanTests.Approve_enforces_role_four_eyes_and_submitted_status": [
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  "M:Bank.Tests.Loans.LoanTests.Reject_transitions_loan_publishes_event_and_notifies_without_pii": [
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  "M:Bank.Tests.Loans.LoanTests.Reject_enforces_role_four_eyes_reason_and_submitted_status": [
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  "M:Bank.Tests.Loans.LoanTests.Reject_after_disbursement_throws_invalid_operation": [
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.Year_rollover_december_to_january_respects_utc_boundaries": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.Leap_year_february_includes_feb_29_and_excludes_mar_1": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.Statement_currency_matches_account_currency": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.Entries_from_other_accounts_are_isolated": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.Staff_roles_can_read_any_customer_statement(System.String)": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.Non_owner_customer_and_unauthorized_users_are_rejected(System.String)": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.Unknown_account_throws_KeyNotFoundException(System.String)": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.Invalid_year_or_month_throws_ArgumentOutOfRangeException(System.Int32,System.Int32)": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries": [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Payments.Application.IPaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "endpoint:POST /api/accounts": [
+   "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)",
+   "routes"
+  ],
+  "endpoint:POST /api/payments": [
+   "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "routes"
+  ]
+ },
+ "down_via": {
+  "P:Bank.Shared.Settings.BankSettings.SupportedCurrencies": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.BankSettings_supported_currencies_remain_EUR_SEK_and_USD",
+   "uses"
+  ],
+  "M:Bank.Tests.TestKit.Db": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "calls"
+  ],
+  "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "calls"
+  ],
+  "table:Accounts": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "reads"
+  ],
+  "F:Bank.Modules.Auth.Roles.Customer": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Kind": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "uses"
+  ],
+  "P:Bank.Tests.FakeClock.UtcNow": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Id": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "uses"
+  ],
+  "P:Bank.Tests.RecordingBus.Events": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "uses"
+  ],
+  "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+   "calls"
+  ],
+  "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+   "calls"
+  ],
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+   "calls"
+  ],
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+   "calls"
+  ],
+  "M:Bank.Modules.Accounts.Application.AccountService.ForOwnerAsync(System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+   "calls"
+  ],
+  "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "calls"
+  ],
+  "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "calls"
+  ],
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "calls"
+  ],
+  "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "T:Bank.Modules.Accounts.Domain.AccountOpened": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "publishes"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "T:Bank.Modules.Ledger.Domain.TransferPosted": [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "publishes"
+  ],
+  "table:LedgerEntries": [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "writes"
+  ],
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "table:Customers": [
+   "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "reads"
+  ],
+  "P:Bank.Modules.Customers.Domain.Customer.Id": [
+   "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "P:Bank.Modules.Customers.Domain.Customer.Status": [
+   "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "calls"
+  ]
+ },
+ "hot_edges": [
+  [
+   "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.IAccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Accounts.Domain.Account.Iban",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Accounts.Domain.AccountOpened",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Tests.Settings.LaunchSettingsTests.RejectingOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.IAccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Customers.Domain.Customer.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Ledger.Domain.TransferPosted",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "table:LedgerEntries",
+   "writes"
+  ],
+  [
+   "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Application.IPaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.IPaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+   "uses"
+  ],
+  [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.AccountsTests.New_account_uses_the_default_currency_and_belongs_to_the_caller",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.AccountsTests.Unsupported_currency_is_refused",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_account_has_insufficient_funds",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit(System.Decimal)",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(System.Decimal)",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places(System.Decimal,System.Decimal)",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CancelAsync_cancels_active_and_frozen_cards",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_non_owner_with_UnauthorizedAccessException",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_unknown_account_with_UnauthorizedAccessException",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Lifecycle_operations_reject_non_owner_without_changing_status",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_allows_verified_customer",
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.Break_by_non_owner_throws_UnauthorizedAccessException",
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.Cannot_break_or_mature_an_already_broken_deposit",
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.Cannot_mature_or_break_an_already_matured_deposit",
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero(System.Decimal,System.Int32,System.Decimal)",
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.Mature_succeeds_without_owner_check_when_called_by_different_user",
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.Open_by_non_owner_throws_UnauthorizedAccessException",
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.Open_maps_term_months_to_expected_annual_rate_and_maturity_date(System.Int32,System.Decimal)",
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.Open_rejects_principal_below_500(System.Decimal)",
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.Open_rejects_unsupported_term_months(System.Int32)",
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Deposits.DepositTests.Open_with_insufficient_funds_throws_and_does_not_create_deposit",
+   "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Loans.LoanTests.Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero(System.Decimal,System.Int32,System.Decimal)",
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Loans.LoanTests.Apply_persists_submitted_loan_and_publishes_event",
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Loans.LoanTests.Apply_rejects_out_of_range_principal_or_term(System.Decimal,System.Int32)",
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Loans.LoanTests.Apply_throws_when_disbursement_account_not_owned_by_caller",
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Loans.LoanTests.Approve_allows_null_note",
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Loans.LoanTests.Approve_disburses_in_account_currency_publishes_event_and_notifies_without_pii",
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Loans.LoanTests.Approve_enforces_role_four_eyes_and_submitted_status",
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Loans.LoanTests.Get_allows_owner_and_loan_officer_and_rejects_others_or_unknown",
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Loans.LoanTests.Reject_after_disbursement_throws_invalid_operation",
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Loans.LoanTests.Reject_enforces_role_four_eyes_reason_and_submitted_status",
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Loans.LoanTests.Reject_transitions_loan_publishes_event_and_notifies_without_pii",
+   "M:Bank.Tests.Loans.LoanTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Tests.RecordingNotifier)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.CreateService(Bank.Data.BankDbContext,Bank.Tests.FakeUser,Bank.Tests.FakeClock,Bank.Tests.RecordingBus,Bank.Shared.Settings.BankSettings)",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.ForCustomerAsync_returns_only_specified_customers_payments",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_allows_null_reference",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_allows_transfer_between_customers_own_accounts",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_daily_limit_is_isolated_per_customer",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_daily_limit_resets_at_utc_midnight",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_different_currencies_throws_CurrencyMismatchException",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_exact_account_balance_succeeds",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_exactly_at_daily_transfer_limit_succeeds",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_fractional_cents_throws_ArgumentException(System.Decimal)",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_insufficient_funds_throws_InsufficientFundsException_and_persists_nothing",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_one_cent_over_daily_transfer_limit_throws_DailyLimitExceededException",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_same_idempotency_key_for_different_customers_executes_independently",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_smallest_valid_amount_one_cent_succeeds",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_uses_current_user_identity_when_caller_switches",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_valid_transfer_moves_money_persists_completed_payment_and_publishes_event",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_zero_or_negative_amount_throws_ArgumentException(System.Decimal)",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.BankSettings_supported_currencies_remain_EUR_SEK_and_USD",
+   "P:Bank.Shared.Settings.BankSettings.SupportedCurrencies",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "P:Bank.Modules.Accounts.Domain.Account.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "P:Bank.Modules.Accounts.Domain.Account.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "P:Bank.Modules.Accounts.Domain.Account.Kind",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Customer_opening_account_without_currency_uses_default_SEK",
+   "table:Accounts",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+   "M:Bank.Modules.Accounts.Application.AccountService.ForOwnerAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+   "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_is_owned_by_current_user_and_queries_match",
+   "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Settings.LaunchSettingsTests.New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Entries_from_other_accounts_are_isolated",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Invalid_year_or_month_throws_ArgumentOutOfRangeException(System.Int32,System.Int32)",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Leap_year_february_includes_feb_29_and_excludes_mar_1",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Non_owner_customer_and_unauthorized_users_are_rejected(System.String)",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Staff_roles_can_read_any_customer_statement(System.String)",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Statement_currency_matches_account_currency",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Unknown_account_throws_KeyNotFoundException(System.String)",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Statements.StatementTests.Year_rollover_december_to_january_respects_utc_boundaries",
+   "M:Bank.Tests.Statements.StatementTests.CreateService(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+   "uses"
+  ],
+  [
+   "endpoint:POST /api/accounts",
+   "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)",
+   "routes"
+  ],
+  [
+   "endpoint:POST /api/payments",
+   "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "routes"
+  ]
+ ],
+ "modules": {
+  "Accounts": "impacted",
+  "Tests": "changed",
+  "Payments": "impacted",
+  "Platform": "changed",
+  "Database": "impacted",
+  "Auth": "impacted",
+  "Ledger": "impacted",
+  "Customers": "impacted"
+ },
+ "untested_changed": [],
+ "changed_lines": {
+  "src/Bank.Api/Shared/Settings/BankSettings.cs": [
+   [
+    7,
+    7
+   ],
+   [
+    13,
+    13
+   ]
+  ],
+  "tests/Bank.Tests/Settings/LaunchSettingsTests.cs": [
+   [
+    1,
+    174
+   ]
+  ]
+ }
+}

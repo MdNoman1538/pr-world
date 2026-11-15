@@ -1,0 +1,10 @@
+version: '1'
+preset: balanced
+coverage:
+  default: custom
+  custom:
+    base: essential
+    enable: []
+    disable: []
+approved_by: Noman
+approved_on: '2026-11-14'

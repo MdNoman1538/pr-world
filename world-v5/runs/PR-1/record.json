@@ -1,0 +1,292 @@
+{
+ "id": "PR-1",
+ "title": "Customer onboarding and identity checks (KYC)",
+ "type": "feature",
+ "status": "merged",
+ "branch": "pr-1",
+ "base": "f0d3f16374b6dcc4fa82d4f3da889dcc13ea3d1f",
+ "head": "4d8ead5a4c1e4b4304bbd187f5149227346eef6a",
+ "merged": "f5741fe385d61c37512e25deb958bc94e40a8a1e",
+ "issue": "# PR-1: PR-1: Customer onboarding and identity checks (KYC)\n\n**Story.** As a new customer, I want to register my personal identity details for compliance review so that once verified I am eligible to open a bank account, while ensuring underage or unverified applicants are blocked.\n\n## Acceptance criteria\n- [ ] Domain types exist in Bank.Modules.Customers.Domain: enum KycStatus { Pending, Verified, Rejected }, sealed class Customer (with parameterless constructor, Id, FullName, Email, [Pii] NationalId, [Pii] DateOfBirth, Status with private setter defaulting to Pending, DecidedBy, RegisteredAt, Verify(string officerId), Reject(string officerId)), and sealed record IDomainEvent types CustomerRegistered(string CustomerId, DateTimeOffset OccurredAt), CustomerVerified(string CustomerId, string VerifiedBy, DateTimeOffset OccurredAt), and CustomerRejected(string CustomerId, string RejectedBy, DateTimeOffset OccurredAt).\n- [ ] Customer.Verify(officerId) and Customer.Reject(officerId) transition Status from Pending to Verified or Rejected respectively and set DecidedBy to officerId; invoking either method when Status is not Pending throws InvalidOperationException.\n- [ ] ICustomerService.RegisterAsync registers a Customer for the signed-in user (Id = ICurrentUser.UserId) with Status = KycStatus.Pending and RegisteredAt = IClock.UtcNow, persists it to BankDbContext.Customers, and publishes CustomerRegistered via IEventBus.\n- [ ] ICustomerService.RegisterAsync throws ArgumentException if FullName, Email, or NationalId is null/empty/whitespace, or if the applicant is under 18 years old on IClock.UtcNow's date (turning 18 on that exact calendar date is accepted; one day younger is rejected); it throws InvalidOperationException if a Customer with ICurrentUser.UserId already exists.\n- [ ] ICustomerService.VerifyAsync(customerId) and RejectAsync(customerId) throw UnauthorizedAccessException if the caller does not have the Compliance role or if ICurrentUser.UserId equals customerId (no self-verification or self-rejection), and throw KeyNotFoundException if customerId does not exist.\n- [ ] On successful VerifyAsync or RejectAsync, the Customer status and DecidedBy are persisted to BankDbContext.Customers and CustomerVerified or CustomerRejected is published via IEventBus.\n- [ ] ICustomerService.GetAsync(customerId) returns the matching Customer from BankDbContext.Customers or null when not found.\n- [ ] KycAccountOpeningRule implements IAccountOpeningRule and throws UnauthorizedAccessException if the target customer does not exist in BankDbContext.Customers or has Status other than KycStatus.Verified.\n- [ ] BankDbContext declares DbSet<Customer> Customers above the // TABLES: marker, CustomersModule registers ICustomerService (CustomerService) and IAccountOpeningRule (KycAccountOpeningRule), and AddCustomersModule is registered in Program.cs above // MODULES:.\n- [ ] HTTP endpoints are exposed with [ApiController] and explicit [Authorize(Policy = ...)] attributes: POST api/customers (Customer policy, derives user id solely from ICurrentUser), GET api/customers/me (Customer policy, returns current user's customer), POST api/customers/{id}/verify (Compliance policy), and POST api/customers/{id}/reject (Compliance policy).\n- [ ] NationalId and DateOfBirth are marked with [Pii] on Customer and never appear in domain events, exception messages, or logs; all timestamps and age checks use IClock.UtcNow rather than DateTime.Now or DateTimeOffset.UtcNow.\n\n## Out of scope\n- Integration with external identity verification providers, document uploads, or automated KYC/sanctions/PEP screening.\n- Updating customer profile or PII fields after registration, or re-applying after a Rejected status.\n- Compliance officer queue, search, or list endpoints for browsing Pending registrations.\n- Customer notifications (email, SMS, or push) upon registration, verification, or rejection.\n- Account creation endpoints, deposit/transfer flows, or any ledger/monetary operations.\n- Customer deletion or GDPR data erasure workflows.\n\n## Risks\n- Self-verification bypass: if VerifyAsync or RejectAsync fails to enforce both the Compliance role and officerId != customerId, an insider or compromised compliance account could approve their own KYC.\n- Unverified account opening: if KycAccountOpeningRule is not wired as IAccountOpeningRule or fails open for missing, Pending, or Rejected customers, unverified or underage users could open accounts.\n- PII exposure: logging request bodies, embedding NationalId or DateOfBirth in exception messages, or adding PII fields to domain events would leak sensitive personal data.\n- Incorrect age calculation: using DateTime.UtcNow instead of IClock.UtcNow or approximating 18 years as 365 * 18 days could allow underage applicants on leap years or wrongly reject eligible 18-year-olds.\n- Audit trail corruption: allowing direct mutation of Status or DecidedBy without going through Pending-only domain methods could overwrite compliance decisions.\n- Identity spoofing: trusting a user id from the HTTP request body instead of ICurrentUser.UserId in POST api/customers could allow one user to register or block another user's identity.\n\n## Public contract\n```\nnamespace Bank.Modules.Customers.Domain:\n  enum KycStatus { Pending, Verified, Rejected }\n  sealed class Customer { string Id (the user id, primary key); string FullName; string Email; [Pii] string NationalId;\n                          [Pii] DateOnly DateOfBirth; KycStatus Status { get; private set; } (starts Pending); string? DecidedBy;\n                          DateTimeOffset RegisteredAt;\n                          void Verify(string officerId); void Reject(string officerId) }   // only from Pending, else InvalidOperationException\n  sealed record CustomerRegistered(string CustomerId, DateTimeOffset OccurredAt) : IDomainEvent\n  sealed record CustomerVerified(string CustomerId, string VerifiedBy, DateTimeOffset OccurredAt) : IDomainEvent\n  sealed record CustomerRejected(string CustomerId, string RejectedBy, DateTimeOffset OccurredAt) : IDomainEvent\nnamespace Bank.Modules.Customers.Application:\n  sealed record RegisterCustomerRequest(string FullName, string Email, string NationalId, DateOnly DateOfBirth)\n  interface ICustomerService {\n    Task<Customer> RegisterAsync(RegisterCustomerRequest request, CancellationToken ct = default);  // for the signed-in user;\n        // already registered -> InvalidOperationException; under 18 on IClock's date -> ArgumentException; empty fields -> ArgumentException\n    Task<Customer> VerifyAsync(string customerId, CancellationToken ct = default);   // compliance officer only, never themselves -> UnauthorizedAccessException; unknown -> KeyNotFoundException\n    Task<Customer> RejectAsync(string customerId, CancellationToken ct = default);   // same rules as VerifyAsync\n    Task<Customer?> GetAsync(string customerId, CancellationToken ct = default); }\n  sealed class CustomerService(BankDbContext db, ICurrentUser user, IClock clock, IEventBus bus) : ICustomerService\n  sealed class KycAccountOpeningRule(BankDbContext db) : IAccountOpeningRule   // not Verified (or unknown) -> UnauthorizedAccessException\nCustomersModule registers ICustomerService and KycAccountOpeningRule as IAccountOpeningRule.\nBankDbContext gets: DbSet<Customer> Customers\nHTTP: POST api/customers (register yourself), GET api/customers/me, POST api/customers/{id}/verify, POST api/customers/{id}/reject (Compliance policy)\n```\n\n## Allowed scope\n- `src/Bank.Api/Modules/Customers/**`\n- `src/Bank.Api/Data/BankDbContext.cs`\n- `src/Bank.Api/Program.cs`\n\n_Brief from the product owner:_ New customers register with their full name, e-mail, national identity number and date of birth. Customers must be at least 18. A compliance officer reviews each registration and verifies or rejects it; nobody can verify themselves. A customer who is not verified cannot open an account. National id and date of birth are personal data and must never appear in events, logs or messages.\n",
+ "builder": {
+  "source": "model",
+  "attempts": 1,
+  "rejected_paths": [],
+  "errors": [],
+  "fallback": false,
+  "files": [
+   "src/Bank.Api/Data/BankDbContext.cs",
+   "src/Bank.Api/Modules/Customers/Api/CustomersController.cs",
+   "src/Bank.Api/Modules/Customers/Application/CustomerService.cs",
+   "src/Bank.Api/Modules/Customers/Application/KycAccountOpeningRule.cs",
+   "src/Bank.Api/Modules/Customers/CustomersModule.cs",
+   "src/Bank.Api/Modules/Customers/Domain/Customer.cs",
+   "src/Bank.Api/Program.cs"
+  ],
+  "commits": [
+   {
+    "step": 1,
+    "title": "Customer onboarding and identity checks (KYC)",
+    "message": "Implement customer onboarding and KYC compliance checks",
+    "sha": "278ebefb2243942e8ab4e572deb02ca3e7485185"
+   }
+  ],
+  "commit_message": "Implement customer onboarding and KYC compliance checks",
+  "notes": "Implemented Bank.Modules.Customers (Domain, Application, Api, CustomersModule), added Customers DbSet to BankDbContext, and registered AddCustomersModule in Program.cs. Enforced 18+ age verification via IClock.UtcNow, compliance-only non-self Verify/Reject decisions, KycAccountOpeningRule gating account creation on KycStatus.Verified, and [Pii] protection on NationalId and DateOfBirth.",
+  "build_ok": true
+ },
+ "tests": {
+  "ran": true,
+  "exit_code": 0,
+  "passed": 45,
+  "failed": 0,
+  "failed_tests": [],
+  "tests": [
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"Alice Smith\", email: \"alice@example.com\", nationalId: \"   \")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(firstVerify: True, secondVerify: False)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_uses_clock_rather_than_system_time_for_age_check",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"Alice Smith\", email: null, nationalId: \"FI-123456\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(role: \"loan-officer\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(role: null)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Customer_verify_transitions_pending_to_verified_and_sets_decided_by",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(role: \"teller\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.LedgerTests.Customer_account_cannot_go_below_zero",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Customer_reject_transitions_pending_to_rejected_and_sets_decided_by",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_and_reject_already_decided_customer_throw_invalid_operation",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.AccountsTests.Unsupported_currency_is_refused",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_and_reject_unknown_customer_throw_key_not_found",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Kyc_rule_allows_verified_customer",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Customer_starts_with_pending_status",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Compliance_officer_cannot_self_verify_or_self_reject",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"Alice Smith\", email: \"   \", nationalId: \"FI-123456\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_applicant_one_day_under_18_on_clock_date",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(firstVerify: False, secondVerify: True)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(firstVerify: True, secondVerify: True)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.LedgerTests.Entries_are_returned_for_a_period_oldest_first",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: null, email: \"alice@example.com\", nationalId: \"FI-123456\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"Alice Smith\", email: \"alice@example.com\", nationalId: null)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.AccountsTests.New_account_uses_the_default_currency_and_belongs_to_the_caller",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.LedgerTests.Transfer_moves_money_and_writes_two_balanced_entries",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.LedgerTests.Currencies_must_match",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"Alice Smith\", email: \"\", nationalId: \"FI-123456\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"\", email: \"alice@example.com\", nationalId: \"FI-123456\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"   \", email: \"alice@example.com\", nationalId: \"FI-123456\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(role: \"admin\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_when_customer_already_exists_throws_invalid_operation",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_by_compliance_officer_updates_status_persists_and_publishes_event",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(fullName: \"Alice Smith\", email: \"alice@example.com\", nationalId: \"\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_accepts_applicant_turning_18_on_clock_date",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.AuditTests.Personal_data_is_removed_from_the_audit_payload",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(firstVerify: False, secondVerify: False)",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(role: \"customer\")",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.LedgerTests.Bank_accounts_may_go_below_zero",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Register_rejects_underage_applicant_even_when_days_exceed_365_times_18",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Get_returns_customer_when_exists_and_null_when_missing",
+    "outcome": "Passed",
+    "message": ""
+   },
+   {
+    "name": "Bank.Tests.Customers.CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii",
+    "outcome": "Passed",
+    "message": ""
+   }
+  ]
+ },
+ "tester": {
+  "source": "model",
+  "files": [
+   "tests/Bank.Tests/Customers/CustomerTests.cs"
+  ],
+  "dropped": false,
+  "attempts": 1
+ },
+ "review": {
+  "run_dir": "runs/reviews/20261114-193751-pr-1",
+  "run_id": "20261114-193751-pr-1",
+  "decision": "BLOCKED",
+  "reason": "Merge locked: Security: Safety Blocker(s) found; Correctness: 1 Blocker(s) Not checked: Requirement. WARNING: review-policy.yaml is not approved by a named human yet.",
+  "tier": "high",
+  "ai_error": "",
+  "exit_code": 0
+ },
+ "findings": 4,
+ "planted": false,
+ "at": "2026-11-14 19:40:34"
+}

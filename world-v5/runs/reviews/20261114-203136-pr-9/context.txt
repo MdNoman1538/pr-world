@@ -1,0 +1,197 @@
+### FILE: src/Bank.Api/Shared/Settings/BankSettings.cs  (slice: leftflow)
+-   7|     public string DefaultCurrency { get; init; } = "EUR";
++   7|     public string DefaultCurrency { get; init; } = "SEK";
+     ⋮
+-  13|     public decimal DailyTransferLimit { get; init; } = 10_000m;
++  13|     public decimal DailyTransferLimit { get; init; } = 5_000m;
+
+### FILE: tests/Bank.Tests/Settings/LaunchSettingsTests.cs  (slice: leftflow)
++   1| using Bank.Modules.Accounts.Application;
++   2| using Bank.Modules.Accounts.Domain;
++   3| using Bank.Modules.Auth;
++   4| using Bank.Modules.Ledger.Application;
++   5| using Bank.Modules.Ledger.Domain;
++   6| using Bank.Shared.Settings;
++   7| using Microsoft.EntityFrameworkCore;
++   8| using Xunit;
++   9| 
++  10| namespace Bank.Tests.Settings;
++  11| 
++  12| public sealed class LaunchSettingsTests
++  13| {
++  14|     [Fact]
++  15|     public void BankSettings_defaults_to_SEK_currency_and_5000_daily_transfer_limit()
++  16|     {
++  17|         var settings = new BankSettings();
++  18| 
++  19|         Assert.Equal("SEK", settings.DefaultCurrency);
++  20|         Assert.Equal(5_000m, settings.DailyTransferLimit);
++  21|     }
++  22| 
++  23|     [Fact]
++  24|     public void BankSettings_supported_currencies_remain_EUR_SEK_and_USD()
++  25|     {
++  26|         var settings = new BankSettings();
++  27| 
++  28|         Assert.Equal(3, settings.SupportedCurrencies.Count);
++  29|         Assert.Contains("EUR", settings.SupportedCurrencies);
++  30|         Assert.Contains("SEK", settings.SupportedCurrencies);
++  31|         Assert.Contains("USD", settings.SupportedCurrencies);
++  32|     }
++  33| 
++  34|     [Fact]
++  35|     public async Task Customer_opening_account_without_currency_uses_default_SEK()
++  36|     {
++  37|         using var db = TestKit.Db();
++  38|         var user = new FakeUser("alice", Roles.Customer);
++  39|         var clock = new FakeClock();
++  40|         var bus = new RecordingBus();
++  41|         var service = new AccountService(db, user, new BankSettings(), clock, bus, Array.Empty<IAccountOpeningRule>());
++  42| 
++  43|         var created = await service.OpenAsync(null);
++  44| 
++  45|         Assert.Equal("SEK", created.Currency);
++  46|         Assert.Equal("alice", created.OwnerId);
++  47|         Assert.Equal(0m, created.Balance);
++  48|         Assert.Equal(AccountKind.Customer, created.Kind);
++  49|         Assert.Equal(clock.UtcNow, created.OpenedAt);
++  50| 
++  51|         db.ChangeTracker.Clear();
++  52|         var persisted = db.Accounts.AsNoTracking().Single(a => a.Id == created.Id);
++  53|         Assert.Equal("SEK", persisted.Currency);
++  54|         Assert.Equal("alice", persisted.OwnerId);
++  55|         Assert.Equal(0m, persisted.Balance);
++  56|         Assert.Single(bus.Events);
++  57|     }
++  58| 
++  59|     [Theory]
++  60|     [InlineData("EUR")]
++  61|     [InlineData("USD")]
++  62|     [InlineData("SEK")]
++  63|     public async Task Customer_opening_account_with_explicit_supported_currency_uses_requested_currency(string requestedCurrency)
++  64|     {
++  65|         using var db = TestKit.Db();
++  66|         var user = new FakeUser("alice", Roles.Customer);
++  67|         var service = new AccountService(db, user, new BankSettings(), new FakeClock(), new RecordingBus(), Array.Empty<IAccountOpeningRule>());
++  68| 
++  69|         var created = await service.OpenAsync(requestedCurrency);
++  70| 
++  71|         Assert.Equal(requestedCurrency, created.Currency);
++  72|         db.ChangeTracker.Clear();
++  73|         var persisted = db.Accounts.AsNoTracking().Single(a => a.Id == created.Id);
++  74|         Assert.Equal(requestedCurrency, persisted.Currency);
++  75|     }
++  76| 
++  77|     [Theory]
++  78|     [InlineData("GBP")]
++  79|     [InlineData("NOK")]
++  80|     public async Task Customer_opening_account_with_unsupported_currency_is_rejected(string unsupportedCurrency)
++  81|     {
++  82|         using var db = TestKit.Db();
++  83|         var user = new FakeUser("alice", Roles.Customer);
++  84|         var bus = new RecordingBus();
++  85|         var service = new AccountService(db, user, new BankSettings(), new FakeClock(), bus, Array.Empty<IAccountOpeningRule>());
++  86| 
++  87|         await Assert.ThrowsAnyAsync<Exception>(() => service.OpenAsync(unsupportedCurrency));
++  88| 
++  89|         Assert.Empty(db.Accounts.Where(a => a.OwnerId == "alice"));
++  90|         Assert.Empty(bus.Events);
++  91|     }
++  92| 
++  93|     [Fact]
++  94|     public async Task Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened()
++  95|     {
++  96|         using var db = TestKit.Db();
++  97|         var eurAccountId = TestKit.Account(db, "alice", 250.50m, "EUR");
++  98|         var usdAccountId = TestKit.Account(db, "alice", 100.25m, "USD");
++  99|         var user = new FakeUser("alice", Roles.Customer);
++ 100|         var service = new AccountService(db, user, new BankSettings(), new FakeClock(), new RecordingBus(), Array.Empty<IAccountOpeningRule>());
++ 101| 
++ 102|         var sekAccount = await service.OpenAsync(null);
++ 103| 
++ 104|         Assert.Equal("SEK", sekAccount.Currency);
++ 105|         Assert.Equal(0m, TestKit.Balance(db, sekAccount.Id));
++ 106|         Assert.Equal(250.50m, TestKit.Balance(db, eurAccountId));
++ 107|         Assert.Equal(100.25m, TestKit.Balance(db, usdAccountId));
++ 108| 
++ 109|         db.ChangeTracker.Clear();
++ 110|         var aliceAccounts = db.Accounts.AsNoTracking().Where(a => a.OwnerId == "alice").ToList();
++ 111|         Assert.Equal(3, aliceAccounts.Count);
++ 112|         Assert.Equal("EUR", aliceAccounts.Single(a => a.Id == eurAccountId).Currency);
++ 113|         Assert.Equal("USD", aliceAccounts.Single(a => a.Id == usdAccountId).Currency);
++ 114|         Assert.Equal("SEK", aliceAccounts.Single(a => a.Id == sekAccount.Id).Currency);
++ 115|     }
++ 116| 
++ 117|     [Fact]
++ 118|     public async Task Opening_rule_rejection_prevents_creating_default_SEK_account()
++ 119|     {
++ 120|         using var db = TestKit.Db();
++ 121|         var user = new FakeUser("alice", Roles.Customer);
++ 122|         var bus = new RecordingBus();
++ 123|         var rules = new IAccountOpeningRule[] { new RejectingOpeningRule() };
++ 124|         var service = new AccountService(db, user, new BankSettings(), new FakeClock(), bus, rules);
++ 125| 
++ 126|         await Assert.ThrowsAsync<InvalidOperationException>(() => service.OpenAsync(null));
++ 127| 
++ 128|         Assert.Empty(db.Accounts.Where(a => a.OwnerId == "alice"));
++ 129|         Assert.Empty(bus.Events);
++ 130|     }
++ 131| 
++ 132|     [Fact]
++ 133|     public async Task New_default_SEK_account_is_owned_by_current_user_and_queries_match()
++ 134|     {
++ 135|         using var db = TestKit.Db();
++ 136|         var user = new FakeUser("alice", Roles.Customer);
++ 137|         var service = new AccountService(db, user, new BankSettings(), new FakeClock(), new RecordingBus(), Array.Empty<IAccountOpeningRule>());
++ 138| 
++ 139|         var created = await service.OpenAsync(null);
++ 140| 
++ 141|         Assert.True(await service.IsOwnerAsync(created.Id, "alice"));
++ 142|         Assert.False(await service.IsOwnerAsync(created.Id, "bob"));
++ 143|         var fetched = await service.GetAsync(created.Id);
++ 144|         Assert.NotNull(fetched);
++ 145|         Assert.Equal("SEK", fetched.Currency);
++ 146|         var owned = await service.ForOwnerAsync("alice");
++ 147|         Assert.Single(owned);
++ 148|         Assert.Equal("SEK", owned[0].Currency);
++ 149|     }
++ 150| 
++ 151|     [Fact]
++ 152|     public async Task New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer()
++ 153|     {
++ 154|         using var db = TestKit.Db();
++ 155|         var eurAccountId = TestKit.Account(db, "bob", 100m, "EUR");
++ 156|         var user = new FakeUser("alice", Roles.Customer);
++ 157|         var service = new AccountService(db, user, new BankSettings(), new FakeClock(), new RecordingBus(), Array.Empty<IAccountOpeningRule>());
++ 158|         var sekAccount = await service.OpenAsync(null);
++ 159|         var ledger = TestKit.Ledger(db);
++ 160| 
++ 161|         await ledger.PostTransferAsync(BankAccounts.For(BankAccountKind.Suspense, "SEK"), sekAccount.Id, 5_000m, "sek funding");
++ 162| 
++ 163|         Assert.Equal(5_000m, TestKit.Balance(db, sekAccount.Id));
++ 164|         await Assert.ThrowsAsync<CurrencyMismatchException>(() => ledger.PostTransferAsync(eurAccountId, sekAccount.Id, 10m, "mismatch"));
++ 165|         Assert.Equal(100m, TestKit.Balance(db, eurAccountId));
++ 166|         Assert.Equal(5_000m, TestKit.Balance(db, sekAccount.Id));
++ 167|     }
++ 168| 
++ 169|     private sealed class RejectingOpeningRule : IAccountOpeningRule
++ 170|     {
++ 171|         public Task EnsureMayOpenAsync(string ownerId, CancellationToken ct = default) =>
++ 172|             throw new InvalidOperationException("Opening not permitted");
++ 173|     }
++ 174| }
+
+
+# IMPACT
+- DefaultCurrency (src/Bank.Api/Shared/Settings/BankSettings.cs): 0 caller(s) [none found]; test references: NONE
+- DailyTransferLimit (src/Bank.Api/Shared/Settings/BankSettings.cs): 0 caller(s) [none found]; test references: NONE
+- BankSettings_defaults_to_SEK_currency_and_5000_daily_transfer_limit (tests/Bank.Tests/Settings/LaunchSettingsTests.cs): 0 caller(s) [none found]; test references: NONE
+- BankSettings_supported_currencies_remain_EUR_SEK_and_USD (tests/Bank.Tests/Settings/LaunchSettingsTests.cs): 0 caller(s) [none found]; test references: NONE
+- Customer_opening_account_without_currency_uses_default_SEK (tests/Bank.Tests/Settings/LaunchSettingsTests.cs): 0 caller(s) [none found]; test references: NONE
+- Customer_opening_account_with_explicit_supported_currency_uses_requested_currency (tests/Bank.Tests/Settings/LaunchSettingsTests.cs): 0 caller(s) [none found]; test references: NONE
+- Customer_opening_account_with_unsupported_currency_is_rejected (tests/Bank.Tests/Settings/LaunchSettingsTests.cs): 0 caller(s) [none found]; test references: NONE
+- Existing_accounts_retain_currencies_and_balances_when_new_default_SEK_account_is_opened (tests/Bank.Tests/Settings/LaunchSettingsTests.cs): 0 caller(s) [none found]; test references: NONE
+- Opening_rule_rejection_prevents_creating_default_SEK_account (tests/Bank.Tests/Settings/LaunchSettingsTests.cs): 0 caller(s) [none found]; test references: NONE
+- New_default_SEK_account_is_owned_by_current_user_and_queries_match (tests/Bank.Tests/Settings/LaunchSettingsTests.cs): 0 caller(s) [none found]; test references: NONE
+- New_default_SEK_account_transacts_in_SEK_and_rejects_EUR_ledger_transfer (tests/Bank.Tests/Settings/LaunchSettingsTests.cs): 0 caller(s) [none found]; test references: NONE
+- EnsureMayOpenAsync (tests/Bank.Tests/Settings/LaunchSettingsTests.cs): 0 caller(s) [none found]; test references: NONE

@@ -1,0 +1,1068 @@
+{
+ "changed": {
+  "T:Bank.Data.BankDbContext": "contains",
+  "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)": "modified",
+  "T:Bank.Modules.Payments.Application.PaymentService": "contains",
+  "F:Bank.Modules.Payments.Application.PaymentService.IdempotencyLocks": "new",
+  "F:Bank.Modules.Payments.Application.PaymentService.SqliteFileWriteLocks": "new",
+  "F:Bank.Modules.Payments.Application.PaymentService.SqliteConnectionWriteLocks": "new",
+  "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": "modified",
+  "M:Bank.Modules.Payments.Application.PaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)": "modified",
+  "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Payments.Application.PaymentService.GetSqliteWriteLock": "new",
+  "M:Bank.Modules.Payments.Application.PaymentService.DetachDirtyEntries": "new",
+  "M:Bank.Modules.Payments.Application.PaymentService.IsIdempotencyUniqueConstraintViolation(Microsoft.EntityFrameworkCore.DbUpdateException)": "new"
+ },
+ "removed_nodes": [],
+ "new_edges": [
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Fees.Application.IFeeCalculator.Quote(System.Decimal,System.String,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Fx.Application.IFxService.Convert(System.Decimal,System.String,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Fx.Application.IFxService.Rate(System.String,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Application.PaymentService.DetachDirtyEntries",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Application.PaymentService.IsIdempotencyUniqueConstraintViolation(Microsoft.EntityFrameworkCore.DbUpdateException)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Domain.Payment.Complete(System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Domain.Payment.Hold",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Accounts.Domain.Account.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Accounts.Domain.Account.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Payments.Domain.Payment.CreditedCurrency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Payments.Domain.Payment.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Payments.Domain.Payment.CustomerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Payments.Domain.Payment.IdempotencyKey",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Payments.Domain.Payment.Rate",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Payments.Domain.Payment.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "table:Accounts",
+   "reads"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "table:Payments",
+   "reads"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "table:Payments",
+   "writes"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Application.PaymentService.GetSqliteWriteLock",
+   "calls"
+  ]
+ ],
+ "removed_edges": [
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Fees.Application.IFeeCalculator.Quote(System.Decimal,System.String,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Fx.Application.IFxService.Convert(System.Decimal,System.String,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Fx.Application.IFxService.Rate(System.String,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Domain.Payment.Complete(System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Accounts.Domain.Account.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Payments.Domain.Payment.CreditedCurrency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Payments.Domain.Payment.Rate",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Payments.Domain.Payment.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "table:Payments",
+   "writes"
+  ]
+ ],
+ "upstream": {
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_valid_transfer_moves_money_persists_completed_payment_and_publishes_event": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_allows_null_reference": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_allows_transfer_between_customers_own_accounts": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_uses_current_user_identity_when_caller_switches": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_zero_or_negative_amount_throws_ArgumentException(System.Decimal)": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_fractional_cents_throws_ArgumentException(System.Decimal)": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_smallest_valid_amount_one_cent_succeeds": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_different_currencies_throws_CurrencyMismatchException": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_same_idempotency_key_for_different_customers_executes_independently": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_exactly_at_daily_transfer_limit_succeeds": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_one_cent_over_daily_transfer_limit_throws_DailyLimitExceededException": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_daily_limit_resets_at_utc_midnight": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_daily_limit_is_isolated_per_customer": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_insufficient_funds_throws_InsufficientFundsException_and_persists_nothing": 1,
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_exact_account_balance_succeeds": 1,
+  "M:Bank.Tests.Payments.PaymentTests.ForCustomerAsync_returns_only_specified_customers_payments": 1,
+  "M:Bank.Modules.Payments.Application.IPaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": 1,
+  "M:Bank.Modules.Payments.Application.IPaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)": 1,
+  "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": 2,
+  "M:Bank.Modules.Payments.Api.PaymentsController.Mine(System.Threading.CancellationToken)": 2,
+  "endpoint:POST /api/payments": 3,
+  "endpoint:GET /api/payments": 3
+ },
+ "downstream": {
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": 1,
+  "F:Bank.Modules.Ledger.Domain.BankAccounts.Currencies": 1,
+  "P:Bank.Modules.Accounts.Domain.Account.Id": 1,
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": 1,
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": 1,
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": 1,
+  "P:Bank.Modules.Accounts.Domain.Account.Kind": 1,
+  "P:Bank.Modules.Payments.Domain.Payment.CustomerId": 1,
+  "P:Bank.Modules.Payments.Domain.Payment.IdempotencyKey": 1,
+  "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": 1,
+  "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": 1,
+  "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 1,
+  "T:Bank.Modules.Payments.Domain.PaymentCompleted": 1,
+  "table:Payments": 1,
+  "P:Bank.Modules.Payments.Domain.Payment.Id": 1,
+  "P:Bank.Modules.Payments.Domain.Payment.Currency": 1,
+  "M:Bank.Modules.Fx.Application.IFxService.Rate(System.String,System.String)": 1,
+  "M:Bank.Modules.Fx.Application.IFxService.Convert(System.Decimal,System.String,System.String)": 1,
+  "M:Bank.Modules.Fees.Application.IFeeCalculator.Quote(System.Decimal,System.String,System.String)": 1,
+  "M:Bank.Modules.Payments.Domain.Payment.Hold": 1,
+  "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": 1,
+  "M:Bank.Modules.Payments.Domain.Payment.Complete(System.Guid)": 1,
+  "table:Accounts": 1,
+  "P:Bank.Modules.Payments.Domain.Payment.Status": 1,
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": 1,
+  "P:Bank.Modules.Payments.Domain.Payment.CreditedCurrency": 1,
+  "P:Bank.Modules.Payments.Domain.Payment.Rate": 1,
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": 2,
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": 2,
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 2,
+  "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 2,
+  "M:Bank.Modules.Fx.Application.FxService.Rate(System.String,System.String)": 2,
+  "M:Bank.Modules.Fx.Application.FxService.Convert(System.Decimal,System.String,System.String)": 2,
+  "M:Bank.Modules.Fees.Application.FeeCalculator.Quote(System.Decimal,System.String,System.String)": 2,
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": 2,
+  "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)": 3,
+  "M:Bank.Modules.Fx.Application.FxService.NormalizeAndValidate(System.String,System.String)": 3,
+  "M:Bank.Modules.Fx.Application.FxService.FromEur(System.String)": 3,
+  "M:Bank.Shared.Money.MoneyMath.ToCents(System.Decimal)": 3,
+  "T:Bank.Modules.Ledger.Domain.TransferPosted": 3,
+  "table:LedgerEntries": 3,
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": 3,
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": 3,
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": 4
+ },
+ "up_via": {
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_valid_transfer_moves_money_persists_completed_payment_and_publishes_event": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_allows_null_reference": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_allows_transfer_between_customers_own_accounts": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_uses_current_user_identity_when_caller_switches": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_zero_or_negative_amount_throws_ArgumentException(System.Decimal)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_fractional_cents_throws_ArgumentException(System.Decimal)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_smallest_valid_amount_one_cent_succeeds": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_different_currencies_throws_CurrencyMismatchException": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_same_idempotency_key_for_different_customers_executes_independently": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_exactly_at_daily_transfer_limit_succeeds": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_one_cent_over_daily_transfer_limit_throws_DailyLimitExceededException": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_daily_limit_resets_at_utc_midnight": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_daily_limit_is_isolated_per_customer": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_insufficient_funds_throws_InsufficientFundsException_and_persists_nothing": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.PayAsync_exact_account_balance_succeeds": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.Payments.PaymentTests.ForCustomerAsync_returns_only_specified_customers_payments": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Payments.Application.IPaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Payments.Application.IPaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Payments.Application.IPaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Payments.Api.PaymentsController.Mine(System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Payments.Application.IPaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "endpoint:POST /api/payments": [
+   "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "routes"
+  ],
+  "endpoint:GET /api/payments": [
+   "M:Bank.Modules.Payments.Api.PaymentsController.Mine(System.Threading.CancellationToken)",
+   "routes"
+  ]
+ },
+ "down_via": {
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "calls"
+  ],
+  "F:Bank.Modules.Ledger.Domain.BankAccounts.Currencies": [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Id": [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Kind": [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "uses"
+  ],
+  "P:Bank.Modules.Payments.Domain.Payment.CustomerId": [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "uses"
+  ],
+  "P:Bank.Modules.Payments.Domain.Payment.IdempotencyKey": [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "uses"
+  ],
+  "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "T:Bank.Modules.Payments.Domain.PaymentCompleted": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "publishes"
+  ],
+  "table:Payments": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "reads"
+  ],
+  "P:Bank.Modules.Payments.Domain.Payment.Id": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "P:Bank.Modules.Payments.Domain.Payment.Currency": [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "M:Bank.Modules.Fx.Application.IFxService.Rate(System.String,System.String)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Fx.Application.IFxService.Convert(System.Decimal,System.String,System.String)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Fees.Application.IFeeCalculator.Quote(System.Decimal,System.String,System.String)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Payments.Domain.Payment.Hold": [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Payments.Domain.Payment.Complete(System.Guid)": [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "table:Accounts": [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "reads"
+  ],
+  "P:Bank.Modules.Payments.Domain.Payment.Status": [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "P:Bank.Modules.Payments.Domain.Payment.CreditedCurrency": [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "P:Bank.Modules.Payments.Domain.Payment.Rate": [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Fx.Application.FxService.Rate(System.String,System.String)": [
+   "M:Bank.Modules.Fx.Application.IFxService.Rate(System.String,System.String)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Fx.Application.FxService.Convert(System.Decimal,System.String,System.String)": [
+   "M:Bank.Modules.Fx.Application.IFxService.Convert(System.Decimal,System.String,System.String)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Fees.Application.FeeCalculator.Quote(System.Decimal,System.String,System.String)": [
+   "M:Bank.Modules.Fees.Application.IFeeCalculator.Quote(System.Decimal,System.String,System.String)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Fx.Application.FxService.NormalizeAndValidate(System.String,System.String)": [
+   "M:Bank.Modules.Fx.Application.FxService.Rate(System.String,System.String)",
+   "calls"
+  ],
+  "M:Bank.Modules.Fx.Application.FxService.FromEur(System.String)": [
+   "M:Bank.Modules.Fx.Application.FxService.Rate(System.String,System.String)",
+   "calls"
+  ],
+  "M:Bank.Shared.Money.MoneyMath.ToCents(System.Decimal)": [
+   "M:Bank.Modules.Fx.Application.FxService.Convert(System.Decimal,System.String,System.String)",
+   "calls"
+  ],
+  "T:Bank.Modules.Ledger.Domain.TransferPosted": [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "publishes"
+  ],
+  "table:LedgerEntries": [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "writes"
+  ],
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+   "resolves"
+  ]
+ },
+ "hot_edges": [
+  [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "F:Bank.Modules.Ledger.Domain.BankAccounts.Currencies",
+   "uses"
+  ],
+  [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "P:Bank.Modules.Accounts.Domain.Account.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "P:Bank.Modules.Accounts.Domain.Account.Iban",
+   "uses"
+  ],
+  [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "P:Bank.Modules.Accounts.Domain.Account.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "P:Bank.Modules.Accounts.Domain.Account.Kind",
+   "uses"
+  ],
+  [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "P:Bank.Modules.Payments.Domain.Payment.CustomerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+   "P:Bank.Modules.Payments.Domain.Payment.IdempotencyKey",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Fees.Application.IFeeCalculator.Quote(System.Decimal,System.String,System.String)",
+   "M:Bank.Modules.Fees.Application.FeeCalculator.Quote(System.Decimal,System.String,System.String)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Fx.Application.FxService.Convert(System.Decimal,System.String,System.String)",
+   "M:Bank.Shared.Money.MoneyMath.ToCents(System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Fx.Application.FxService.Rate(System.String,System.String)",
+   "M:Bank.Modules.Fx.Application.FxService.FromEur(System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Fx.Application.FxService.Rate(System.String,System.String)",
+   "M:Bank.Modules.Fx.Application.FxService.NormalizeAndValidate(System.String,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Fx.Application.IFxService.Convert(System.Decimal,System.String,System.String)",
+   "M:Bank.Modules.Fx.Application.FxService.Convert(System.Decimal,System.String,System.String)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Fx.Application.IFxService.Rate(System.String,System.String)",
+   "M:Bank.Modules.Fx.Application.FxService.Rate(System.String,System.String)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Ledger.Domain.TransferPosted",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "table:LedgerEntries",
+   "writes"
+  ],
+  [
+   "M:Bank.Modules.Payments.Api.PaymentsController.Mine(System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Application.IPaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Application.IPaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.IPaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Application.PaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.IPaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Fees.Application.IFeeCalculator.Quote(System.Decimal,System.String,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Fx.Application.IFxService.Convert(System.Decimal,System.String,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Fx.Application.IFxService.Rate(System.String,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Domain.Payment.Complete(System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Payments.Domain.Payment.Hold",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Payments.Domain.Payment.CreditedCurrency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Payments.Domain.Payment.Rate",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Payments.Domain.Payment.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+   "table:Accounts",
+   "reads"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Payments.Domain.Payment.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Payments.Domain.Payment.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Payments.Domain.PaymentCompleted",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "table:Payments",
+   "reads"
+  ],
+  [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.ForCustomerAsync_returns_only_specified_customers_payments",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_allows_null_reference",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_allows_transfer_between_customers_own_accounts",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_daily_limit_is_isolated_per_customer",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_daily_limit_resets_at_utc_midnight",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_different_currencies_throws_CurrencyMismatchException",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_exact_account_balance_succeeds",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_exactly_at_daily_transfer_limit_succeeds",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_fractional_cents_throws_ArgumentException(System.Decimal)",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_insufficient_funds_throws_InsufficientFundsException_and_persists_nothing",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_one_cent_over_daily_transfer_limit_throws_DailyLimitExceededException",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_same_idempotency_key_for_different_customers_executes_independently",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_smallest_valid_amount_one_cent_succeeds",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_uses_current_user_identity_when_caller_switches",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_valid_transfer_moves_money_persists_completed_payment_and_publishes_event",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Payments.PaymentTests.PayAsync_zero_or_negative_amount_throws_ArgumentException(System.Decimal)",
+   "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "endpoint:GET /api/payments",
+   "M:Bank.Modules.Payments.Api.PaymentsController.Mine(System.Threading.CancellationToken)",
+   "routes"
+  ],
+  [
+   "endpoint:POST /api/payments",
+   "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+   "routes"
+  ]
+ ],
+ "modules": {
+  "Tests": "impacted",
+  "Payments": "changed",
+  "Ledger": "impacted",
+  "Accounts": "impacted",
+  "Platform": "changed",
+  "Database": "impacted",
+  "Fx": "impacted",
+  "Fees": "impacted",
+  "Audit": "impacted"
+ },
+ "untested_changed": [
+  "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+  "M:Bank.Modules.Payments.Application.PaymentService.ExecuteIdempotentPaymentAsync(Bank.Modules.Payments.Application.PaymentRequest,System.String,Bank.Modules.Accounts.Domain.Account,Bank.Modules.Accounts.Domain.Account,System.Decimal,System.Threading.CancellationToken)",
+  "M:Bank.Modules.Payments.Application.PaymentService.GetSqliteWriteLock",
+  "M:Bank.Modules.Payments.Application.PaymentService.DetachDirtyEntries",
+  "M:Bank.Modules.Payments.Application.PaymentService.IsIdempotencyUniqueConstraintViolation(Microsoft.EntityFrameworkCore.DbUpdateException)"
+ ],
+ "changed_lines": {
+  "src/Bank.Api/Data/BankDbContext.cs": [
+   [
+    56,
+    57
+   ]
+  ],
+  "src/Bank.Api/Modules/Payments/Application/PaymentService.cs": [
+   [
+    1,
+    3
+   ],
+   [
+    6,
+    6
+   ],
+   [
+    16,
+    16
+   ],
+   [
+    46,
+    49
+   ],
+   [
+    144,
+    146
+   ],
+   [
+    158,
+    158
+   ],
+   [
+    164,
+    241
+   ],
+   [
+    245,
+    246
+   ],
+   [
+    252,
+    252
+   ],
+   [
+    258,
+    258
+   ],
+   [
+    266,
+    266
+   ],
+   [
+    275,
+    275
+   ],
+   [
+    280,
+    280
+   ],
+   [
+    283,
+    302
+   ],
+   [
+    310,
+    310
+   ],
+   [
+    322,
+    322
+   ],
+   [
+    329,
+    329
+   ],
+   [
+    340,
+    340
+   ],
+   [
+    344,
+    344
+   ],
+   [
+    345,
+    345
+   ],
+   [
+    349,
+    349
+   ],
+   [
+    351,
+    355
+   ],
+   [
+    357,
+    357
+   ],
+   [
+    360,
+    364
+   ],
+   [
+    366,
+    366
+   ],
+   [
+    372,
+    372
+   ],
+   [
+    379,
+    390
+   ],
+   [
+    398,
+    398
+   ],
+   [
+    400,
+    408
+   ],
+   [
+    410,
+    410
+   ],
+   [
+    413,
+    451
+   ]
+  ]
+ }
+}

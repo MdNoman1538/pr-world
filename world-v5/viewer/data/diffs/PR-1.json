@@ -1,0 +1,1731 @@
+{
+ "changed": {
+  "T:Bank.Data.BankDbContext": "contains",
+  "P:Bank.Data.BankDbContext.Customers": "new",
+  "T:Bank.Modules.Customers.Api.CustomerDto": "new",
+  "M:Bank.Modules.Customers.Api.CustomerDto.#ctor(System.String,System.String,System.String,Bank.Modules.Customers.Domain.KycStatus,System.String,System.DateTimeOffset)": "new",
+  "P:Bank.Modules.Customers.Api.CustomerDto.Id": "new",
+  "P:Bank.Modules.Customers.Api.CustomerDto.FullName": "new",
+  "P:Bank.Modules.Customers.Api.CustomerDto.Email": "new",
+  "P:Bank.Modules.Customers.Api.CustomerDto.Status": "new",
+  "P:Bank.Modules.Customers.Api.CustomerDto.DecidedBy": "new",
+  "P:Bank.Modules.Customers.Api.CustomerDto.RegisteredAt": "new",
+  "T:Bank.Modules.Customers.Api.CustomersController": "new",
+  "F:Bank.Modules.Customers.Api.CustomersController._customers": "new",
+  "F:Bank.Modules.Customers.Api.CustomersController._user": "new",
+  "M:Bank.Modules.Customers.Api.CustomersController.#ctor(Bank.Modules.Customers.Application.ICustomerService,Bank.Modules.Auth.Application.ICurrentUser)": "new",
+  "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Customers.Api.CustomersController.Reject(System.String,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)": "new",
+  "T:Bank.Modules.Customers.Application.RegisterCustomerRequest": "new",
+  "M:Bank.Modules.Customers.Application.RegisterCustomerRequest.#ctor(System.String,System.String,System.String,System.DateOnly)": "new",
+  "P:Bank.Modules.Customers.Application.RegisterCustomerRequest.FullName": "new",
+  "P:Bank.Modules.Customers.Application.RegisterCustomerRequest.Email": "new",
+  "P:Bank.Modules.Customers.Application.RegisterCustomerRequest.NationalId": "new",
+  "P:Bank.Modules.Customers.Application.RegisterCustomerRequest.DateOfBirth": "new",
+  "T:Bank.Modules.Customers.Application.ICustomerService": "new",
+  "M:Bank.Modules.Customers.Application.ICustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Customers.Application.ICustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Customers.Application.ICustomerService.RejectAsync(System.String,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Customers.Application.ICustomerService.GetAsync(System.String,System.Threading.CancellationToken)": "new",
+  "T:Bank.Modules.Customers.Application.CustomerService": "new",
+  "F:Bank.Modules.Customers.Application.CustomerService._db": "new",
+  "F:Bank.Modules.Customers.Application.CustomerService._user": "new",
+  "F:Bank.Modules.Customers.Application.CustomerService._clock": "new",
+  "F:Bank.Modules.Customers.Application.CustomerService._bus": "new",
+  "M:Bank.Modules.Customers.Application.CustomerService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": "new",
+  "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Customers.Application.CustomerService.GetAsync(System.String,System.Threading.CancellationToken)": "new",
+  "T:Bank.Modules.Customers.Application.KycAccountOpeningRule": "new",
+  "F:Bank.Modules.Customers.Application.KycAccountOpeningRule._db": "new",
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.#ctor(Bank.Data.BankDbContext)": "new",
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": "new",
+  "T:Bank.Modules.Customers.CustomersModule": "new",
+  "M:Bank.Modules.Customers.CustomersModule.AddCustomersModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": "new",
+  "T:Bank.Modules.Customers.Domain.KycStatus": "new",
+  "F:Bank.Modules.Customers.Domain.KycStatus.Pending": "new",
+  "F:Bank.Modules.Customers.Domain.KycStatus.Verified": "new",
+  "F:Bank.Modules.Customers.Domain.KycStatus.Rejected": "new",
+  "T:Bank.Modules.Customers.Domain.Customer": "new",
+  "M:Bank.Modules.Customers.Domain.Customer.#ctor": "new",
+  "P:Bank.Modules.Customers.Domain.Customer.Id": "new",
+  "P:Bank.Modules.Customers.Domain.Customer.FullName": "new",
+  "P:Bank.Modules.Customers.Domain.Customer.Email": "new",
+  "P:Bank.Modules.Customers.Domain.Customer.NationalId": "new",
+  "P:Bank.Modules.Customers.Domain.Customer.DateOfBirth": "new",
+  "P:Bank.Modules.Customers.Domain.Customer.Status": "new",
+  "P:Bank.Modules.Customers.Domain.Customer.DecidedBy": "new",
+  "P:Bank.Modules.Customers.Domain.Customer.RegisteredAt": "new",
+  "M:Bank.Modules.Customers.Domain.Customer.Verify(System.String)": "new",
+  "M:Bank.Modules.Customers.Domain.Customer.Reject(System.String)": "new",
+  "T:Bank.Modules.Customers.Domain.CustomerRegistered": "new",
+  "M:Bank.Modules.Customers.Domain.CustomerRegistered.#ctor(System.String,System.DateTimeOffset)": "new",
+  "P:Bank.Modules.Customers.Domain.CustomerRegistered.CustomerId": "new",
+  "P:Bank.Modules.Customers.Domain.CustomerRegistered.OccurredAt": "new",
+  "T:Bank.Modules.Customers.Domain.CustomerVerified": "new",
+  "M:Bank.Modules.Customers.Domain.CustomerVerified.#ctor(System.String,System.String,System.DateTimeOffset)": "new",
+  "P:Bank.Modules.Customers.Domain.CustomerVerified.CustomerId": "new",
+  "P:Bank.Modules.Customers.Domain.CustomerVerified.VerifiedBy": "new",
+  "P:Bank.Modules.Customers.Domain.CustomerVerified.OccurredAt": "new",
+  "T:Bank.Modules.Customers.Domain.CustomerRejected": "new",
+  "M:Bank.Modules.Customers.Domain.CustomerRejected.#ctor(System.String,System.String,System.DateTimeOffset)": "new",
+  "P:Bank.Modules.Customers.Domain.CustomerRejected.CustomerId": "new",
+  "P:Bank.Modules.Customers.Domain.CustomerRejected.RejectedBy": "new",
+  "P:Bank.Modules.Customers.Domain.CustomerRejected.OccurredAt": "new",
+  "M:Program.{Main}$(System.String[])": "modified",
+  "T:Bank.Tests.Customers.CustomerTests": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Customer_starts_with_pending_status": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Customer_verify_transitions_pending_to_verified_and_sets_decided_by": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Customer_reject_transitions_pending_to_rejected_and_sets_decided_by": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(System.Boolean,System.Boolean)": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Register_accepts_applicant_turning_18_on_clock_date": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Register_rejects_applicant_one_day_under_18_on_clock_date": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Register_uses_clock_rather_than_system_time_for_age_check": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Register_rejects_underage_applicant_even_when_days_exceed_365_times_18": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(System.String,System.String,System.String)": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Register_when_customer_already_exists_throws_invalid_operation": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Verify_by_compliance_officer_updates_status_persists_and_publishes_event": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Reject_by_compliance_officer_updates_status_persists_and_publishes_event": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(System.String)": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Compliance_officer_cannot_self_verify_or_self_reject": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_unknown_customer_throw_key_not_found": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_already_decided_customer_throw_invalid_operation": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Get_returns_customer_when_exists_and_null_when_missing": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_blocks_unknown_pending_and_rejected_customers": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_allows_verified_customer": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening": "new",
+  "M:Bank.Tests.Customers.CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii": "new",
+  "table:Customers.Id": "new",
+  "table:Customers.FullName": "new",
+  "table:Customers.Email": "new",
+  "table:Customers.NationalId": "new",
+  "table:Customers.DateOfBirth": "new",
+  "table:Customers.Status": "new",
+  "table:Customers.DecidedBy": "new",
+  "table:Customers.RegisteredAt": "new",
+  "endpoint:POST /api/customers": "new",
+  "endpoint:GET /api/customers/me": "new",
+  "endpoint:POST /api/customers/{id}/verify": "new",
+  "endpoint:POST /api/customers/{id}/reject": "new"
+ },
+ "removed_nodes": [],
+ "new_edges": [
+  [
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Application.ICustomerService.GetAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Application.ICustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Api.CustomersController.Reject(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Api.CustomersController.Reject(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Application.ICustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)",
+   "P:Bank.Modules.Customers.Domain.Customer.Email",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)",
+   "P:Bank.Modules.Customers.Domain.Customer.FullName",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)",
+   "P:Bank.Modules.Customers.Domain.Customer.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Application.ICustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.GetAsync(System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.GetAsync(System.String,System.Threading.CancellationToken)",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Customers.Domain.Customer.Email",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Customers.Domain.Customer.FullName",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Customers.Domain.Customer.NationalId",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Customers.Domain.CustomerRegistered",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "table:Customers",
+   "writes"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "F:Bank.Modules.Auth.Roles.ComplianceOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Domain.Customer.Reject(System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Customers.Domain.CustomerRejected",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "F:Bank.Modules.Auth.Roles.ComplianceOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Domain.Customer.Verify(System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Customers.Domain.CustomerVerified",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.ICustomerService.GetAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Application.CustomerService.GetAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.ICustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.ICustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.ICustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Customers.Domain.Customer.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "M:Bank.Modules.Customers.CustomersModule.AddCustomersModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+   "T:Bank.Modules.Customers.Application.CustomerService",
+   "registers"
+  ],
+  [
+   "M:Bank.Modules.Customers.CustomersModule.AddCustomersModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+   "T:Bank.Modules.Customers.Application.KycAccountOpeningRule",
+   "registers"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "F:Bank.Modules.Auth.Roles.ComplianceOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "P:Bank.Modules.Accounts.Domain.Account.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Compliance_officer_cannot_self_verify_or_self_reject",
+   "F:Bank.Modules.Auth.Roles.ComplianceOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Compliance_officer_cannot_self_verify_or_self_reject",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Compliance_officer_cannot_self_verify_or_self_reject",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Compliance_officer_cannot_self_verify_or_self_reject",
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Compliance_officer_cannot_self_verify_or_self_reject",
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Compliance_officer_cannot_self_verify_or_self_reject",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Compliance_officer_cannot_self_verify_or_self_reject",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Compliance_officer_cannot_self_verify_or_self_reject",
+   "P:Bank.Modules.Customers.Domain.Customer.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Compliance_officer_cannot_self_verify_or_self_reject",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Compliance_officer_cannot_self_verify_or_self_reject",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_reject_transitions_pending_to_rejected_and_sets_decided_by",
+   "M:Bank.Modules.Customers.Domain.Customer.Reject(System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_reject_transitions_pending_to_rejected_and_sets_decided_by",
+   "P:Bank.Modules.Customers.Domain.Customer.Email",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_reject_transitions_pending_to_rejected_and_sets_decided_by",
+   "P:Bank.Modules.Customers.Domain.Customer.FullName",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_reject_transitions_pending_to_rejected_and_sets_decided_by",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_reject_transitions_pending_to_rejected_and_sets_decided_by",
+   "P:Bank.Modules.Customers.Domain.Customer.NationalId",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_reject_transitions_pending_to_rejected_and_sets_decided_by",
+   "P:Bank.Modules.Customers.Domain.Customer.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_starts_with_pending_status",
+   "P:Bank.Modules.Customers.Domain.Customer.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(System.Boolean,System.Boolean)",
+   "M:Bank.Modules.Customers.Domain.Customer.Reject(System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(System.Boolean,System.Boolean)",
+   "M:Bank.Modules.Customers.Domain.Customer.Verify(System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(System.Boolean,System.Boolean)",
+   "P:Bank.Modules.Customers.Domain.Customer.Email",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(System.Boolean,System.Boolean)",
+   "P:Bank.Modules.Customers.Domain.Customer.FullName",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(System.Boolean,System.Boolean)",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_verify_or_reject_when_not_pending_throws_invalid_operation(System.Boolean,System.Boolean)",
+   "P:Bank.Modules.Customers.Domain.Customer.NationalId",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_verify_transitions_pending_to_verified_and_sets_decided_by",
+   "M:Bank.Modules.Customers.Domain.Customer.Verify(System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_verify_transitions_pending_to_verified_and_sets_decided_by",
+   "P:Bank.Modules.Customers.Domain.Customer.Email",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_verify_transitions_pending_to_verified_and_sets_decided_by",
+   "P:Bank.Modules.Customers.Domain.Customer.FullName",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_verify_transitions_pending_to_verified_and_sets_decided_by",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_verify_transitions_pending_to_verified_and_sets_decided_by",
+   "P:Bank.Modules.Customers.Domain.Customer.NationalId",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Customer_verify_transitions_pending_to_verified_and_sets_decided_by",
+   "P:Bank.Modules.Customers.Domain.Customer.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii",
+   "F:Bank.Modules.Auth.Roles.ComplianceOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii",
+   "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii",
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii",
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Get_returns_customer_when_exists_and_null_when_missing",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Get_returns_customer_when_exists_and_null_when_missing",
+   "M:Bank.Modules.Customers.Application.CustomerService.GetAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Get_returns_customer_when_exists_and_null_when_missing",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Get_returns_customer_when_exists_and_null_when_missing",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Get_returns_customer_when_exists_and_null_when_missing",
+   "P:Bank.Modules.Customers.Domain.Customer.FullName",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Get_returns_customer_when_exists_and_null_when_missing",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_allows_verified_customer",
+   "F:Bank.Modules.Auth.Roles.ComplianceOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_allows_verified_customer",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_allows_verified_customer",
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_allows_verified_customer",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_allows_verified_customer",
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_allows_verified_customer",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+   "F:Bank.Modules.Auth.Roles.ComplianceOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_accepts_applicant_turning_18_on_clock_date",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_accepts_applicant_turning_18_on_clock_date",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_accepts_applicant_turning_18_on_clock_date",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_accepts_applicant_turning_18_on_clock_date",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_accepts_applicant_turning_18_on_clock_date",
+   "P:Bank.Modules.Customers.Domain.Customer.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_accepts_applicant_turning_18_on_clock_date",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "M:Bank.Modules.Customers.Application.ICustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "P:Bank.Modules.Customers.Domain.Customer.Email",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "P:Bank.Modules.Customers.Domain.Customer.FullName",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "P:Bank.Modules.Customers.Domain.Customer.NationalId",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "P:Bank.Modules.Customers.Domain.Customer.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_applicant_one_day_under_18_on_clock_date",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_applicant_one_day_under_18_on_clock_date",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_applicant_one_day_under_18_on_clock_date",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_applicant_one_day_under_18_on_clock_date",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_applicant_one_day_under_18_on_clock_date",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_applicant_one_day_under_18_on_clock_date",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(System.String,System.String,System.String)",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(System.String,System.String,System.String)",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(System.String,System.String,System.String)",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(System.String,System.String,System.String)",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_null_empty_or_whitespace_fields(System.String,System.String,System.String)",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_underage_applicant_even_when_days_exceed_365_times_18",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_underage_applicant_even_when_days_exceed_365_times_18",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_underage_applicant_even_when_days_exceed_365_times_18",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_rejects_underage_applicant_even_when_days_exceed_365_times_18",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_uses_clock_rather_than_system_time_for_age_check",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_uses_clock_rather_than_system_time_for_age_check",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_uses_clock_rather_than_system_time_for_age_check",
+   "M:Bank.Tests.FakeClock.Advance(System.TimeSpan)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_uses_clock_rather_than_system_time_for_age_check",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_uses_clock_rather_than_system_time_for_age_check",
+   "P:Bank.Modules.Customers.Domain.Customer.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_uses_clock_rather_than_system_time_for_age_check",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_when_customer_already_exists_throws_invalid_operation",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_when_customer_already_exists_throws_invalid_operation",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_when_customer_already_exists_throws_invalid_operation",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_when_customer_already_exists_throws_invalid_operation",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_when_customer_already_exists_throws_invalid_operation",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "F:Bank.Modules.Auth.Roles.ComplianceOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "M:Bank.Tests.FakeClock.Advance(System.TimeSpan)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "P:Bank.Modules.Customers.Domain.Customer.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_already_decided_customer_throw_invalid_operation",
+   "F:Bank.Modules.Auth.Roles.ComplianceOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_already_decided_customer_throw_invalid_operation",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_already_decided_customer_throw_invalid_operation",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_already_decided_customer_throw_invalid_operation",
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_already_decided_customer_throw_invalid_operation",
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_already_decided_customer_throw_invalid_operation",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(System.String)",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(System.String)",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(System.String)",
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(System.String)",
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(System.String)",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(System.String)",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(System.String)",
+   "P:Bank.Modules.Customers.Domain.Customer.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(System.String)",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_by_non_compliance_role_throw_unauthorized(System.String)",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_unknown_customer_throw_key_not_found",
+   "F:Bank.Modules.Auth.Roles.ComplianceOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_unknown_customer_throw_key_not_found",
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_unknown_customer_throw_key_not_found",
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_unknown_customer_throw_key_not_found",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_and_reject_unknown_customer_throw_key_not_found",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "F:Bank.Modules.Auth.Roles.ComplianceOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "M:Bank.Tests.FakeClock.Advance(System.TimeSpan)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "P:Bank.Modules.Customers.Domain.Customer.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Verify_by_compliance_officer_updates_status_persists_and_publishes_event",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "P:Bank.Modules.Customers.Domain.Customer.DateOfBirth",
+   "table:Customers.DateOfBirth",
+   "maps"
+  ],
+  [
+   "P:Bank.Modules.Customers.Domain.Customer.DecidedBy",
+   "table:Customers.DecidedBy",
+   "maps"
+  ],
+  [
+   "P:Bank.Modules.Customers.Domain.Customer.Email",
+   "table:Customers.Email",
+   "maps"
+  ],
+  [
+   "P:Bank.Modules.Customers.Domain.Customer.FullName",
+   "table:Customers.FullName",
+   "maps"
+  ],
+  [
+   "P:Bank.Modules.Customers.Domain.Customer.Id",
+   "table:Customers.Id",
+   "maps"
+  ],
+  [
+   "P:Bank.Modules.Customers.Domain.Customer.NationalId",
+   "table:Customers.NationalId",
+   "maps"
+  ],
+  [
+   "P:Bank.Modules.Customers.Domain.Customer.RegisteredAt",
+   "table:Customers.RegisteredAt",
+   "maps"
+  ],
+  [
+   "P:Bank.Modules.Customers.Domain.Customer.Status",
+   "table:Customers.Status",
+   "maps"
+  ],
+  [
+   "P:Bank.Shared.Events.IDomainEvent.OccurredAt",
+   "P:Bank.Modules.Customers.Domain.CustomerRegistered.OccurredAt",
+   "resolves"
+  ],
+  [
+   "P:Bank.Shared.Events.IDomainEvent.OccurredAt",
+   "P:Bank.Modules.Customers.Domain.CustomerRejected.OccurredAt",
+   "resolves"
+  ],
+  [
+   "P:Bank.Shared.Events.IDomainEvent.OccurredAt",
+   "P:Bank.Modules.Customers.Domain.CustomerVerified.OccurredAt",
+   "resolves"
+  ],
+  [
+   "T:Bank.Modules.Customers.Api.CustomerDto",
+   "T:Bank.Modules.Customers.Domain.KycStatus",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Customers.Api.CustomersController",
+   "T:Bank.Modules.Auth.Application.ICurrentUser",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Customers.Api.CustomersController",
+   "T:Bank.Modules.Customers.Application.ICustomerService",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Customers.Application.CustomerService",
+   "T:Bank.Data.BankDbContext",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Customers.Application.CustomerService",
+   "T:Bank.Modules.Auth.Application.ICurrentUser",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Customers.Application.CustomerService",
+   "T:Bank.Modules.Customers.Application.ICustomerService",
+   "implements"
+  ],
+  [
+   "T:Bank.Modules.Customers.Application.CustomerService",
+   "T:Bank.Shared.Events.IEventBus",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Customers.Application.CustomerService",
+   "T:Bank.Shared.Time.IClock",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Customers.Application.KycAccountOpeningRule",
+   "T:Bank.Data.BankDbContext",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Customers.Application.KycAccountOpeningRule",
+   "T:Bank.Modules.Accounts.Application.IAccountOpeningRule",
+   "implements"
+  ],
+  [
+   "T:Bank.Modules.Customers.Domain.Customer",
+   "table:Customers",
+   "maps"
+  ],
+  [
+   "T:Bank.Modules.Customers.Domain.CustomerRegistered",
+   "T:Bank.Shared.Events.IDomainEvent",
+   "implements"
+  ],
+  [
+   "T:Bank.Modules.Customers.Domain.CustomerRejected",
+   "T:Bank.Shared.Events.IDomainEvent",
+   "implements"
+  ],
+  [
+   "T:Bank.Modules.Customers.Domain.CustomerVerified",
+   "T:Bank.Shared.Events.IDomainEvent",
+   "implements"
+  ],
+  [
+   "endpoint:GET /api/customers/me",
+   "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)",
+   "routes"
+  ],
+  [
+   "endpoint:POST /api/customers",
+   "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "routes"
+  ],
+  [
+   "endpoint:POST /api/customers/{id}/reject",
+   "M:Bank.Modules.Customers.Api.CustomersController.Reject(System.String,System.Threading.CancellationToken)",
+   "routes"
+  ],
+  [
+   "endpoint:POST /api/customers/{id}/verify",
+   "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)",
+   "routes"
+  ]
+ ],
+ "removed_edges": [],
+ "upstream": {
+  "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": 1,
+  "P:Bank.Shared.Events.IDomainEvent.OccurredAt": 1,
+  "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)": 2,
+  "M:Bank.Tests.AccountsTests.New_account_uses_the_default_currency_and_belongs_to_the_caller": 3,
+  "M:Bank.Tests.AccountsTests.Unsupported_currency_is_refused": 3,
+  "M:Bank.Modules.Accounts.Application.IAccountService.OpenAsync(System.String,System.Threading.CancellationToken)": 3,
+  "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)": 4
+ },
+ "downstream": {
+  "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 1,
+  "T:Bank.Modules.Customers.Domain.CustomerRegistered": 1,
+  "table:Customers": 1,
+  "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)": 1,
+  "T:Bank.Modules.Customers.Domain.CustomerVerified": 1,
+  "F:Bank.Modules.Auth.Roles.ComplianceOfficer": 1,
+  "T:Bank.Modules.Customers.Domain.CustomerRejected": 1,
+  "M:Bank.Tests.TestKit.Db": 1,
+  "F:Bank.Modules.Auth.Roles.Customer": 1,
+  "P:Bank.Tests.FakeClock.UtcNow": 1,
+  "P:Bank.Tests.RecordingBus.Events": 1,
+  "M:Bank.Tests.FakeClock.Advance(System.TimeSpan)": 1,
+  "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": 1,
+  "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)": 1,
+  "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)": 1,
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": 1,
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": 1,
+  "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)": 1,
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 2,
+  "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 2,
+  "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)": 2,
+  "M:Bank.Tests.FakeUser.IsInRole(System.String)": 2,
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": 2,
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": 2,
+  "T:Bank.Modules.Accounts.Domain.AccountOpened": 2,
+  "table:Accounts": 2,
+  "P:Bank.Shared.Settings.BankSettings.SupportedCurrencies": 2,
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": 2,
+  "P:Bank.Modules.Accounts.Domain.Account.Id": 2,
+  "M:Bank.Modules.Audit.Application.AuditLog.IsPiiParameter(System.Type,System.String)": 2,
+  "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)": 3,
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": 4
+ },
+ "up_via": {
+  "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "P:Bank.Shared.Events.IDomainEvent.OccurredAt": [
+   "P:Bank.Modules.Customers.Domain.CustomerRegistered.OccurredAt",
+   "resolves"
+  ],
+  "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.AccountsTests.New_account_uses_the_default_currency_and_belongs_to_the_caller": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Tests.AccountsTests.Unsupported_currency_is_refused": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Accounts.Application.IAccountService.OpenAsync(System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Accounts.Application.IAccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ]
+ },
+ "down_via": {
+  "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "T:Bank.Modules.Customers.Domain.CustomerRegistered": [
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "publishes"
+  ],
+  "table:Customers": [
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "reads"
+  ],
+  "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)": [
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "T:Bank.Modules.Customers.Domain.CustomerVerified": [
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "publishes"
+  ],
+  "F:Bank.Modules.Auth.Roles.ComplianceOfficer": [
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "T:Bank.Modules.Customers.Domain.CustomerRejected": [
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "publishes"
+  ],
+  "M:Bank.Tests.TestKit.Db": [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "calls"
+  ],
+  "F:Bank.Modules.Auth.Roles.Customer": [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "uses"
+  ],
+  "P:Bank.Tests.FakeClock.UtcNow": [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "uses"
+  ],
+  "P:Bank.Tests.RecordingBus.Events": [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "uses"
+  ],
+  "M:Bank.Tests.FakeClock.Advance(System.TimeSpan)": [
+   "M:Bank.Tests.Customers.CustomerTests.Register_uses_clock_rather_than_system_time_for_age_check",
+   "calls"
+  ],
+  "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+   "calls"
+  ],
+  "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)": [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "calls"
+  ],
+  "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "calls"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "uses"
+  ],
+  "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)": [
+   "M:Bank.Tests.Customers.CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii",
+   "calls"
+  ],
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)": [
+   "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+   "resolves"
+  ],
+  "M:Bank.Tests.FakeUser.IsInRole(System.String)": [
+   "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+   "resolves"
+  ],
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "uses"
+  ],
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "uses"
+  ],
+  "T:Bank.Modules.Accounts.Domain.AccountOpened": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "publishes"
+  ],
+  "table:Accounts": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "writes"
+  ],
+  "P:Bank.Shared.Settings.BankSettings.SupportedCurrencies": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Id": [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "M:Bank.Modules.Audit.Application.AuditLog.IsPiiParameter(System.Type,System.String)": [
+   "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)",
+   "calls"
+  ],
+  "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+   "resolves"
+  ]
+ },
+ "hot_edges": [
+  [
+   "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.IAccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Accounts.Domain.Account.Iban",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Accounts.Domain.Account.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "P:Bank.Shared.Settings.BankSettings.SupportedCurrencies",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Accounts.Domain.AccountOpened",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "table:Accounts",
+   "writes"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.IAccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)",
+   "M:Bank.Modules.Audit.Application.AuditLog.IsPiiParameter(System.Type,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+   "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+   "M:Bank.Tests.FakeUser.IsInRole(System.String)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Customers.Domain.CustomerRegistered",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+   "table:Customers",
+   "reads"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Customers.Domain.CustomerRejected",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "F:Bank.Modules.Auth.Roles.ComplianceOfficer",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Customers.Domain.CustomerVerified",
+   "publishes"
+  ],
+  [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.AccountsTests.New_account_uses_the_default_currency_and_belongs_to_the_caller",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.AccountsTests.Unsupported_currency_is_refused",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "P:Bank.Modules.Accounts.Domain.Account.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+   "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii",
+   "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+   "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Customers.CustomerTests.Register_uses_clock_rather_than_system_time_for_age_check",
+   "M:Bank.Tests.FakeClock.Advance(System.TimeSpan)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+   "uses"
+  ],
+  [
+   "P:Bank.Shared.Events.IDomainEvent.OccurredAt",
+   "P:Bank.Modules.Customers.Domain.CustomerRegistered.OccurredAt",
+   "resolves"
+  ]
+ ],
+ "modules": {
+  "Accounts": "impacted",
+  "Platform": "changed",
+  "Tests": "changed",
+  "Customers": "changed",
+  "Database": "changed",
+  "Auth": "impacted",
+  "Audit": "impacted"
+ },
+ "untested_changed": [
+  "M:Bank.Modules.Customers.Api.CustomerDto.#ctor(System.String,System.String,System.String,Bank.Modules.Customers.Domain.KycStatus,System.String,System.DateTimeOffset)",
+  "M:Bank.Modules.Customers.Api.CustomersController.#ctor(Bank.Modules.Customers.Application.ICustomerService,Bank.Modules.Auth.Application.ICurrentUser)",
+  "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+  "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)",
+  "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)",
+  "M:Bank.Modules.Customers.Api.CustomersController.Reject(System.String,System.Threading.CancellationToken)",
+  "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)",
+  "M:Bank.Modules.Customers.Application.RegisterCustomerRequest.#ctor(System.String,System.String,System.String,System.DateOnly)",
+  "M:Bank.Modules.Customers.Application.CustomerService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.#ctor(Bank.Data.BankDbContext)",
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+  "M:Bank.Modules.Customers.CustomersModule.AddCustomersModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+  "M:Bank.Modules.Customers.Domain.Customer.#ctor",
+  "M:Bank.Modules.Customers.Domain.CustomerRegistered.#ctor(System.String,System.DateTimeOffset)",
+  "M:Bank.Modules.Customers.Domain.CustomerVerified.#ctor(System.String,System.String,System.DateTimeOffset)",
+  "M:Bank.Modules.Customers.Domain.CustomerRejected.#ctor(System.String,System.String,System.DateTimeOffset)",
+  "M:Program.{Main}$(System.String[])"
+ ],
+ "changed_lines": {
+  "src/Bank.Api/Data/BankDbContext.cs": [
+   [
+    3,
+    3
+   ],
+   [
+    19,
+    19
+   ]
+  ],
+  "src/Bank.Api/Modules/Customers/Api/CustomersController.cs": [
+   [
+    1,
+    103
+   ]
+  ],
+  "src/Bank.Api/Modules/Customers/Application/CustomerService.cs": [
+   [
+    1,
+    107
+   ]
+  ],
+  "src/Bank.Api/Modules/Customers/Application/KycAccountOpeningRule.cs": [
+   [
+    1,
+    20
+   ]
+  ],
+  "src/Bank.Api/Modules/Customers/CustomersModule.cs": [
+   [
+    1,
+    14
+   ]
+  ],
+  "src/Bank.Api/Modules/Customers/Domain/Customer.cs": [
+   [
+    1,
+    49
+   ]
+  ],
+  "src/Bank.Api/Program.cs": [
+   [
+    5,
+    5
+   ],
+   [
+    23,
+    23
+   ]
+  ],
+  "tests/Bank.Tests/Customers/CustomerTests.cs": [
+   [
+    1,
+    498
+   ]
+  ]
+ }
+}

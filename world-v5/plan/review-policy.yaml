@@ -1,0 +1,82 @@
+# Rulebook for Nordbank (AI drafted, a named human approves). Used by the Reviewer.
+version: "0.2-nordbank"
+approved_by: null
+approved_on: null
+default_tier: medium
+areas:
+  - name: Ledger
+    paths: ["src/Bank.Api/Modules/Ledger/**"]
+    tier: high
+    guarded: true
+    why: "The only place money moves"
+  - name: Auth
+    paths: ["src/Bank.Api/Modules/Auth/**"]
+    tier: high
+    guarded: true
+    why: "Who may do what"
+  - name: Audit
+    paths: ["src/Bank.Api/Modules/Audit/**"]
+    tier: high
+    guarded: true
+    why: "Compliance trail"
+  - name: Payments
+    paths: ["src/Bank.Api/Modules/Payments/**"]
+    tier: high
+    why: "Customer money leaves the account"
+  - name: Customers
+    paths: ["src/Bank.Api/Modules/Customers/**"]
+    tier: high
+    why: "Identity checks (KYC) and personal data"
+  - name: Cards
+    paths: ["src/Bank.Api/Modules/Cards/**"]
+    tier: high
+    why: "Card payments and card numbers"
+  - name: Loans
+    paths: ["src/Bank.Api/Modules/Loans/**"]
+    tier: high
+    why: "Credit decisions and payouts"
+  - name: Fx
+    paths: ["src/Bank.Api/Modules/Fx/**"]
+    tier: high
+    why: "Exchange rates decide how much money customers get"
+  - name: Fees
+    paths: ["src/Bank.Api/Modules/Fees/**"]
+    tier: high
+    why: "What the bank charges customers"
+  - name: Deposits
+    paths: ["src/Bank.Api/Modules/Deposits/**"]
+    tier: medium
+    why: "Savings and interest"
+  - name: Statements
+    paths: ["src/Bank.Api/Modules/Statements/**"]
+    tier: medium
+    why: "What customers see about their money"
+  - name: Accounts
+    paths: ["src/Bank.Api/Modules/Accounts/**"]
+    tier: medium
+    why: "Customer accounts and ownership"
+  - name: Platform
+    paths: ["src/Bank.Api/Data/**", "src/Bank.Api/Program.cs", "src/Bank.Api/Shared/**"]
+    tier: high
+    why: "Database schema, wiring and bank-wide settings touch every module"
+  - name: Notifications
+    paths: ["src/Bank.Api/Modules/Notifications/**"]
+    tier: low
+    why: "Customer messages only; no money logic"
+  - name: Tests
+    paths: ["tests/**"]
+    tier: low
+    why: "Test code (test weakening is checked separately)"
+content_rules:
+  - name: balance edited outside the ledger
+    pattern: '\.Balance\s*[-+]?='
+    tier: high
+  - name: authorization attribute changed
+    pattern: '\[(Authorize|AllowAnonymous)'
+    tier: high
+  - name: bank-wide setting changed
+    pattern: '(DefaultCurrency|DailyTransferLimit|SupportedCurrencies)\s*\{?\s*get;\s*init;\s*\}?\s*='
+    tier: high
+change_rules:
+  dependency_files: ["**/*.csproj"]
+  dependency_tier: high

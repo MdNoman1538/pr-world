@@ -1,0 +1,65 @@
+# PR World server: who may see and sign what. ./run_world.sh copies this to access.yaml the first time.
+# Roles, owners and people below are loaded on the FIRST start only; after that use Menu -> Admin (every change is logged).
+data: ../viewer/data                                  # PR World data folder (written by run_world.sh)
+viewer: ../viewer2/dist                               # the built viewer
+reviewer: ../../ai-reviewer/backend                   # the reviewer engine (plugins, settings schema)
+settings: ../../ai-reviewer/backend/prworld.yaml      # team settings; leave out to use the Balanced preset
+database: prw-server.db
+
+# mode: switch  -> this version: no sign-in and no passwords. You start as default_user and switch to any person
+#                  from the menu (Menu -> View as), to see the app through their access. For one machine, not a network.
+# mode: login   -> passwords or company sign-in (oidc below); for a shared server behind https.
+mode: switch
+default_user: noman
+default_level: overview     # what everyone sees of a module without a role or grant: overview, read, review or sign
+access:
+  hide_restricted_names: false   # true: locked modules show as "Restricted module N"
+  restricted_names: []           # or hide only these module names
+  emergency_max_hours: 4
+
+roles:
+  admin:      {admin: true, description: "Manages people, roles, grants and owners"}
+  architect:  {description: "Reads every module", modules: {"*": read}}
+  payments:   {description: "Payments team: reviews Payments, Fees and Fx; reads Ledger and Accounts",
+               modules: {Payments: review, Fees: review, Fx: review, Ledger: read, Accounts: read}}
+  lending:    {description: "Lending team: reviews Loans and Deposits; reads Accounts and Customers",
+               modules: {Loans: review, Deposits: review, Accounts: read, Customers: read}}
+  core:       {description: "Core banking: reviews Ledger, Accounts, Customers, Auth, Audit, Cards, Statements, Notifications",
+               modules: {Ledger: review, Accounts: review, Customers: review, Auth: review, Audit: review, Cards: review, Statements: review, Notifications: review}}
+  qa:         {description: "Test team: reads the Tests module only", modules: {Tests: read}}
+  auditor:    {description: "Reads everything, signs nothing", modules: {"*": read}}
+
+owners:                      # module owners: Sign on their module, and they decide access requests for it
+  Platform: [noman]
+  Database: [noman]
+  Payments: [maria]
+  Fees: [maria]
+  Fx: [maria]
+  Loans: [jussi]
+  Deposits: [jussi]
+  Ledger: [anna]
+  Accounts: [anna]
+  Customers: [anna]
+  Auth: [anna]
+  Audit: [anna]
+  Cards: [anna]
+  Statements: [anna]
+  Notifications: [anna]
+  Tests: [liisa]
+
+users:                       # the people you can switch between (example people for the Nordbank demo)
+  noman: {name: "Noman (architect, admin)", roles: [admin, architect]}
+  maria: {name: "Maria (Payments lead)", roles: [payments]}
+  jussi: {name: "Jussi (Lending lead)", roles: [lending]}
+  anna:  {name: "Anna (Core banking lead)", roles: [core]}
+  liisa: {name: "Liisa (QA tester)", roles: [qa]}
+  eero:  {name: "Eero (Auditor)", roles: [auditor]}
+
+# Company single sign-on, only with mode: login (Azure AD / Entra ID, Okta, Keycloak, Google). Groups become roles.
+# oidc:
+#   issuer: https://login.microsoftonline.com/<tenant-id>/v2.0
+#   client_id: <app id>
+#   client_secret_env: PRW_OIDC_CLIENT_SECRET
+#   redirect_uri: https://prworld.example.com/auth/callback
+#   groups_claim: groups
+#   group_roles: {"<group id or name>": [payments], "<another group>": [architect]}

@@ -1,0 +1,875 @@
+### FILE: src/Bank.Api/Modules/Payments/Api/PaymentsController.cs  (slice: leftflow)
++   1| using System.Text.Json;
+    2| using Bank.Modules.Auth;
+    3| using Bank.Modules.Auth.Application;
+    4| using Bank.Modules.Payments.Application;
+    5| using Bank.Modules.Payments.Domain;
+    6| using Microsoft.AspNetCore.Authorization;
+    7| using Microsoft.AspNetCore.Mvc;
+    8| 
+    9| namespace Bank.Modules.Payments.Api;
+   10| 
++  11| public sealed record RejectPaymentRequest(string? Reason);
++  12| 
+   13| public sealed record PaymentDto(
+   14|     Guid Id,
+   15|     string IdempotencyKey,
+   16|     string CustomerId,
+   17|     Guid FromAccountId,
+   18|     Guid ToAccountId,
+     ⋮
+   28| 
+   29| [ApiController]
+   30| [Route("api/payments")]
+   31| [Authorize(Policy = Policies.Customer)]
+   32| public sealed class PaymentsController : ControllerBase
+   33| {
++  34|     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
++  35| 
+   36|     private readonly IPaymentService _payments;
++  37|     private readonly IPaymentReviewService _review;
+   38|     private readonly ICurrentUser _user;
+   39| 
+-  34|     public PaymentsController(IPaymentService payments, ICurrentUser user)
++  40|     public PaymentsController(IPaymentService payments, IPaymentReviewService review, ICurrentUser user)
+   41|     {
+   42|         _payments = payments;
++  43|         _review = review;
+   44|         _user = user;
+   45|     }
+     ⋮
++ 104|     [HttpGet("held")]
++ 105|     [Authorize(Policy = Policies.Compliance)]
++ 106|     public async Task<ActionResult<IEnumerable<PaymentDto>>> Held(CancellationToken ct)
++ 107|     {
++ 108|         try
++ 109|         {
++ 110|             var payments = await _review.HeldAsync(ct);
++ 111|             return Ok(payments.Select(ToDto));
++ 112|         }
++ 113|         catch (UnauthorizedAccessException)
++ 114|         {
++ 115|             return Forbid();
++ 116|         }
++ 117|     }
++ 118| 
++ 119|     [HttpPost("{id:guid}/release")]
++ 120|     [Authorize(Policy = Policies.Compliance)]
++ 121|     public async Task<ActionResult<PaymentDto>> Release(Guid id, CancellationToken ct)
++ 122|     {
++ 123|         try
++ 124|         {
++ 125|             var payment = await _review.ReleaseAsync(id, ct);
++ 126|             return ToDto(payment);
++ 127|         }
++ 128|         catch (UnauthorizedAccessException)
++ 129|         {
++ 130|             return Forbid();
++ 131|         }
++ 132|         catch (KeyNotFoundException ex)
++ 133|         {
++ 134|             return NotFound(ex.Message);
++ 135|         }
++ 136|         catch (InvalidOperationException ex)
++ 137|         {
++ 138|             return Conflict(ex.Message);
++ 139|         }
++ 140|     }
++ 141| 
++ 142|     [HttpPost("{id:guid}/reject")]
++ 143|     [Authorize(Policy = Policies.Compliance)]
++ 144|     public async Task<ActionResult<PaymentDto>> Reject(Guid id, CancellationToken ct)
++ 145|     {
++ 146|         try
++ 147|         {
++ 148|             var request = await ReadOptionalJsonBodyAsync<RejectPaymentRequest>(ct);
++ 149|             var payment = await _review.RejectAsync(id, request?.Reason ?? "", ct);
++ 150|             return ToDto(payment);
++ 151|         }
++ 152|         catch (JsonException ex)
++ 153|         {
++ 154|             return BadRequest(ex.Message);
++ 155|         }
++ 156|         catch (UnauthorizedAccessException)
++ 157|         {
++ 158|             return Forbid();
++ 159|         }
++ 160|         catch (KeyNotFoundException ex)
++ 161|         {
++ 162|             return NotFound(ex.Message);
++ 163|         }
++ 164|         catch (InvalidOperationException ex)
++ 165|         {
++ 166|             return Conflict(ex.Message);
++ 167|         }
++ 168|         catch (ArgumentException ex)
++ 169|         {
++ 170|             return BadRequest(ex.Message);
++ 171|         }
++ 172|     }
++ 173| 
++ 174|     private async Task<T?> ReadOptionalJsonBodyAsync<T>(CancellationToken ct)
++ 175|     {
++ 176|         if (!Request.HasJsonContentType())
++ 177|             return default;
++ 178| 
++ 179|         using var reader = new StreamReader(Request.Body);
++ 180|         var body = await reader.ReadToEndAsync(ct);
++ 181|         if (string.IsNullOrWhiteSpace(body))
++ 182|             return default;
++ 183| 
++ 184|         return JsonSerializer.Deserialize<T>(body, JsonOptions);
++ 185|     }
++ 186| 
+  187|     private static PaymentDto ToDto(Payment p) =>
+  188|         new(
+  189|             p.Id,
+  190|             p.IdempotencyKey,
+  191|             p.CustomerId,
+  192|             p.FromAccountId,
+
+### FILE: src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs  (slice: leftflow)
++   1| using System.Collections.Concurrent;
++   2| using Bank.Data;
++   3| using Bank.Modules.Auth;
++   4| using Bank.Modules.Auth.Application;
++   5| using Bank.Modules.Ledger.Application;
++   6| using Bank.Modules.Ledger.Domain;
++   7| using Bank.Modules.Notifications.Application;
++   8| using Bank.Modules.Payments.Domain;
++   9| using Bank.Shared.Events;
++  10| using Bank.Shared.Time;
++  11| using Microsoft.EntityFrameworkCore;
++  12| using Microsoft.EntityFrameworkCore.Storage;
++  13| 
++  14| namespace Bank.Modules.Payments.Application;
++  15| 
++  16| public interface IPaymentReviewService
++  17| {
++  18|     Task<IReadOnlyList<Payment>> HeldAsync(CancellationToken ct = default);
++  19|     Task<Payment> ReleaseAsync(Guid paymentId, CancellationToken ct = default);
++  20|     Task<Payment> RejectAsync(Guid paymentId, string reason, CancellationToken ct = default);
++  21| }
++  22| 
++  23| public sealed class PaymentReviewService(BankDbContext db, ILedger ledger, ICurrentUser user, IClock clock, IEventBus bus, INotifier notifier) : IPaymentReviewService
++  24| {
++  25|     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> PaymentLocks = new();
++  26| 
++  27|     public async Task<IReadOnlyList<Payment>> HeldAsync(CancellationToken ct = default)
++  28|     {
++  29|         EnsureComplianceOfficer();
++  30| 
++  31|         return await db.Payments
++  32|             .Where(p => p.Status == PaymentStatus.Held)
++  33|             .OrderBy(p => p.CreatedAt)
++  34|             .ToListAsync(ct);
++  35|     }
++  36| 
++  37|     public async Task<Payment> ReleaseAsync(Guid paymentId, CancellationToken ct = default)
++  38|     {
++  39|         EnsureComplianceOfficer();
++  40|         var officerId = user.UserId;
++  41| 
++  42|         var paymentLock = PaymentLocks.GetOrAdd(paymentId, _ => new SemaphoreSlim(1, 1));
++  43|         Payment payment;
++  44| 
++  45|         await paymentLock.WaitAsync(ct);
++  46|         try
++  47|         {
++  48|             IDbContextTransaction? transaction = null;
++  49|             if (db.Database.IsRelational() && db.Database.CurrentTransaction is null)
++  50|                 transaction = await db.Database.BeginTransactionAsync(ct);
++  51| 
++  52|             try
++  53|             {
++  54|                 payment = await db.Payments.FirstOrDefaultAsync(p => p.Id == paymentId, ct)
++  55|                     ?? throw new KeyNotFoundException($"Payment {paymentId} not found.");
++  56| 
++  57|                 if (payment.Status != PaymentStatus.Held)
++  58|                     throw new InvalidOperationException($"Cannot release payment in status {payment.Status}.");
++  59| 
++  60|                 if (payment.CustomerId == officerId)
++  61|                     throw new UnauthorizedAccessException("Compliance officers cannot release their own payment.");
++  62| 
++  63|                 var reference = string.IsNullOrWhiteSpace(payment.Reference)
++  64|                     ? $"Payment {payment.Id} released"
++  65|                     : payment.Reference;
++  66| 
++  67|                 Guid transferId;
++  68|                 var sameCurrency = string.Equals(payment.Currency, payment.CreditedCurrency, StringComparison.OrdinalIgnoreCase);
++  69|                 if (sameCurrency || payment.CreditedAmount <= 0m)
++  70|                 {
++  71|                     transferId = await ledger.PostTransferAsync(
++  72|                         payment.FromAccountId,
++  73|                         payment.ToAccountId,
++  74|                         Math.Round(payment.Amount, 2, MidpointRounding.AwayFromZero),
++  75|                         reference,
++  76|                         ct);
++  77|                 }
++  78|                 else
++  79|                 {
++  80|                     var fxClearingFrom = BankAccounts.For(BankAccountKind.FxClearing, payment.Currency);
++  81|                     var fxClearingTo = BankAccounts.For(BankAccountKind.FxClearing, payment.CreditedCurrency);
++  82| 
++  83|                     await ledger.PostTransferAsync(
++  84|                         payment.FromAccountId,
++  85|                         fxClearingFrom,
++  86|                         Math.Round(payment.Amount, 2, MidpointRounding.AwayFromZero),
++  87|                         reference,
++  88|                         ct);
++  89| 
++  90|                     transferId = await ledger.PostTransferAsync(
++  91|                         fxClearingTo,
++  92|                         payment.ToAccountId,
++  93|                         Math.Round(payment.CreditedAmount, 2, MidpointRounding.AwayFromZero),
++  94|                         reference,
++  95|                         ct);
++  96|                 }
++  97| 
++  98|                 if (payment.Fee > 0m)
++  99|                 {
++ 100|                     var feeIncomeAccountId = BankAccounts.For(BankAccountKind.FeeIncome, payment.Currency);
++ 101|                     await ledger.PostTransferAsync(
++ 102|                         payment.FromAccountId,
++ 103|                         feeIncomeAccountId,
++ 104|                         Math.Round(payment.Fee, 2, MidpointRounding.AwayFromZero),
++ 105|                         reference,
++ 106|                         ct);
++ 107|                 }
++ 108| 
++ 109|                 payment.Complete(transferId);
++ 110|                 await db.SaveChangesAsync(ct);
++ 111| 
++ 112|                 if (transaction is not null)
++ 113|                 {
++ 114|                     await transaction.CommitAsync(ct);
++ 115|                     await transaction.DisposeAsync();
++ 116|                     transaction = null;
++ 117|                 }
++ 118|             }
++ 119|             catch
++ 120|             {
++ 121|                 if (transaction is not null)
++ 122|                 {
++ 123|                     await transaction.RollbackAsync(CancellationToken.None);
++ 124|                     await transaction.DisposeAsync();
++ 125|                     transaction = null;
++ 126|                 }
++ 127| 
++ 128|                 DetachDirtyEntries();
++ 129|                 throw;
++ 130|             }
++ 131|             finally
++ 132|             {
++ 133|                 if (transaction is not null)
++ 134|                     await transaction.DisposeAsync();
++ 135|             }
++ 136|         }
++ 137|         finally
++ 138|         {
++ 139|             paymentLock.Release();
++ 140|         }
++ 141| 
++ 142|         var now = clock.UtcNow;
++ 143|         await bus.PublishAsync(new PaymentReleased(payment.Id, officerId, now), ct);
++ 144|         await notifier.NotifyAsync(payment.CustomerId, $"Payment {payment.Id} has been released.", ct);
++ 145|         return payment;
++ 146|     }
++ 147| 
++ 148|     public async Task<Payment> RejectAsync(Guid paymentId, string reason, CancellationToken ct = default)
++ 149|     {
++ 150|         EnsureComplianceOfficer();
++ 151|         var officerId = user.UserId;
++ 152| 
++ 153|         if (string.IsNullOrWhiteSpace(reason))
++ 154|             throw new ArgumentException("Rejection reason is required.", nameof(reason));
++ 155| 
++ 156|         var paymentLock = PaymentLocks.GetOrAdd(paymentId, _ => new SemaphoreSlim(1, 1));
++ 157|         Payment payment;
++ 158| 
++ 159|         await paymentLock.WaitAsync(ct);
++ 160|         try
++ 161|         {
++ 162|             IDbContextTransaction? transaction = null;
++ 163|             if (db.Database.IsRelational() && db.Database.CurrentTransaction is null)
++ 164|                 transaction = await db.Database.BeginTransactionAsync(ct);
++ 165| 
++ 166|             try
++ 167|             {
++ 168|                 payment = await db.Payments.FirstOrDefaultAsync(p => p.Id == paymentId, ct)
++ 169|                     ?? throw new KeyNotFoundException($"Payment {paymentId} not found.");
++ 170| 
++ 171|                 if (payment.Status != PaymentStatus.Held)
++ 172|                     throw new InvalidOperationException($"Cannot reject payment in status {payment.Status}.");
++ 173| 
++ 174|                 if (payment.CustomerId == officerId)
++ 175|                     throw new UnauthorizedAccessException("Compliance officers cannot reject their own payment.");
++ 176| 
++ 177|                 payment.Reject();
++ 178|                 await db.SaveChangesAsync(ct);
++ 179| 
++ 180|                 if (transaction is not null)
++ 181|                 {
++ 182|                     await transaction.CommitAsync(ct);
++ 183|                     await transaction.DisposeAsync();
++ 184|                     transaction = null;
++ 185|                 }
++ 186|             }
++ 187|             catch
++ 188|             {
++ 189|                 if (transaction is not null)
++ 190|                 {
++ 191|                     await transaction.RollbackAsync(CancellationToken.None);
++ 192|                     await transaction.DisposeAsync();
++ 193|                     transaction = null;
++ 194|                 }
++ 195| 
++ 196|                 DetachDirtyEntries();
++ 197|                 throw;
++ 198|             }
++ 199|             finally
++ 200|             {
++ 201|                 if (transaction is not null)
++ 202|                     await transaction.DisposeAsync();
++ 203|             }
++ 204|         }
++ 205|         finally
++ 206|         {
++ 207|             paymentLock.Release();
++ 208|         }
++ 209| 
++ 210|         var now = clock.UtcNow;
++ 211|         await bus.PublishAsync(new PaymentRejected(payment.Id, officerId, now), ct);
++ 212|         await notifier.NotifyAsync(payment.CustomerId, $"Payment {payment.Id} has been rejected and funds have been returned.", ct);
++ 213|         return payment;
++ 214|     }
++ 215| 
++ 216|     private void EnsureComplianceOfficer()
++ 217|     {
++ 218|         if (!user.IsInRole(Roles.ComplianceOfficer))
++ 219|             throw new UnauthorizedAccessException("Only a compliance officer may review held payments.");
++ 220|     }
++ 221| 
++ 222|     private void DetachDirtyEntries()
++ 223|     {
++ 224|         foreach (var entry in db.ChangeTracker.Entries()
++ 225|                      .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
++ 226|                      .ToList())
++ 227|         {
++ 228|             entry.State = EntityState.Detached;
++ 229|         }
++ 230|     }
++ 231| }
+
+### FILE: src/Bank.Api/Modules/Payments/Application/PaymentService.cs  (slice: leftflow, truncated)
+    6| using Bank.Modules.Accounts.Domain;
+    7| using Bank.Modules.Auth.Application;
+    8| using Bank.Modules.Fees.Application;
+    9| using Bank.Modules.Fx.Application;
+   10| using Bank.Modules.Ledger.Application;
+   11| using Bank.Modules.Ledger.Domain;
++  12| using Bank.Modules.Notifications.Application;
+   13| using Bank.Modules.Payments.Domain;
+   14| using Bank.Shared.Events;
+   15| using Bank.Shared.Settings;
+   16| using Bank.Shared.Time;
+   17| using Microsoft.Data.Sqlite;
+   18| using Microsoft.EntityFrameworkCore;
+   19| using Microsoft.EntityFrameworkCore.Storage;
++  20| using Microsoft.Extensions.DependencyInjection;
+   21| 
+   22| namespace Bank.Modules.Payments.Application;
+   23| 
+   24| public sealed record PaymentRequest(string IdempotencyKey, Guid FromAccountId, Guid ToAccountId, decimal Amount, string? Reference);
+   25| 
+   26| public sealed record PaymentQuote(decimal Amount, string Currency, decimal Fee, decimal CreditedAmount, string CreditedCurrency, decimal Rate);
+     ⋮
+   42|     Task<Payment> PayAsync(PaymentRequest request, CancellationToken ct = default);
+   43|     Task<IReadOnlyList<Payment>> ForCustomerAsync(string customerId, CancellationToken ct = default);
+   44| }
+   45| 
+   46| public sealed class PaymentService : IPaymentService
+   47| {
++  48|     private const decimal HoldThresholdEur = 5_000.00m;
++  49| 
+   50|     private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();
+   51|     private static readonly ConcurrentDictionary<string, SemaphoreSlim> SqliteFileWriteLocks = new();
+   52|     private static readonly ConditionalWeakTable<DbConnection, SemaphoreSlim> SqliteConnectionWriteLocks = new();
+   53| 
+   54|     private readonly BankDbContext _db;
+   55|     private readonly ILedger _ledger;
+   56|     private readonly IAccountService _accounts;
+   57|     private readonly ICurrentUser _user;
+   58|     private readonly IClock _clock;
+   59|     private readonly BankSettings _settings;
+   60|     private readonly IFxService _fx;
+   61|     private readonly IFeeCalculator _fees;
++  62|     private readonly INotifier _notifier;
+   63|     private readonly IEventBus _bus;
+   64| 
++  65|     [ActivatorUtilitiesConstructor]
+   66|     public PaymentService(
+   67|         BankDbContext db,
+   68|         ILedger ledger,
+   69|         IAccountService accounts,
+   70|         ICurrentUser user,
+   71|         IClock clock,
+   72|         BankSettings settings,
+   73|         IFxService fx,
+   74|         IFeeCalculator fees,
++  75|         INotifier notifier,
+   76|         IEventBus bus)
+   77|     {
+   78|         _db = db;
+   79|         _ledger = ledger;
+   80|         _accounts = accounts;
+   81|         _user = user;
+   82|         _clock = clock;
+   83|         _settings = settings;
+   84|         _fx = fx;
+   85|         _fees = fees;
++  86|         _notifier = notifier;
+   87|         _bus = bus;
+   88|     }
+     ⋮
+   90|     public PaymentService(
+   91|         BankDbContext db,
+   92|         ILedger ledger,
+   93|         IAccountService accounts,
+   94|         ICurrentUser user,
+   95|         IClock clock,
+   96|         BankSettings settings,
+   97|         IFxService fx,
++  98|         IFeeCalculator fees,
+   99|         IEventBus bus)
+-  91|         : this(db, ledger, accounts, user, clock, settings, fx, new FeeCalculator(fx), bus)
++ 100|         : this(db, ledger, accounts, user, clock, settings, fx, fees, new NullNotifier(), bus)
++ 101|     {
++ 102|     }
++ 103| 
++ 104|     public PaymentService(
++ 105|         BankDbContext db,
++ 106|         ILedger ledger,
++ 107|         IAccountService accounts,
++ 108|         ICurrentUser user,
++ 109|         IClock clock,
++ 110|         BankSettings settings,
++ 111|         IFxService fx,
++ 112|         IEventBus bus)
++ 113|         : this(db, ledger, accounts, user, clock, settings, fx, new FeeCalculator(fx), new NullNotifier(), bus)
+  114|     {
+  115|     }
+     ⋮
+  159|     public async Task<Payment> PayAsync(PaymentRequest request, CancellationToken ct = default)
+  160|     {
+  161|         ArgumentNullException.ThrowIfNull(request);
+  162|         if (string.IsNullOrWhiteSpace(request.IdempotencyKey))
+     ⋮
+     ⋮
+  218|         }
+  219|         finally
+  220|         {
+  221|             keyLock.Release();
+  222|         }
+  223| 
+  224|         if (created)
+  225|         {
+- 204|             await _bus.PublishAsync(
+- 205|                 new PaymentCompleted(result.Id, customerId, result.Amount, result.Currency, result.CreatedAt),
+- 206|                 ct);
++ 226|             if (result.Status == PaymentStatus.Held)
++ 227|             {
++ 228|                 await _bus.PublishAsync(
++ 229|                     new PaymentHeld(result.Id, customerId, result.Amount, result.Currency, _clock.UtcNow),
++ 230|                     ct);
++ 231|                 await _notifier.NotifyAsync(
++ 232|                     customerId,
++ 233|                     $"Payment {result.Id} is being checked for compliance review.",
++ 234|                     ct);
++ 235|             }
++ 236|             else
++ 237|             {
++ 238|                 await _bus.PublishAsync(
++ 239|                     new PaymentCompleted(result.Id, customerId, result.Amount, result.Currency, result.CreatedAt),
++ 240|                     ct);
++ 241|             }
+  242|         }
+  243| 
+  244|         return result;
+  245|     }
+     ⋮
+  253|     private async Task<(Payment Payment, bool Created)> ExecuteIdempotentPaymentAsync(
+  254|         PaymentRequest request,
+  255|         string customerId,
+     ⋮
+  302|                 .Where(p => p.CustomerId == customerId
+  303|                     && p.Status == PaymentStatus.Completed
+  304|                     && p.CreatedAt >= dayStart
+  305|                     && p.CreatedAt < dayEnd)
+  306|                 .Select(p => new { p.Amount, p.Currency })
+  307|                 .ToListAsync(ct);
+  308| 
+  309|             var todayTotalEur = todayPayments.Sum(p => _fx.Convert(p.Amount, p.Currency, "EUR"));
+- 275|             var requestAmountEur = _fx.Convert(amount, fromAccount.Currency, "EUR");
++ 310|             var requestAmountEur = Math.Round(_fx.Convert(amount, fromAccount.Currency, "EUR"), 2, MidpointRounding.AwayFromZero);
+  311| 
+  312|             if (todayTotalEur + requestAmountEur > _settings.DailyTransferLimit)
+  313|                 throw new DailyLimitExceededException();
+  314| 
+  315|             if (!allowOverdraft && availableBalance < amount + fee.Amount)
+  316|                 throw new InsufficientFundsException(request.FromAccountId);
+  317| 
++ 318|             var hasPriorCompletedPayment = await _db.Payments
++ 319|                 .AsNoTracking()
++ 320|                 .AnyAsync(p => p.CustomerId == customerId
++ 321|                     && p.ToAccountId == request.ToAccountId
++ 322|                     && p.Status == PaymentStatus.Completed, ct);
++ 323| 
++ 324|             var shouldHold = requestAmountEur >= HoldThresholdEur && !hasPriorCompletedPayment;
++ 325| 
+  326|             payment = new Payment
+  327|             {
+  328|                 IdempotencyKey = request.IdempotencyKey,
+  329|                 CustomerId = customerId,
+  330|                 FromAccountId = request.FromAccountId,
+  331|                 ToAccountId = request.ToAccountId,
+  332|                 Amount = amount,
+  333|                 Currency = fromAccount.Currency,
+     ⋮
+  338|                 Reference = request.Reference,
+  339|                 CreatedAt = now,
+  340|             };
+  341|             payment.Hold();
+  342| 
+  343|             _db.Payments.Add(payment);
+  344|             await _db.SaveChangesAsync(ct);
+  345| 
+- 303|             var reference = request.Reference ?? "";
+- 304|             Guid transferId;
+- 305|             if (sameCurrency)
+- 306|             {
+- 307|                 transferId = await _ledger.PostTransferAsync(
+- 308|                     request.FromAccountId,
+- 309|                     request.ToAccountId,
+- 310|                     Math.Round(amount, 2, MidpointRounding.AwayFromZero),
+- 311|                     reference,
+- 312|                     ct);
+- 313|             }
+- 314|             else
++ 346|             if (!shouldHold)
+  347|             {
+- 316|                 var fxClearingFrom = BankAccounts.For(BankAccountKind.FxClearing, fromAccount.Currency);
+- 317|                 var fxClearingTo = BankAccounts.For(BankAccountKind.FxClearing, toAccount.Currency);
+- 318| 
+- 319|                 await _ledger.PostTransferAsync(
+- 320|                     request.FromAccountId,
+- 321|                     fxClearingFrom,
+- 322|                     Math.Round(amount, 2, MidpointRounding.AwayFromZero),
+- 323|                     reference,
+- 324|                     ct);
++ 348|                 var reference = request.Reference ?? "";
++ 349|                 Guid transferId;
++ 350|                 if (sameCurrency)
++ 351|                 {
++ 352|                     transferId = await _ledger.PostTransferAsync(
++ 353|                         request.FromAccountId,
++ 354|                         request.ToAccountId,
++ 355|                         Math.Round(amount, 2, MidpointRounding.AwayFromZero),
++ 356|                         reference,
++ 357|                         ct);
++ 358|                 }
++ 359|                 else
++ 360|                 {
++ 361|                     var fxClearingFrom = BankAccounts.For(BankAccountKind.FxClearing, fromAccount.Currency);
++ 362|                     var fxClearingTo = BankAccounts.For(BankAccountKind.FxClearing, toAccount.Currency);
++ 363| 
++ 364|                     await _ledger.PostTransferAsync(
++ 365|                         request.FromAccountId,
++ 366|                         fxClearingFrom,
++ 367|                         Math.Round(amount, 2, MidpointRounding.AwayFromZero),
++ 368|                         reference,
++ 369|                         ct);
++ 370| 
++ 371|                     transferId = await _ledger.PostTransferAsync(
++ 372|                         fxClearingTo,
++ 373|                         request.ToAccountId,
++ 374|                         Math.Round(creditedAmount, 2, MidpointRounding.AwayFromZero),
++ 375|                         reference,
++ 376|                         ct);
++ 377|                 }
+  378| 
+- 326|                 transferId = await _ledger.PostTransferAsync(
+- 327|                     fxClearingTo,
+- 328|                     request.ToAccountId,
+- 329|                     Math.Round(creditedAmount, 2, MidpointRounding.AwayFromZero),
+- 330|                     reference,
+- 331|                     ct);
+- 332|             }
++ 379|                 if (fee.Amount > 0m)
++ 380|                 {
++ 381|                     var feeIncome = BankAccounts.For(BankAccountKind.FeeIncome, fromAccount.Currency);
++ 382|                     await _ledger.PostTransferAsync(
++ 383|                         request.FromAccountId,
++ 384|                         feeIncome,
++ 385|                         Math.Round(fee.Amount, 2, MidpointRounding.AwayFromZero),
++ 386|                         reference,
++ 387|                         ct);
++ 388|                 }
+  389| 
+- 334|             if (fee.Amount > 0m)
+- 335|             {
+- 336|                 var feeIncome = BankAccounts.For(BankAccountKind.FeeIncome, fromAccount.Currency);
+- 337|                 await _ledger.PostTransferAsync(
+- 338|                     request.FromAccountId,
+- 339|                     feeIncome,
+- 340|                     Math.Round(fee.Amount, 2, MidpointRounding.AwayFromZero),
+- 341|                     reference,
+- 342|                     ct);
++ 390|                 payment.Complete(transferId);
++ 391|                 await _db.SaveChangesAsync(ct);
+  392|             }
+  393| 
+- 345|             payment.Complete(transferId);
+- 346|             await _db.SaveChangesAsync(ct);
+- 347| 
+  394|             if (transaction is not null)
+  395|             {
+  396|                 await transaction.CommitAsync(ct);
+  397|                 await transaction.DisposeAsync();
+  398|                 transaction = null;
+  399|             }
+  400| 
+  401|             return (payment, true);
+     ⋮
+  444|     }
+     ⋮
+  492| 
+  493|         var message = ex.InnerException?.Message ?? ex.Message;
+  494|         return message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase)
+  495|             && message.Contains("CustomerId", StringComparison.OrdinalIgnoreCase)
+  496|             && message.Contains("IdempotencyKey", StringComparison.OrdinalIgnoreCase);
+  497|     }
++ 498| 
++ 499|     private sealed class NullNotifier : INotifier
++ 500|     {
++ 501|         public Task NotifyAsync(string customerId, string message, CancellationToken ct = default) => Task.CompletedTask;
++ 502|     }
+  503| }
+     ⋮ (context reduced to fit; every changed line kept)
+
+### FILE: src/Bank.Api/Modules/Payments/Domain/Payment.cs  (slice: leftflow)
+   42|     public void Hold()
+   43|     {
+-  44|         if (Status == PaymentStatus.Rejected || (Status == PaymentStatus.Completed && TransferId is not null))
++  44|         if (Status == PaymentStatus.Held || Status == PaymentStatus.Rejected || (Status == PaymentStatus.Completed && TransferId is not null))
+   45|             throw new InvalidOperationException($"Cannot hold payment in status {Status}.");
+   46|         Status = PaymentStatus.Held;
+   47|     }
+     ⋮
+   49|     public void Reject()
+   50|     {
+-  51|         if (Status == PaymentStatus.Rejected || (Status == PaymentStatus.Completed && TransferId is not null))
++  51|         if (Status != PaymentStatus.Held)
+   52|             throw new InvalidOperationException($"Cannot reject payment in status {Status}.");
+   53|         Status = PaymentStatus.Rejected;
+   54|     }
+   55| }
+   56| 
+   57| public sealed record PaymentCompleted(Guid PaymentId, string CustomerId, decimal Amount, string Currency, DateTimeOffset OccurredAt) : IDomainEvent;
++  58| 
++  59| public sealed record PaymentHeld(Guid PaymentId, string CustomerId, decimal Amount, string Currency, DateTimeOffset OccurredAt) : IDomainEvent;
++  60| 
++  61| public sealed record PaymentReleased(Guid PaymentId, string ReleasedBy, DateTimeOffset OccurredAt) : IDomainEvent;
++  62| 
++  63| public sealed record PaymentRejected(Guid PaymentId, string RejectedBy, DateTimeOffset OccurredAt) : IDomainEvent;
+
+### FILE: src/Bank.Api/Modules/Payments/PaymentsModule.cs  (slice: leftflow)
+    7|     public static IServiceCollection AddPaymentsModule(this IServiceCollection services)
+    8|     {
+    9|         services.AddScoped<IPaymentService, PaymentService>();
++  10|         services.AddScoped<IPaymentReviewService, PaymentReviewService>();
+   11|         return services;
+   12|     }
+
+### FILE: tests/Bank.Tests/Payments/FraudHoldTests.cs  (slice: leftflow)
++   1| using Bank.Data;
++   2| using Bank.Modules.Audit.Application;
++   3| using Bank.Modules.Auth;
++   4| using Bank.Modules.Payments.Application;
++   5| using Bank.Modules.Payments.Domain;
++   6| using Bank.Tests;
++   7| using Xunit;
++   8| 
++   9| namespace Bank.Tests.Payments;
++  10| 
++  11| public sealed class FraudHoldTests
++  12| {
++  13|     private static (IPaymentReviewService Service, FakeUser User, FakeClock Clock, RecordingBus Bus, RecordingNotifier Notifier) CreateReviewService(
++  14|         BankDbContext db,
++  15|         string userId = "compliance-1",
++  16|         params string[] roles)
++  17|     {
++  18|         var user = new FakeUser(userId, roles);
++  19|         var clock = new FakeClock();
++  20|         var bus = new RecordingBus();
++  21|         var notifier = new RecordingNotifier();
++  22|         var ledger = TestKit.Ledger(db, bus, clock);
++  23|         IPaymentReviewService service = new PaymentReviewService(db, ledger, user, clock, bus, notifier);
++  24|         return (service, user, clock, bus, notifier);
++  25|     }
++  26| 
++  27|     [Theory]
++  28|     [InlineData(Roles.Customer)]
++  29|     [InlineData(Roles.Teller)]
++  30|     [InlineData(Roles.LoanOfficer)]
++  31|     [InlineData(Roles.Admin)]
++  32|     public async Task HeldAsync_throws_UnauthorizedAccessException_for_non_compliance_roles(string role)
++  33|     {
++  34|         using var db = TestKit.Db();
++  35|         var (service, _, _, _, _) = CreateReviewService(db, "user-1", role);
++  36| 
++  37|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.HeldAsync());
++  38|     }
++  39| 
++  40|     [Fact]
++  41|     public async Task HeldAsync_throws_UnauthorizedAccessException_when_user_has_no_roles()
++  42|     {
++  43|         using var db = TestKit.Db();
++  44|         var (service, _, _, _, _) = CreateReviewService(db, "user-1");
++  45| 
++  46|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.HeldAsync());
++  47|     }
++  48| 
++  49|     [Fact]
++  50|     public async Task HeldAsync_returns_empty_list_when_no_payments_are_held()
++  51|     {
++  52|         using var db = TestKit.Db();
++  53|         var (service, _, _, _, _) = CreateReviewService(db, "officer-1", Roles.ComplianceOfficer);
++  54| 
++  55|         var held = await service.HeldAsync();
++  56| 
++  57|         Assert.Empty(held);
++  58|     }
++  59| 
++  60|     [Theory]
++  61|     [InlineData(Roles.Customer)]
++  62|     [InlineData(Roles.Teller)]
++  63|     [InlineData(Roles.LoanOfficer)]
++  64|     [InlineData(Roles.Admin)]
++  65|     public async Task ReleaseAsync_throws_UnauthorizedAccessException_for_non_compliance_roles(string role)
++  66|     {
++  67|         using var db = TestKit.Db();
++  68|         var (service, _, _, bus, notifier) = CreateReviewService(db, "user-1", role);
++  69| 
++  70|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.ReleaseAsync(Guid.NewGuid()));
++  71|         Assert.Empty(bus.Events);
++  72|         Assert.Empty(notifier.Sent);
++  73|     }
++  74| 
++  75|     [Fact]
++  76|     public async Task ReleaseAsync_throws_KeyNotFoundException_when_payment_does_not_exist()
++  77|     {
++  78|         using var db = TestKit.Db();
++  79|         var (service, _, _, bus, notifier) = CreateReviewService(db, "officer-1", Roles.ComplianceOfficer);
++  80| 
++  81|         await Assert.ThrowsAsync<KeyNotFoundException>(() => service.ReleaseAsync(Guid.NewGuid()));
++  82|         Assert.Empty(bus.Events);
++  83|         Assert.Empty(notifier.Sent);
++  84|     }
++  85| 
++  86|     [Theory]
++  87|     [InlineData(Roles.Customer)]
++  88|     [InlineData(Roles.Teller)]
++  89|     [InlineData(Roles.LoanOfficer)]
++  90|     [InlineData(Roles.Admin)]
++  91|     public async Task RejectAsync_throws_UnauthorizedAccessException_for_non_compliance_roles(string role)
++  92|     {
++  93|         using var db = TestKit.Db();
++  94|         var (service, _, _, bus, notifier) = CreateReviewService(db, "user-1", role);
++  95| 
++  96|         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.RejectAsync(Guid.NewGuid(), "Suspected fraud"));
++  97|         Assert.Empty(bus.Events);
++  98|         Assert.Empty(notifier.Sent);
++  99|     }
++ 100| 
++ 101|     [Theory]
++ 102|     [InlineData(null)]
++ 103|     [InlineData("")]
++ 104|     [InlineData("   ")]
++ 105|     public async Task RejectAsync_throws_ArgumentException_when_reason_is_null_or_whitespace(string? reason)
++ 106|     {
++ 107|         using var db = TestKit.Db();
++ 108|         var (service, _, _, bus, notifier) = CreateReviewService(db, "officer-1", Roles.ComplianceOfficer);
++ 109| 
++ 110|         await Assert.ThrowsAsync<ArgumentException>(() => service.RejectAsync(Guid.NewGuid(), reason!));
++ 111|         Assert.Empty(bus.Events);
++ 112|         Assert.Empty(notifier.Sent);
++ 113|     }
++ 114| 
++ 115|     [Fact]
++ 116|     public async Task RejectAsync_throws_KeyNotFoundException_when_payment_does_not_exist()
++ 117|     {
++ 118|         using var db = TestKit.Db();
++ 119|         var (service, _, _, bus, notifier) = CreateReviewService(db, "officer-1", Roles.ComplianceOfficer);
++ 120| 
++ 121|         await Assert.ThrowsAsync<KeyNotFoundException>(() => service.RejectAsync(Guid.NewGuid(), "Unverified beneficiary"));
++ 122|         Assert.Empty(bus.Events);
++ 123|         Assert.Empty(notifier.Sent);
++ 124|     }
++ 125| 
++ 126|     [Fact]
++ 127|     public void Domain_events_preserve_payload_and_redact_cleanly_for_audit_log()
++ 128|     {
++ 129|         var clock = new FakeClock();
++ 130|         var paymentId = Guid.NewGuid();
++ 131| 
++ 132|         var held = new PaymentHeld(paymentId, "cust-1", 5000.00m, "EUR", clock.UtcNow);
++ 133|         clock.Advance(TimeSpan.FromMinutes(15));
++ 134|         var released = new PaymentReleased(paymentId, "officer-1", clock.UtcNow);
++ 135|         clock.Advance(TimeSpan.FromMinutes(5));
++ 136|         var rejected = new PaymentRejected(paymentId, "officer-2", clock.UtcNow);
++ 137| 
++ 138|         Assert.Equal(paymentId, held.PaymentId);
++ 139|         Assert.Equal("cust-1", held.CustomerId);
++ 140|         Assert.Equal(5000.00m, held.Amount);
++ 141|         Assert.Equal("EUR", held.Currency);
++ 142|         Assert.Equal(released.PaymentId, paymentId);
++ 143|         Assert.Equal("officer-1", released.ReleasedBy);
++ 144|         Assert.Equal(rejected.PaymentId, paymentId);
++ 145|         Assert.Equal("officer-2", rejected.RejectedBy);
++ 146| 
++ 147|         Assert.Contains(paymentId.ToString(), AuditLog.Redact(held));
++ 148|         Assert.Contains(paymentId.ToString(), AuditLog.Redact(released));
++ 149|         Assert.Contains(paymentId.ToString(), AuditLog.Redact(rejected));
++ 150|     }
++ 151| }
+
+
+# IMPACT
+- PaymentsController (src/Bank.Api/Modules/Payments/Api/PaymentsController.cs): 0 caller(s) [none found]; test references: NONE
+- Held (src/Bank.Api/Modules/Payments/Api/PaymentsController.cs): 0 caller(s) [none found]; test references: NONE
+- Release (src/Bank.Api/Modules/Payments/Api/PaymentsController.cs): 0 caller(s) [none found]; test references: NONE
+- Reject (src/Bank.Api/Modules/Payments/Api/PaymentsController.cs): 0 caller(s) [none found]; test references: NONE
+- ReadOptionalJsonBodyAsync (src/Bank.Api/Modules/Payments/Api/PaymentsController.cs): 0 caller(s) [none found]; test references: NONE
+- HeldAsync (src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs): 0 caller(s) [none found]; test references: NONE
+- ReleaseAsync (src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs): 0 caller(s) [none found]; test references: NONE
+- RejectAsync (src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs): 0 caller(s) [none found]; test references: NONE
+- EnsureComplianceOfficer (src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs): 0 caller(s) [none found]; test references: NONE
+- DetachDirtyEntries (src/Bank.Api/Modules/Payments/Application/PaymentReviewService.cs): 0 caller(s) [none found]; test references: NONE
+- PaymentService (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- PayAsync (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- ExecuteIdempotentPaymentAsync (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- NotifyAsync (src/Bank.Api/Modules/Payments/Application/PaymentService.cs): 0 caller(s) [none found]; test references: NONE
+- Hold (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- Reject (src/Bank.Api/Modules/Payments/Domain/Payment.cs): 0 caller(s) [none found]; test references: NONE
+- AddPaymentsModule (src/Bank.Api/Modules/Payments/PaymentsModule.cs): 0 caller(s) [none found]; test references: NONE
+- CreateReviewService (tests/Bank.Tests/Payments/FraudHoldTests.cs): 0 caller(s) [none found]; test references: NONE
+- HeldAsync_throws_UnauthorizedAccessException_for_non_compliance_roles (tests/Bank.Tests/Payments/FraudHoldTests.cs): 0 caller(s) [none found]; test references: NONE
+- HeldAsync_throws_UnauthorizedAccessException_when_user_has_no_roles (tests/Bank.Tests/Payments/FraudHoldTests.cs): 0 caller(s) [none found]; test references: NONE
+- HeldAsync_returns_empty_list_when_no_payments_are_held (tests/Bank.Tests/Payments/FraudHoldTests.cs): 0 caller(s) [none found]; test references: NONE
+- ReleaseAsync_throws_UnauthorizedAccessException_for_non_compliance_roles (tests/Bank.Tests/Payments/FraudHoldTests.cs): 0 caller(s) [none found]; test references: NONE
+- ReleaseAsync_throws_KeyNotFoundException_when_payment_does_not_exist (tests/Bank.Tests/Payments/FraudHoldTests.cs): 0 caller(s) [none found]; test references: NONE
+- RejectAsync_throws_UnauthorizedAccessException_for_non_compliance_roles (tests/Bank.Tests/Payments/FraudHoldTests.cs): 0 caller(s) [none found]; test references: NONE
+- RejectAsync_throws_ArgumentException_when_reason_is_null_or_whitespace (tests/Bank.Tests/Payments/FraudHoldTests.cs): 0 caller(s) [none found]; test references: NONE
+- RejectAsync_throws_KeyNotFoundException_when_payment_does_not_exist (tests/Bank.Tests/Payments/FraudHoldTests.cs): 0 caller(s) [none found]; test references: NONE
+- Domain_events_preserve_payload_and_redact_cleanly_for_audit_log (tests/Bank.Tests/Payments/FraudHoldTests.cs): 0 caller(s) [none found]; test references: NONE

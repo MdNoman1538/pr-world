@@ -1,0 +1,2083 @@
+{
+  "run_id": "20261114-204439-pr-11",
+  "created_at": "2026-11-14T18:49:53+00:00",
+  "repo": "/Users/noman/Projects/junction-ai-review/world-v5/bank",
+  "base": "main",
+  "head": "pr-11",
+  "requirement_id": "PR-11",
+  "requirement_text_present": true,
+  "owner": "Md Abdullah Al Noman",
+  "policy_version": "0.2-nordbank",
+  "policy_approved_by": null,
+  "models": {
+    "specialist": "gemini/gemini-3.8-flash",
+    "validator": "gemini/gemini-3.1-pro-preview",
+    "radar": "gemini/gemini-3.1-pro-preview",
+    "fixer": "gemini/gemini-3.1-pro-preview",
+    "investigator": "gemini/gemini-3.1-pro-preview",
+    "requirement_analyst": "gemini/gemini-3.1-pro-preview",
+    "change_interpreter": "gemini/gemini-3.8-flash",
+    "requirement_judge": "gemini/gemini-3.1-pro-preview",
+    "panel": [
+      "gemini/gemini-3.1-pro-preview",
+      "gemini/gemini-3.8-flash"
+    ],
+    "parser": "tree-sitter",
+    "specialists": "gemini/gemini-3.8-flash"
+  },
+  "changed_files": [
+    "src/Bank.Api/Data/BankDbContext.cs",
+    "src/Bank.Api/Modules/Payments/Application/PaymentService.cs"
+  ],
+  "tier": {
+    "tier": "high",
+    "reasons": [
+      "src/Bank.Api/Data/BankDbContext.cs: area 'Platform' is high (Database schema, wiring and bank-wide settings touch every module)",
+      "src/Bank.Api/Modules/Payments/Application/PaymentService.cs: area 'Payments' is high (Customer money leaves the account)"
+    ],
+    "guarded_paths": [],
+    "out_of_plan": [],
+    "signoffs_required": 2
+  },
+  "orientation": "This pull request configures a composite unique database index on (CustomerId, IdempotencyKey) in EF Core and updates PaymentService.PayAsync to handle duplicate and concurrent payment requests idempotently. The goal is to prevent customers from being double-charged upon retried or concurrent payment submissions as reported in support ticket #4711.",
+  "requirement_alignment": "partial",
+  "sensors": [
+    {
+      "name": "secret_scan",
+      "ran": true,
+      "passed": true,
+      "summary": "No secret patterns in added lines",
+      "details": [],
+      "log_file": "evidence/secret_scan.txt"
+    },
+    {
+      "name": "package_check",
+      "ran": true,
+      "passed": true,
+      "summary": "No package references added",
+      "details": [],
+      "log_file": "evidence/package_check.txt"
+    },
+    {
+      "name": "test_integrity",
+      "ran": true,
+      "passed": true,
+      "summary": "No test files edited",
+      "details": [],
+      "log_file": "evidence/test_integrity.txt"
+    },
+    {
+      "name": "removed_guards",
+      "ran": true,
+      "passed": true,
+      "summary": "No validation/guard lines removed",
+      "details": [],
+      "log_file": "evidence/removed_guards.txt"
+    },
+    {
+      "name": "risky_code",
+      "ran": true,
+      "passed": true,
+      "summary": "0 pattern hit(s) in added code",
+      "details": [],
+      "log_file": "evidence/risky_code.txt"
+    },
+    {
+      "name": "dotnet_build",
+      "ran": true,
+      "passed": true,
+      "summary": "Build succeeded",
+      "details": [
+        "Build succeeded.",
+        "    0 Warning(s)",
+        "    0 Error(s)",
+        "",
+        "Time Elapsed 00:00:06.95"
+      ],
+      "log_file": "evidence/dotnet_build.log"
+    },
+    {
+      "name": "dotnet_test",
+      "ran": true,
+      "passed": false,
+      "summary": "Tests failed (exit 1)",
+      "details": [
+        "Failed!  - Failed:     4, Passed:   249, Skipped:     0, Total:   253, Duration: 3 s - Bank.Tests.dll (net10.0)"
+      ],
+      "log_file": "evidence/dotnet_test.log"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C01",
+      "dimension": "correctness",
+      "source": "specialist:correctness",
+      "title": "Payment entity is placed on hold and never completed or persisted as successful",
+      "claim": "PaymentService calls payment.Hold() before saving the payment entity, but never transitions the payment to completed after the ledger transfers succeed. As a result, the payment remains in a held status in the database and is returned in an incomplete state to callers.",
+      "severity": "Blocker",
+      "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+      "line_start": 298,
+      "line_end": 301,
+      "evidence": "            payment.Hold();\n\n            _db.Payments.Add(payment);\n            await _db.SaveChangesAsync(ct);",
+      "requirement_link": "When IPaymentService.PayAsync is called sequentially by the same customer with an IdempotencyKey that already exists for that CustomerId, it returns the existing first payment without calling ILedger.PostTransferAsync or moving money again.",
+      "confidence": 0.95,
+      "suggested_fix": "Remove payment.Hold() or update the payment state to completed and persist the changes after ILedger.PostTransferAsync operations succeed.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated",
+        "panel": {
+          "members": 2,
+          "answered": 1,
+          "real": 1,
+          "votes": [
+            {
+              "member": 0,
+              "error": "panel:0: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'statu"
+            },
+            {
+              "member": 1,
+              "real": true,
+              "nitpick": false,
+              "severity": "Blocker",
+              "reason": "PaymentService explicitly transitions the new payment entity to held via payment.Hold() and persists it to the database, but never updates or completes the payment entity after ledger entries and transactions succeed. Consequently, the payment remains permanently in a held status in the database and is returned as held to callers."
+            }
+          ],
+          "outcome": "not enough votes"
+        },
+        "investigation": {
+          "verdict": "unsure",
+          "evidence": "",
+          "reason": "investigator call failed: investigator: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateConten",
+          "steps": []
+        }
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          295,
+          "                Reference = request.Reference,",
+          true
+        ],
+        [
+          296,
+          "                CreatedAt = now,",
+          true
+        ],
+        [
+          297,
+          "            };",
+          true
+        ],
+        [
+          298,
+          "            payment.Hold();",
+          true
+        ],
+        [
+          299,
+          "",
+          true
+        ],
+        [
+          300,
+          "            _db.Payments.Add(payment);",
+          true
+        ],
+        [
+          301,
+          "            await _db.SaveChangesAsync(ct);",
+          true
+        ],
+        [
+          302,
+          "",
+          true
+        ],
+        [
+          303,
+          "            var reference = request.Reference ?? \"\";",
+          false
+        ],
+        [
+          304,
+          "            Guid transferId;",
+          false
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    },
+    {
+      "id": "C02",
+      "dimension": "correctness",
+      "source": "specialist:correctness",
+      "title": "Unique constraint exception handler fails to retrieve in-flight payment and throws",
+      "claim": "When a concurrent request catches a DbUpdateException unique constraint violation, the winning request is still executing ILedger transfers and has not yet committed its transaction. The losing request immediately queries for the existing payment via AsNoTracking, finds null because the winning transaction is uncommitted, and throws an unhandled exception instead of returning the payment.",
+      "severity": "Blocker",
+      "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+      "line_start": 368,
+      "line_end": 374,
+      "evidence": "            var concurrent = await _db.Payments.AsNoTracking().FirstOrDefaultAsync(\n                p => p.CustomerId == customerId && p.IdempotencyKey == request.IdempotencyKey,\n                ct);\n            if (concurrent is not null)\n                return (concurrent, false);\n\n            throw;",
+      "requirement_link": "When two requests with the same CustomerId and IdempotencyKey execute concurrently, at most one payment record is persisted and ILedger.PostTransferAsync is called at most once (with decimal amount rounded using Math.Round(x, 2, MidpointRounding.AwayFromZero)); the second request handles the database unique constraint violation and returns the existing first payment rather than failing with an unhandled exception.",
+      "confidence": 0.92,
+      "suggested_fix": "Commit or release the idempotency reservation record before moving to non-transactional ledger transfers, or implement a retry/poll mechanism to wait for the concurrent transaction to commit before querying.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated",
+        "panel": {
+          "members": 2,
+          "answered": 1,
+          "real": 0,
+          "votes": [
+            {
+              "member": 0,
+              "error": "panel:0: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'statu"
+            },
+            {
+              "member": 1,
+              "real": false,
+              "nitpick": false,
+              "severity": "Nit",
+              "reason": "The finding assumes an RDBMS will raise a unique constraint violation while the winning transaction is still in-flight and uncommitted. In all major relational databases (PostgreSQL, MySQL/InnoDB, SQL Server, Oracle), a concurrent insert conflicting on a unique constraint blocks waiting for the first transaction to complete; it only throws a unique constraint violation after the first transaction has committed. In SQLite, concurrent write transactions are serialized at the database lock level. Thus, the winning transaction is never still executing when the losing transaction catches the constraint violation."
+            }
+          ],
+          "outcome": "not enough votes"
+        },
+        "investigation": {
+          "verdict": "unsure",
+          "evidence": "",
+          "reason": "investigator call failed: investigator: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateConten",
+          "steps": []
+        }
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          365,
+          "",
+          false
+        ],
+        [
+          366,
+          "            DetachDirtyEntries();",
+          true
+        ],
+        [
+          367,
+          "",
+          false
+        ],
+        [
+          368,
+          "            var concurrent = await _db.Payments.AsNoTracking().FirstOrDefaultAsync(",
+          false
+        ],
+        [
+          369,
+          "                p => p.CustomerId == customerId && p.IdempotencyKey == request.IdempotencyKey,",
+          false
+        ],
+        [
+          370,
+          "                ct);",
+          false
+        ],
+        [
+          371,
+          "            if (concurrent is not null)",
+          false
+        ],
+        [
+          372,
+          "                return (concurrent, false);",
+          true
+        ],
+        [
+          373,
+          "",
+          false
+        ],
+        [
+          374,
+          "            throw;",
+          false
+        ],
+        [
+          375,
+          "        }",
+          false
+        ],
+        [
+          376,
+          "        catch",
+          false
+        ],
+        [
+          377,
+          "        {",
+          false
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    },
+    {
+      "id": "A02",
+      "dimension": "architecture",
+      "source": "specialist:architecture",
+      "title": "Unbounded static semaphore dictionary introduces stateful memory leak in application service",
+      "claim": "IdempotencyLocks stores a SemaphoreSlim instance for every processed customer and idempotency key without any removal or cache expiration policy. This introduces stateful in-process synchronization that will leak memory over time and does not coordinate across multi-instance API deployments.",
+      "severity": "ShouldFix",
+      "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+      "line_start": 46,
+      "line_end": 46,
+      "evidence": "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+      "requirement_link": "When two requests with the same CustomerId and IdempotencyKey execute concurrently, at most one payment record is persisted and ILedger.PostTransferAsync is called at most once (with decimal amount rounded using Math.Round(x, 2, MidpointRounding.AwayFromZero)); the second request handles the database unique constraint violation and returns the existing first payment rather than failing with an unhandled exception.",
+      "confidence": 0.92,
+      "suggested_fix": "Remove the static IdempotencyLocks semaphore map. Let concurrent executions attempt persistence and handle the database unique constraint violation as specified in the acceptance criteria.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated"
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          43,
+          "",
+          false
+        ],
+        [
+          44,
+          "public sealed class PaymentService : IPaymentService",
+          false
+        ],
+        [
+          45,
+          "{",
+          false
+        ],
+        [
+          46,
+          "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+          true
+        ],
+        [
+          47,
+          "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> SqliteFileWriteLocks = new();",
+          true
+        ],
+        [
+          48,
+          "    private static readonly ConditionalWeakTable<DbConnection, SemaphoreSlim> SqliteConnectionWriteLocks = new();",
+          true
+        ],
+        [
+          49,
+          "",
+          true
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    },
+    {
+      "id": "A01",
+      "dimension": "architecture",
+      "source": "specialist:architecture",
+      "title": "PaymentService leaks SQLite engine and connection-level locking into application layer",
+      "claim": "PaymentService imports Microsoft.Data.Sqlite and implements provider-specific write serialization via GetSqliteWriteLock and SQLite connection tracking. Application services should remain decoupled from underlying database engine implementations and let EF Core and database transactions manage concurrency.",
+      "severity": "ShouldFix",
+      "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+      "line_start": 400,
+      "line_end": 403,
+      "evidence": "    private SemaphoreSlim? GetSqliteWriteLock()\n    {\n        if (!_db.Database.IsRelational() || !_db.Database.IsSqlite() || _db.Database.CurrentTransaction is not null)\n            return null;",
+      "requirement_link": "When two requests with the same CustomerId and IdempotencyKey execute concurrently, at most one payment record is persisted and ILedger.PostTransferAsync is called at most once (with decimal amount rounded using Math.Round(x, 2, MidpointRounding.AwayFromZero)); the second request handles the database unique constraint violation and returns the existing first payment rather than failing with an unhandled exception.",
+      "confidence": 0.95,
+      "suggested_fix": "Remove SQLite-specific write locks and connection inspections from PaymentService. Rely on standard EF Core transaction management and DbUpdateException handling.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated"
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          397,
+          "        }",
+          false
+        ],
+        [
+          398,
+          "    }",
+          true
+        ],
+        [
+          399,
+          "",
+          false
+        ],
+        [
+          400,
+          "    private SemaphoreSlim? GetSqliteWriteLock()",
+          true
+        ],
+        [
+          401,
+          "    {",
+          true
+        ],
+        [
+          402,
+          "        if (!_db.Database.IsRelational() || !_db.Database.IsSqlite() || _db.Database.CurrentTransaction is not null)",
+          true
+        ],
+        [
+          403,
+          "            return null;",
+          true
+        ],
+        [
+          404,
+          "",
+          true
+        ],
+        [
+          405,
+          "        var connection = _db.Database.GetDbConnection();",
+          true
+        ],
+        [
+          406,
+          "        var dataSource = connection.DataSource;",
+          true
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    },
+    {
+      "id": "C03",
+      "dimension": "correctness",
+      "source": "specialist:correctness",
+      "title": "Unbounded static dictionary IdempotencyLocks causes a memory leak",
+      "claim": "IdempotencyLocks stores a new SemaphoreSlim for every customerId and IdempotencyKey pair and never evicts or removes keys. Under ongoing production traffic, this static collection will grow monotonically and leak memory.",
+      "severity": "ShouldFix",
+      "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+      "line_start": 46,
+      "line_end": 46,
+      "evidence": "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+      "requirement_link": "none",
+      "confidence": 0.9,
+      "suggested_fix": "Remove in-memory static semaphores in favor of database constraint enforcement, or ensure semaphores are removed from the dictionary after execution.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated"
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          43,
+          "",
+          false
+        ],
+        [
+          44,
+          "public sealed class PaymentService : IPaymentService",
+          false
+        ],
+        [
+          45,
+          "{",
+          false
+        ],
+        [
+          46,
+          "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+          true
+        ],
+        [
+          47,
+          "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> SqliteFileWriteLocks = new();",
+          true
+        ],
+        [
+          48,
+          "    private static readonly ConditionalWeakTable<DbConnection, SemaphoreSlim> SqliteConnectionWriteLocks = new();",
+          true
+        ],
+        [
+          49,
+          "",
+          true
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    },
+    {
+      "id": "M01",
+      "dimension": "maintainability",
+      "source": "specialist:maintainability",
+      "title": "Unbounded memory growth in static IdempotencyLocks dictionary",
+      "claim": "IdempotencyLocks stores a SemaphoreSlim for every unique customer and idempotency key combination but never removes them. In a long-running service, this static dictionary will grow indefinitely and leak memory.",
+      "severity": "ShouldFix",
+      "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+      "line_start": 46,
+      "line_end": 46,
+      "evidence": "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+      "requirement_link": "none",
+      "confidence": 0.95,
+      "suggested_fix": "Remove the semaphore entry when the operation finishes (or when no callers are queued) rather than accumulating entries permanently in a static dictionary.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated"
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          43,
+          "",
+          false
+        ],
+        [
+          44,
+          "public sealed class PaymentService : IPaymentService",
+          false
+        ],
+        [
+          45,
+          "{",
+          false
+        ],
+        [
+          46,
+          "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+          true
+        ],
+        [
+          47,
+          "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> SqliteFileWriteLocks = new();",
+          true
+        ],
+        [
+          48,
+          "    private static readonly ConditionalWeakTable<DbConnection, SemaphoreSlim> SqliteConnectionWriteLocks = new();",
+          true
+        ],
+        [
+          49,
+          "",
+          true
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    },
+    {
+      "id": "M02",
+      "dimension": "maintainability",
+      "source": "specialist:maintainability",
+      "title": "SQLite-specific concurrency workarounds coupled to application service",
+      "claim": "PaymentService inspects low-level database connection properties and maintains static SQLite file/connection locks inside GetSqliteWriteLock. Mixing database provider-specific synchronization into the application domain increases maintenance overhead and breaks separation of concerns.",
+      "severity": "ShouldFix",
+      "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+      "line_start": 400,
+      "line_end": 403,
+      "evidence": "    private SemaphoreSlim? GetSqliteWriteLock()\n    {\n        if (!_db.Database.IsRelational() || !_db.Database.IsSqlite() || _db.Database.CurrentTransaction is not null)\n            return null;",
+      "requirement_link": "none",
+      "confidence": 0.9,
+      "suggested_fix": "Rely on database transaction semantics or isolate database-engine test workarounds outside the core PaymentService.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated"
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          397,
+          "        }",
+          false
+        ],
+        [
+          398,
+          "    }",
+          true
+        ],
+        [
+          399,
+          "",
+          false
+        ],
+        [
+          400,
+          "    private SemaphoreSlim? GetSqliteWriteLock()",
+          true
+        ],
+        [
+          401,
+          "    {",
+          true
+        ],
+        [
+          402,
+          "        if (!_db.Database.IsRelational() || !_db.Database.IsSqlite() || _db.Database.CurrentTransaction is not null)",
+          true
+        ],
+        [
+          403,
+          "            return null;",
+          true
+        ],
+        [
+          404,
+          "",
+          true
+        ],
+        [
+          405,
+          "        var connection = _db.Database.GetDbConnection();",
+          true
+        ],
+        [
+          406,
+          "        var dataSource = connection.DataSource;",
+          true
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    },
+    {
+      "id": "P01",
+      "dimension": "performance",
+      "source": "specialist:performance",
+      "title": "Unbounded static ConcurrentDictionary leaks memory over time",
+      "claim": "The static dictionary `IdempotencyLocks` caches a `SemaphoreSlim` for every processed idempotency key without any removal, TTL, or eviction. In a long-running service processing continuous payment traffic, this causes unbounded memory growth.",
+      "severity": "ShouldFix",
+      "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+      "line_start": 46,
+      "line_end": 46,
+      "evidence": "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+      "requirement_link": "When two requests with the same CustomerId and IdempotencyKey execute concurrently, at most one payment record is persisted and ILedger.PostTransferAsync is called at most once",
+      "confidence": 0.95,
+      "suggested_fix": "Clean up entries when processing completes (e.g., via `TryRemove`), or rely on the unique database constraint and transaction isolation rather than an unbounded static dictionary.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated"
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          43,
+          "",
+          false
+        ],
+        [
+          44,
+          "public sealed class PaymentService : IPaymentService",
+          false
+        ],
+        [
+          45,
+          "{",
+          false
+        ],
+        [
+          46,
+          "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+          true
+        ],
+        [
+          47,
+          "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> SqliteFileWriteLocks = new();",
+          true
+        ],
+        [
+          48,
+          "    private static readonly ConditionalWeakTable<DbConnection, SemaphoreSlim> SqliteConnectionWriteLocks = new();",
+          true
+        ],
+        [
+          49,
+          "",
+          true
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    },
+    {
+      "id": "P02",
+      "dimension": "performance",
+      "source": "specialist:performance",
+      "title": "Redundant duplicate query for existing payment on execution path",
+      "claim": "PaymentService queries the database for existing payments with the same CustomerId and IdempotencyKey at lines 173-175 under the lock, and then executes the exact same query again at lines 226-228 inside ExecuteIdempotentPaymentAsync without any intervening state change, introducing redundant database round-trips.",
+      "severity": "ShouldFix",
+      "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+      "line_start": 226,
+      "line_end": 228,
+      "evidence": "        var existing = await _db.Payments.AsNoTracking().FirstOrDefaultAsync(\n            p => p.CustomerId == customerId && p.IdempotencyKey == request.IdempotencyKey,\n            ct);",
+      "requirement_link": "When IPaymentService.PayAsync is called sequentially by the same customer with an IdempotencyKey that already exists for that CustomerId, it returns the existing first payment without calling ILedger.PostTransferAsync or moving money again.",
+      "confidence": 0.9,
+      "suggested_fix": "Eliminate the second query in ExecuteIdempotentPaymentAsync and rely on the result checked immediately beforehand in PayAsync.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated"
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          223,
+          "        decimal amount,",
+          true
+        ],
+        [
+          224,
+          "        CancellationToken ct)",
+          true
+        ],
+        [
+          225,
+          "    {",
+          true
+        ],
+        [
+          226,
+          "        var existing = await _db.Payments.AsNoTracking().FirstOrDefaultAsync(",
+          true
+        ],
+        [
+          227,
+          "            p => p.CustomerId == customerId && p.IdempotencyKey == request.IdempotencyKey,",
+          true
+        ],
+        [
+          228,
+          "            ct);",
+          true
+        ],
+        [
+          229,
+          "        if (existing is not null)",
+          true
+        ],
+        [
+          230,
+          "            return (existing, false);",
+          true
+        ],
+        [
+          231,
+          "",
+          true
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    },
+    {
+      "id": "P03",
+      "dimension": "performance",
+      "source": "specialist:performance",
+      "title": "Consecutive redundant database round-trips reloading account balance",
+      "claim": "The method reloads `fromAccount` from the database via ReloadAsync and then immediately queries Accounts a second time for Balance and AllowOverdraft. This creates two consecutive round-trips to read the same account state on every payment.",
+      "severity": "ShouldFix",
+      "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+      "line_start": 232,
+      "line_end": 238,
+      "evidence": "        if (_db.Entry(fromAccount).State != EntityState.Detached)\n            await _db.Entry(fromAccount).ReloadAsync(ct);\n\n        var latestAccount = await _db.Accounts.AsNoTracking()\n            .Where(a => a.Id == request.FromAccountId)\n            .Select(a => new { a.Balance, a.AllowOverdraft })\n            .FirstOrDefaultAsync(ct);",
+      "requirement_link": "none",
+      "confidence": 0.88,
+      "suggested_fix": "Use either ReloadAsync or the projected AsNoTracking query to inspect the latest account balance, rather than executing both.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated"
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          229,
+          "        if (existing is not null)",
+          true
+        ],
+        [
+          230,
+          "            return (existing, false);",
+          true
+        ],
+        [
+          231,
+          "",
+          true
+        ],
+        [
+          232,
+          "        if (_db.Entry(fromAccount).State != EntityState.Detached)",
+          true
+        ],
+        [
+          233,
+          "            await _db.Entry(fromAccount).ReloadAsync(ct);",
+          true
+        ],
+        [
+          234,
+          "",
+          true
+        ],
+        [
+          235,
+          "        var latestAccount = await _db.Accounts.AsNoTracking()",
+          true
+        ],
+        [
+          236,
+          "            .Where(a => a.Id == request.FromAccountId)",
+          true
+        ],
+        [
+          237,
+          "            .Select(a => new { a.Balance, a.AllowOverdraft })",
+          true
+        ],
+        [
+          238,
+          "            .FirstOrDefaultAsync(ct);",
+          true
+        ],
+        [
+          239,
+          "        var availableBalance = latestAccount?.Balance ?? fromAccount.Balance;",
+          true
+        ],
+        [
+          240,
+          "        var allowOverdraft = latestAccount?.AllowOverdraft ?? fromAccount.AllowOverdraft;",
+          true
+        ],
+        [
+          241,
+          "",
+          true
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    },
+    {
+      "id": "S01",
+      "dimension": "safety",
+      "source": "specialist:safety",
+      "title": "Unbounded memory growth in static IdempotencyLocks dictionary (Resource Exhaustion)",
+      "claim": "PaymentService registers a SemaphoreSlim in the static dictionary IdempotencyLocks for every distinct customer and idempotency key combination. Because entries are never evicted or removed after the lock is released, untrusted user-supplied idempotency keys accumulate indefinitely, leading to memory exhaustion and denial of service (CWE-400).",
+      "severity": "ShouldFix",
+      "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+      "line_start": 46,
+      "line_end": 46,
+      "evidence": "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+      "requirement_link": "none",
+      "confidence": 0.95,
+      "suggested_fix": "Evict the key from IdempotencyLocks once execution completes, or rely on database-level unique constraints and transactions for concurrency control rather than an unbounded static cache.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated"
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          43,
+          "",
+          false
+        ],
+        [
+          44,
+          "public sealed class PaymentService : IPaymentService",
+          false
+        ],
+        [
+          45,
+          "{",
+          false
+        ],
+        [
+          46,
+          "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+          true
+        ],
+        [
+          47,
+          "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> SqliteFileWriteLocks = new();",
+          true
+        ],
+        [
+          48,
+          "    private static readonly ConditionalWeakTable<DbConnection, SemaphoreSlim> SqliteConnectionWriteLocks = new();",
+          true
+        ],
+        [
+          49,
+          "",
+          true
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    }
+  ],
+  "dropped_findings": [],
+  "refusals": [
+    {
+      "source": "specialist:correctness",
+      "topic": "Exact failure details of the failing xUnit test suite",
+      "reason": "Test output logs and error traces from the failed dotnet_test execution are not provided in the review context."
+    },
+    {
+      "source": "specialist:correctness",
+      "topic": "Domain methods on the Payment entity",
+      "reason": "Payment.cs is outside the shown context, preventing inspection of the internal state machine transitions associated with Hold()."
+    },
+    {
+      "source": "specialist:architecture",
+      "topic": "Root cause of dotnet_test failure",
+      "reason": "Test runner output, error stack traces, and test files are not present in the provided context."
+    },
+    {
+      "source": "specialist:safety",
+      "topic": "Reason for automated test suite failure",
+      "reason": "The sensor reported dotnet_test exit 1, but test files and test execution logs are outside the provided context, preventing verification of which assertion failed."
+    },
+    {
+      "source": "specialist:safety",
+      "topic": "Domain status implications of payment.Hold()",
+      "reason": "Payment.cs is outside the shown context, so whether payment.Hold() leaves the entity in an invalid or incomplete state cannot be verified from the diff alone."
+    },
+    {
+      "source": "specialist:tests",
+      "topic": "Automated xUnit test quality and test coverage verification",
+      "reason": "No test files were modified or included in the review context (test files were outside the agent's allowed scope), and all modified production members show zero test references in the code graph, preventing inspection of test assertions, negative scenarios, or isolation."
+    },
+    {
+      "source": "specialist:maintainability",
+      "topic": "Exact cause of dotnet_test failure",
+      "reason": "Test runner output and failure stack traces were not provided in the review context."
+    },
+    {
+      "source": "specialist:performance",
+      "topic": "Deterministic test failure diagnosis",
+      "reason": "Test output, failure stack traces, and test files are not present in the provided context, preventing definitive diagnosis of the failing test."
+    },
+    {
+      "source": "validator",
+      "topic": "Noise filtering",
+      "reason": "Validator call failed; findings are shown unvalidated."
+    }
+  ],
+  "areas": [
+    {
+      "area": "What",
+      "status": "human",
+      "reason": "Requirement match is partial: While the composite unique index is configured on BankDbContext and amount rounding is applied, test execution failed (dotnet_test exit 1). The implementation leaves payments in a held status without completing them, and the DbUpdateException handling immediately rethrows when a concurrent transaction has not yet committed.",
+      "evidence": []
+    },
+    {
+      "area": "Where",
+      "status": "human",
+      "reason": "Tier HIGH → full human read and 2 sign-off(s) required",
+      "evidence": [
+        "src/Bank.Api/Data/BankDbContext.cs: area 'Platform' is high (Database schema, wiring and bank-wide settings touch every module)",
+        "src/Bank.Api/Modules/Payments/Application/PaymentService.cs: area 'Payments' is high (Customer money leaves the account)"
+      ]
+    },
+    {
+      "area": "Why",
+      "status": "verified",
+      "reason": "Linked to a requirement",
+      "evidence": []
+    },
+    {
+      "area": "Security",
+      "status": "human",
+      "reason": "Safety concerns to check",
+      "evidence": [
+        "S01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:46"
+      ]
+    },
+    {
+      "area": "Build",
+      "status": "verified",
+      "reason": "Build succeeded",
+      "evidence": []
+    },
+    {
+      "area": "Tests",
+      "status": "blocked",
+      "reason": "Tests failed",
+      "evidence": [
+        "Failed!  - Failed:     4, Passed:   249, Skipped:     0, Total:   253, Duration: 3 s - Bank.Tests.dll (net10.0)"
+      ]
+    },
+    {
+      "area": "Correctness",
+      "status": "blocked",
+      "reason": "2 Blocker(s)",
+      "evidence": [
+        "C01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:298",
+        "C02 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:368"
+      ]
+    },
+    {
+      "area": "Architecture",
+      "status": "verified",
+      "reason": "No blocking issue; 2 ShouldFix noted (does not hold the merge)",
+      "evidence": [
+        "A02 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:46",
+        "A01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:400"
+      ]
+    },
+    {
+      "area": "Maintainability",
+      "status": "verified",
+      "reason": "No blocking issue; 2 ShouldFix noted (does not hold the merge)",
+      "evidence": [
+        "M01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:46",
+        "M02 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:400"
+      ]
+    },
+    {
+      "area": "Performance",
+      "status": "verified",
+      "reason": "No blocking issue; 3 ShouldFix noted (does not hold the merge)",
+      "evidence": [
+        "P01 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:46",
+        "P02 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:226",
+        "P03 src/Bank.Api/Modules/Payments/Application/PaymentService.cs:232"
+      ]
+    },
+    {
+      "area": "Impact",
+      "status": "verified",
+      "reason": "7 changed member(s); callers covered by tests or none",
+      "evidence": []
+    },
+    {
+      "area": "Requirement",
+      "status": "not_checked",
+      "reason": "Not checked: requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho",
+      "evidence": []
+    }
+  ],
+  "decision": "BLOCKED",
+  "decision_reason": "Merge locked: Tests: Tests failed; Correctness: 2 Blocker(s) Not checked: Requirement. WARNING: review-policy.yaml is not approved by a named human yet.",
+  "not_checked": [
+    "Scope vs approved plan (no --plan given)",
+    "Requirement radar (Radar call failed: radar: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}})",
+    "Part of src/Bank.Api/Modules/Payments/Application/PaymentService.cs (context truncated)"
+  ],
+  "track_record": {
+    "architecture": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 11,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    },
+    "correctness": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 17,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    },
+    "maintainability": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 5,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    },
+    "performance": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 9,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    },
+    "safety": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 10,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    },
+    "tests": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 20,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    }
+  },
+  "head_sha": "48bb175c29f0c4d2bb5ed9645fb15c2d6e2f0302",
+  "radar": {
+    "items": [],
+    "hunks": [
+      {
+        "id": "H01",
+        "file": "src/Bank.Api/Data/BankDbContext.cs",
+        "start": 56,
+        "end": 57,
+        "added": [
+          "            .HasIndex(p => new { p.CustomerId, p.IdempotencyKey })",
+          "            .IsUnique();"
+        ],
+        "removed": [
+          "            .HasIndex(p => new { p.CustomerId, p.IdempotencyKey });"
+        ],
+        "n_added": 2,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H02",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 1,
+        "end": 3,
+        "added": [
+          "using System.Collections.Concurrent;",
+          "using System.Data.Common;",
+          "using System.Runtime.CompilerServices;"
+        ],
+        "removed": [],
+        "n_added": 3,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H03",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 6,
+        "end": 6,
+        "added": [
+          "using Bank.Modules.Accounts.Domain;"
+        ],
+        "removed": [],
+        "n_added": 1,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H04",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 16,
+        "end": 16,
+        "added": [
+          "using Microsoft.Data.Sqlite;"
+        ],
+        "removed": [],
+        "n_added": 1,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H05",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 46,
+        "end": 49,
+        "added": [
+          "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> IdempotencyLocks = new();",
+          "    private static readonly ConcurrentDictionary<string, SemaphoreSlim> SqliteFileWriteLocks = new();",
+          "    private static readonly ConditionalWeakTable<DbConnection, SemaphoreSlim> SqliteConnectionWriteLocks = new();",
+          ""
+        ],
+        "removed": [],
+        "n_added": 4,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H06",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 144,
+        "end": 146,
+        "added": [
+          "",
+          "        var amount = Math.Round(request.Amount, 2, MidpointRounding.AwayFromZero);",
+          "        if (request.Amount != amount)"
+        ],
+        "removed": [
+          "        if (request.Amount != Math.Round(request.Amount, 2, MidpointRounding.AwayFromZero))"
+        ],
+        "n_added": 3,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H07",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 158,
+        "end": 158,
+        "added": [
+          "        var existing = await _db.Payments.AsNoTracking().FirstOrDefaultAsync("
+        ],
+        "removed": [
+          "        var existing = await _db.Payments.FirstOrDefaultAsync("
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H08",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 164,
+        "end": 241,
+        "added": [
+          "        var lockKey = $\"{customerId}\\0{request.IdempotencyKey}\";",
+          "        var keyLock = IdempotencyLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));",
+          "",
+          "        Payment result;",
+          "        bool created;",
+          "",
+          "        await keyLock.WaitAsync(ct);",
+          "        try",
+          "        {",
+          "            existing = await _db.Payments.AsNoTracking().FirstOrDefaultAsync(",
+          "                p => p.CustomerId == customerId && p.IdempotencyKey == request.IdempotencyKey,",
+          "                ct);",
+          "            if (existing is not null)",
+          "                return existing;",
+          "",
+          "            var dbWriteLock = GetSqliteWriteLock();",
+          "            if (dbWriteLock is not null)",
+          "            {",
+          "                await dbWriteLock.WaitAsync(ct);",
+          "                try",
+          "                {",
+          "                    (result, created) = await ExecuteIdempotentPaymentAsync(request, customerId, fromAccount, toAccount, amount, ct);",
+          "                }",
+          "                finally",
+          "                {",
+          "                    dbWriteLock.Release();",
+          "                }",
+          "            }",
+          "            else",
+          "            {"
+        ],
+        "removed": [],
+        "n_added": 78,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H09",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 245,
+        "end": 246,
+        "added": [
+          "            ? amount",
+          "            : _fx.Convert(amount, fromAccount.Currency, toAccount.Currency);"
+        ],
+        "removed": [
+          "            ? request.Amount",
+          "            : _fx.Convert(request.Amount, fromAccount.Currency, toAccount.Currency);"
+        ],
+        "n_added": 2,
+        "n_removed": 2,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H10",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 252,
+        "end": 252,
+        "added": [
+          "        var fee = _fees.Quote(amount, fromAccount.Currency, toAccount.Currency);"
+        ],
+        "removed": [
+          "        var fee = _fees.Quote(request.Amount, fromAccount.Currency, toAccount.Currency);"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H11",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 258,
+        "end": 258,
+        "added": [
+          "        Payment? payment = null;"
+        ],
+        "removed": [
+          "        Payment payment;"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H12",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 266,
+        "end": 266,
+        "added": [
+          "                .AsNoTracking()"
+        ],
+        "removed": [],
+        "n_added": 1,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H13",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 275,
+        "end": 275,
+        "added": [
+          "            var requestAmountEur = _fx.Convert(amount, fromAccount.Currency, \"EUR\");"
+        ],
+        "removed": [
+          "            var requestAmountEur = _fx.Convert(request.Amount, fromAccount.Currency, \"EUR\");"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H14",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 280,
+        "end": 280,
+        "added": [
+          "            if (!allowOverdraft && availableBalance < amount + fee.Amount)"
+        ],
+        "removed": [
+          "            if (!fromAccount.AllowOverdraft && fromAccount.Balance < request.Amount + fee.Amount)"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H15",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 283,
+        "end": 302,
+        "added": [
+          "            payment = new Payment",
+          "            {",
+          "                IdempotencyKey = request.IdempotencyKey,",
+          "                CustomerId = customerId,",
+          "                FromAccountId = request.FromAccountId,",
+          "                ToAccountId = request.ToAccountId,",
+          "                Amount = amount,",
+          "                Currency = fromAccount.Currency,",
+          "                Fee = fee.Amount,",
+          "                CreditedAmount = creditedAmount,",
+          "                CreditedCurrency = creditedCurrency,",
+          "                Rate = rate,",
+          "                Reference = request.Reference,",
+          "                CreatedAt = now,",
+          "            };",
+          "            payment.Hold();",
+          "",
+          "            _db.Payments.Add(payment);",
+          "            await _db.SaveChangesAsync(ct);",
+          ""
+        ],
+        "removed": [],
+        "n_added": 20,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H16",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 310,
+        "end": 310,
+        "added": [
+          "                    Math.Round(amount, 2, MidpointRounding.AwayFromZero),"
+        ],
+        "removed": [
+          "                    request.Amount,"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H17",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 322,
+        "end": 322,
+        "added": [
+          "                    Math.Round(amount, 2, MidpointRounding.AwayFromZero),"
+        ],
+        "removed": [
+          "                    request.Amount,"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H18",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 329,
+        "end": 329,
+        "added": [
+          "                    Math.Round(creditedAmount, 2, MidpointRounding.AwayFromZero),"
+        ],
+        "removed": [
+          "                    creditedAmount,"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H19",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 340,
+        "end": 340,
+        "added": [
+          "                    Math.Round(fee.Amount, 2, MidpointRounding.AwayFromZero),"
+        ],
+        "removed": [
+          "                    fee.Amount,"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H20",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 344,
+        "end": 344,
+        "added": [],
+        "removed": [
+          "            payment = new Payment",
+          "            {",
+          "                IdempotencyKey = request.IdempotencyKey,",
+          "                CustomerId = customerId,",
+          "                FromAccountId = request.FromAccountId,",
+          "                ToAccountId = request.ToAccountId,",
+          "                Amount = request.Amount,",
+          "                Currency = fromAccount.Currency,",
+          "                Fee = fee.Amount,",
+          "                CreditedAmount = creditedAmount,",
+          "                CreditedCurrency = creditedCurrency,",
+          "                Rate = rate,",
+          "                Reference = request.Reference,",
+          "                CreatedAt = now,",
+          "            };"
+        ],
+        "n_added": 0,
+        "n_removed": 15,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H21",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 345,
+        "end": 345,
+        "added": [],
+        "removed": [
+          "",
+          "            _db.Payments.Add(payment);"
+        ],
+        "n_added": 0,
+        "n_removed": 2,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H22",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 349,
+        "end": 349,
+        "added": [
+          "            {"
+        ],
+        "removed": [],
+        "n_added": 1,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H23",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 351,
+        "end": 355,
+        "added": [
+          "                await transaction.DisposeAsync();",
+          "                transaction = null;",
+          "            }",
+          "",
+          "            return (payment, true);"
+        ],
+        "removed": [],
+        "n_added": 5,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H24",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 357,
+        "end": 357,
+        "added": [
+          "        catch (DbUpdateException ex) when (IsIdempotencyUniqueConstraintViolation(ex))"
+        ],
+        "removed": [
+          "        catch (DbUpdateException)"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H25",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 360,
+        "end": 364,
+        "added": [
+          "            {",
+          "                await transaction.RollbackAsync(CancellationToken.None);",
+          "                await transaction.DisposeAsync();",
+          "                transaction = null;",
+          "            }"
+        ],
+        "removed": [
+          "                await transaction.RollbackAsync(ct);"
+        ],
+        "n_added": 5,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H26",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 366,
+        "end": 366,
+        "added": [
+          "            DetachDirtyEntries();"
+        ],
+        "removed": [
+          "            foreach (var entry in _db.ChangeTracker.Entries<Payment>().Where(e => e.State == EntityState.Added).ToList())",
+          "                entry.State = EntityState.Detached;"
+        ],
+        "n_added": 1,
+        "n_removed": 2,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H27",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 372,
+        "end": 372,
+        "added": [
+          "                return (concurrent, false);"
+        ],
+        "removed": [
+          "                return concurrent;"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H28",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 379,
+        "end": 390,
+        "added": [
+          "            {",
+          "                await transaction.RollbackAsync(CancellationToken.None);",
+          "                await transaction.DisposeAsync();",
+          "                transaction = null;",
+          "            }",
+          "            else if (payment is not null && _db.Entry(payment).State != EntityState.Detached)",
+          "            {",
+          "                _db.Payments.Remove(payment);",
+          "                await _db.SaveChangesAsync(CancellationToken.None);",
+          "            }",
+          "",
+          "            DetachDirtyEntries();"
+        ],
+        "removed": [
+          "                await transaction.RollbackAsync(ct);"
+        ],
+        "n_added": 12,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H29",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 398,
+        "end": 398,
+        "added": [
+          "    }"
+        ],
+        "removed": [],
+        "n_added": 1,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H30",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 400,
+        "end": 408,
+        "added": [
+          "    private SemaphoreSlim? GetSqliteWriteLock()",
+          "    {",
+          "        if (!_db.Database.IsRelational() || !_db.Database.IsSqlite() || _db.Database.CurrentTransaction is not null)",
+          "            return null;",
+          "",
+          "        var connection = _db.Database.GetDbConnection();",
+          "        var dataSource = connection.DataSource;",
+          "        if (string.IsNullOrEmpty(dataSource) || string.Equals(dataSource, \":memory:\", StringComparison.OrdinalIgnoreCase))",
+          "            return SqliteConnectionWriteLocks.GetValue(connection, _ => new SemaphoreSlim(1, 1));"
+        ],
+        "removed": [
+          "        await _bus.PublishAsync(",
+          "            new PaymentCompleted(payment.Id, customerId, payment.Amount, payment.Currency, now),",
+          "            ct);"
+        ],
+        "n_added": 9,
+        "n_removed": 3,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H31",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 410,
+        "end": 410,
+        "added": [
+          "        return SqliteFileWriteLocks.GetOrAdd(dataSource, _ => new SemaphoreSlim(1, 1));"
+        ],
+        "removed": [
+          "        return payment;"
+        ],
+        "n_added": 1,
+        "n_removed": 1,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H32",
+        "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+        "start": 413,
+        "end": 451,
+        "added": [
+          "    private void DetachDirtyEntries()",
+          "    {",
+          "        foreach (var entry in _db.ChangeTracker.Entries()",
+          "                     .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)",
+          "                     .ToList())",
+          "        {",
+          "            entry.State = EntityState.Detached;",
+          "        }",
+          "    }",
+          "",
+          "    private static bool IsIdempotencyUniqueConstraintViolation(DbUpdateException ex)",
+          "    {",
+          "        if (ex.InnerException is SqliteException sqliteEx)",
+          "        {",
+          "            if (sqliteEx.SqliteErrorCode != 19)",
+          "                return false;",
+          "",
+          "            if (sqliteEx.SqliteExtendedErrorCode != 0",
+          "                && sqliteEx.SqliteExtendedErrorCode != 19",
+          "                && sqliteEx.SqliteExtendedErrorCode != 2067)",
+          "            {",
+          "                return false;",
+          "            }",
+          "",
+          "            var msg = sqliteEx.Message;",
+          "            if (msg.Contains(\"UNIQUE constraint failed\", StringComparison.OrdinalIgnoreCase))",
+          "            {",
+          "                return msg.Contains(\"CustomerId\", StringComparison.OrdinalIgnoreCase)",
+          "                    && msg.Contains(\"IdempotencyKey\", StringComparison.OrdinalIgnoreCase);",
+          "            }"
+        ],
+        "removed": [
+          "    public async Task<IReadOnlyList<Payment>> ForCustomerAsync(string customerId, CancellationToken ct = default) =>",
+          "        await _db.Payments",
+          "            .Where(p => p.CustomerId == customerId)",
+          "            .OrderByDescending(p => p.CreatedAt)",
+          "            .ToListAsync(ct);"
+        ],
+        "n_added": 39,
+        "n_removed": 5,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      }
+    ],
+    "counts": {
+      "unclear": 32
+    },
+    "ran": false,
+    "note": "Radar call failed: radar: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}"
+  },
+  "funnel": {
+    "proposed_by_specialists": 11,
+    "evidence_verified": 11,
+    "dropped_hallucinated_evidence": 0,
+    "dropped_by_validator": 0,
+    "sensor_findings": 0,
+    "shown": 11,
+    "patches": 0
+  },
+  "familiarity": {
+    "src/Bank.Api/Data/BankDbContext.cs": {
+      "recent_commits": [
+        "7f8e114 2026-11-14 PR-7: Add Loans module application, annuity calculation, entity, DbSet, and API endpoints",
+        "24a3367 2026-11-14 PR-6: Add Term Deposits module (open, mature, and early break)",
+        "0c44c26 2026-11-14 PR-5: Implement Cards module issuance and lifecycle (freeze, unfreeze, cancel)",
+        "0d635e4 2026-11-14 PR-2: Implement Payments API endpoints, daily transfer limit enforcement, and PaymentCompleted event publishing",
+        "0a7148c 2026-11-14 PR-2: Add Payment entity, Payments table, and PaymentService with ownership, idempotency, and ledger transfer"
+      ],
+      "past_findings": [
+        "20261114-194419-pr-2: [Blocker] CustomerId and IdempotencyKey database index is not unique (open)",
+        "20261114-194419-pr-2: [Blocker] Composite index on CustomerId and IdempotencyKey is not configured as unique (open)",
+        "20261114-194419-pr-2: [ShouldFix] Idempotency database index lacks unique constraint (open)"
+      ]
+    },
+    "src/Bank.Api/Modules/Payments/Application/PaymentService.cs": {
+      "recent_commits": [
+        "f31ccf6 2026-11-14 PR-4: Add Fees module, cross-currency payment fees, and pre-payment quote endpoint",
+        "f82bc90 2026-11-14 PR-3: Add Fx module and support cross-currency payments with EUR-equivalent daily limits",
+        "0d635e4 2026-11-14 PR-2: Implement Payments API endpoints, daily transfer limit enforcement, and PaymentCompleted event publishing",
+        "0a7148c 2026-11-14 PR-2: Add Payment entity, Payments table, and PaymentService with ownership, idempotency, and ledger transfer"
+      ],
+      "past_findings": [
+        "20261114-195905-pr-4: [ShouldFix] Insufficient funds check covering amount plus fee and fee transfer posting are untested (open)",
+        "20261114-195905-pr-4: [ShouldFix] Redundant constructor tightly couples PaymentService to concrete FeeCalculator (open)",
+        "20261114-195905-pr-4: [ShouldFix] Redundant constructor tightly couples PaymentService to concrete FeeCalculator (open)",
+        "20261114-195905-pr-4: [Blocker] Payer balance validation bypasses accounts where AllowOverdraft is true (open)",
+        "20261114-195905-pr-4: [Blocker] PaymentService.QuoteAsync returns unrounded CreditedAmount (open)"
+      ]
+    }
+  },
+  "delta": {
+    "previous_run": null,
+    "summary": "First review of this branch"
+  },
+  "optimization_context": false,
+  "commit_messages": [
+    "PR-11: PR-11: Enforce idempotent payment processing for retries and concurrent requests"
+  ],
+  "ai_error": "",
+  "settings": {
+    "fingerprint": "b5e52429b2df",
+    "badge": "balanced preset · default essential · Full on high-risk · 15 plugins ran · #b5e52429b2df",
+    "preset": "balanced",
+    "warnings": [
+      "6 roles share gemini/gemini-3.1-pro-preview (validator, radar, fixer, investigator, requirement_analyst, requirement_judge)."
+    ],
+    "approved_by": "Md Abdullah Al Noman",
+    "file": "/Users/noman/Projects/junction-ai-review/world-v5/plan/batch-settings.yaml"
+  },
+  "coverage": {
+    "Platform": {
+      "tier": "high",
+      "level": "full",
+      "on": [
+        "blind_tests",
+        "fixer",
+        "investigator",
+        "lens.apis",
+        "lens.calls",
+        "lens.data",
+        "lens.events",
+        "lens.risk",
+        "lens.security",
+        "lens.tests",
+        "provider.anthropic",
+        "provider.gemini",
+        "provider.local",
+        "provider.openai",
+        "radar",
+        "requirement_check",
+        "sensor.build_test",
+        "sensor.packages",
+        "sensor.removed_guards",
+        "sensor.risky_code",
+        "sensor.secrets",
+        "sensor.test_weakening",
+        "specialist.architecture",
+        "specialist.correctness",
+        "specialist.maintainability",
+        "specialist.performance",
+        "specialist.safety",
+        "specialist.tests",
+        "validator",
+        "validator_panel",
+        "writer"
+      ],
+      "off": {},
+      "files": [
+        "src/Bank.Api/Data/BankDbContext.cs"
+      ],
+      "estimate_calls": 20
+    },
+    "Payments": {
+      "tier": "high",
+      "level": "full",
+      "on": [
+        "blind_tests",
+        "fixer",
+        "investigator",
+        "lens.apis",
+        "lens.calls",
+        "lens.data",
+        "lens.events",
+        "lens.risk",
+        "lens.security",
+        "lens.tests",
+        "provider.anthropic",
+        "provider.gemini",
+        "provider.local",
+        "provider.openai",
+        "radar",
+        "requirement_check",
+        "sensor.build_test",
+        "sensor.packages",
+        "sensor.removed_guards",
+        "sensor.risky_code",
+        "sensor.secrets",
+        "sensor.test_weakening",
+        "specialist.architecture",
+        "specialist.correctness",
+        "specialist.maintainability",
+        "specialist.performance",
+        "specialist.safety",
+        "specialist.tests",
+        "validator",
+        "validator_panel",
+        "writer"
+      ],
+      "off": {},
+      "files": [
+        "src/Bank.Api/Modules/Payments/Application/PaymentService.cs"
+      ],
+      "estimate_calls": 20
+    }
+  },
+  "plugins_run": [
+    "fixer",
+    "investigator",
+    "sensor.build_test",
+    "sensor.packages",
+    "sensor.removed_guards",
+    "sensor.risky_code",
+    "sensor.secrets",
+    "sensor.test_weakening",
+    "specialist.architecture",
+    "specialist.correctness",
+    "specialist.maintainability",
+    "specialist.performance",
+    "specialist.safety",
+    "specialist.tests",
+    "validator_panel"
+  ],
+  "not_checked_plugins": [
+    {
+      "plugin": "requirement_check",
+      "area": "(all touched)",
+      "reason": "requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho"
+    }
+  ],
+  "requirement_check": {
+    "ran": false,
+    "reason": "requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho"
+  },
+  "panel": {
+    "ran": true,
+    "size": 2,
+    "votes": {
+      "C01": {
+        "members": 2,
+        "answered": 1,
+        "real": 1,
+        "votes": [
+          {
+            "member": 0,
+            "error": "panel:0: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'statu"
+          },
+          {
+            "member": 1,
+            "real": true,
+            "nitpick": false,
+            "severity": "Blocker",
+            "reason": "PaymentService explicitly transitions the new payment entity to held via payment.Hold() and persists it to the database, but never updates or completes the payment entity after ledger entries and transactions succeed. Consequently, the payment remains permanently in a held status in the database and is returned as held to callers."
+          }
+        ],
+        "outcome": "not enough votes"
+      },
+      "C02": {
+        "members": 2,
+        "answered": 1,
+        "real": 0,
+        "votes": [
+          {
+            "member": 0,
+            "error": "panel:0: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'statu"
+          },
+          {
+            "member": 1,
+            "real": false,
+            "nitpick": false,
+            "severity": "Nit",
+            "reason": "The finding assumes an RDBMS will raise a unique constraint violation while the winning transaction is still in-flight and uncommitted. In all major relational databases (PostgreSQL, MySQL/InnoDB, SQL Server, Oracle), a concurrent insert conflicting on a unique constraint blocks waiting for the first transaction to complete; it only throws a unique constraint violation after the first transaction has committed. In SQLite, concurrent write transactions are serialized at the database lock level. Thus, the winning transaction is never still executing when the losing transaction catches the constraint violation."
+          }
+        ],
+        "outcome": "not enough votes"
+      }
+    }
+  },
+  "investigations": {
+    "ran": true,
+    "cases": {
+      "C01": {
+        "verdict": "unsure",
+        "evidence": "",
+        "reason": "investigator call failed: investigator: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateConten",
+        "steps": []
+      },
+      "C02": {
+        "verdict": "unsure",
+        "evidence": "",
+        "reason": "investigator call failed: investigator: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateConten",
+        "steps": []
+      }
+    }
+  },
+  "cost": {
+    "calls": 17,
+    "cost_eur": 0.0,
+    "usage": {
+      "prompt_tokens": 147170,
+      "output_tokens": 23083
+    },
+    "by_role": {
+      "change_interpreter": {
+        "calls": 1,
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "cost_eur": 0.0
+      },
+      "specialist": {
+        "calls": 6,
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "cost_eur": 0.0
+      },
+      "panel:1": {
+        "calls": 2,
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "cost_eur": 0.0
+      }
+    },
+    "budget": {
+      "max_calls": 40,
+      "max_cost_eur": 5.0
+    },
+    "refused_for_budget": [],
+    "local_only_active": false
+  },
+  "integrations": []
+}

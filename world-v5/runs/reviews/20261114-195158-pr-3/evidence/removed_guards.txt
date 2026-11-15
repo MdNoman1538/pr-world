@@ -1,0 +1,5 @@
+1 removed guard line(s)
+
+
+D01 Guard or validation removed src/Bank.Api/Modules/Payments/Application/PaymentService.cs:97
+    throw new CurrencyMismatchException(fromAccount.Currency, toAccount.Currency);

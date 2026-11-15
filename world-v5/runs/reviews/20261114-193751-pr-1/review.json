@@ -1,0 +1,1328 @@
+{
+  "run_id": "20261114-193751-pr-1",
+  "created_at": "2026-11-14T17:40:34+00:00",
+  "repo": "/Users/noman/Projects/junction-ai-review/world-v5/bank",
+  "base": "main",
+  "head": "pr-1",
+  "requirement_id": "PR-1",
+  "requirement_text_present": true,
+  "owner": "Md Abdullah Al Noman",
+  "policy_version": "0.2-nordbank",
+  "policy_approved_by": null,
+  "models": {
+    "specialist": "gemini/gemini-3.8-flash",
+    "validator": "gemini/gemini-3.1-pro-preview",
+    "radar": "gemini/gemini-3.1-pro-preview",
+    "fixer": "gemini/gemini-3.1-pro-preview",
+    "investigator": "gemini/gemini-3.1-pro-preview",
+    "requirement_analyst": "gemini/gemini-3.1-pro-preview",
+    "change_interpreter": "gemini/gemini-3.8-flash",
+    "requirement_judge": "gemini/gemini-3.1-pro-preview",
+    "panel": [
+      "gemini/gemini-3.1-pro-preview",
+      "gemini/gemini-3.8-flash"
+    ],
+    "parser": "tree-sitter",
+    "specialists": "gemini/gemini-3.8-flash"
+  },
+  "changed_files": [
+    "src/Bank.Api/Data/BankDbContext.cs",
+    "src/Bank.Api/Modules/Customers/Api/CustomersController.cs",
+    "src/Bank.Api/Modules/Customers/Application/CustomerService.cs",
+    "src/Bank.Api/Modules/Customers/Application/KycAccountOpeningRule.cs",
+    "src/Bank.Api/Modules/Customers/CustomersModule.cs",
+    "src/Bank.Api/Modules/Customers/Domain/Customer.cs",
+    "src/Bank.Api/Program.cs",
+    "tests/Bank.Tests/Customers/CustomerTests.cs"
+  ],
+  "tier": {
+    "tier": "high",
+    "reasons": [
+      "src/Bank.Api/Data/BankDbContext.cs: area 'Platform' is high (Database schema, wiring and bank-wide settings touch every module)",
+      "src/Bank.Api/Modules/Customers/Api/CustomersController.cs: area 'Customers' is high (Identity checks (KYC) and personal data)",
+      "src/Bank.Api/Modules/Customers/Api/CustomersController.cs: content rule 'authorization attribute changed' matched → high",
+      "src/Bank.Api/Modules/Customers/Application/CustomerService.cs: area 'Customers' is high (Identity checks (KYC) and personal data)",
+      "src/Bank.Api/Modules/Customers/Application/KycAccountOpeningRule.cs: area 'Customers' is high (Identity checks (KYC) and personal data)",
+      "src/Bank.Api/Modules/Customers/CustomersModule.cs: area 'Customers' is high (Identity checks (KYC) and personal data)",
+      "src/Bank.Api/Modules/Customers/Domain/Customer.cs: area 'Customers' is high (Identity checks (KYC) and personal data)",
+      "src/Bank.Api/Program.cs: area 'Platform' is high (Database schema, wiring and bank-wide settings touch every module)",
+      "Large change (795 lines > 400) → one tier up"
+    ],
+    "guarded_paths": [],
+    "out_of_plan": [],
+    "signoffs_required": 2
+  },
+  "orientation": "PR-1 implements customer onboarding and KYC compliance verification. It introduces domain models, event definitions, an application service for customer registration and verification/rejection, account opening enforcement rules, and controller endpoints. The goal is to allow customers to submit personal identity details while preventing underage applicants or unverified customers from opening bank accounts.",
+  "requirement_alignment": "partial",
+  "sensors": [
+    {
+      "name": "secret_scan",
+      "ran": true,
+      "passed": true,
+      "summary": "No secret patterns in added lines",
+      "details": [],
+      "log_file": "evidence/secret_scan.txt"
+    },
+    {
+      "name": "package_check",
+      "ran": true,
+      "passed": true,
+      "summary": "No package references added",
+      "details": [],
+      "log_file": "evidence/package_check.txt"
+    },
+    {
+      "name": "test_integrity",
+      "ran": true,
+      "passed": true,
+      "summary": "No test files edited",
+      "details": [],
+      "log_file": "evidence/test_integrity.txt"
+    },
+    {
+      "name": "removed_guards",
+      "ran": true,
+      "passed": true,
+      "summary": "No validation/guard lines removed",
+      "details": [],
+      "log_file": "evidence/removed_guards.txt"
+    },
+    {
+      "name": "risky_code",
+      "ran": true,
+      "passed": true,
+      "summary": "0 pattern hit(s) in added code",
+      "details": [],
+      "log_file": "evidence/risky_code.txt"
+    },
+    {
+      "name": "dotnet_build",
+      "ran": true,
+      "passed": true,
+      "summary": "Build succeeded",
+      "details": [
+        "Build succeeded.",
+        "    0 Warning(s)",
+        "    0 Error(s)",
+        "",
+        "Time Elapsed 00:00:02.03"
+      ],
+      "log_file": "evidence/dotnet_build.log"
+    },
+    {
+      "name": "dotnet_test",
+      "ran": true,
+      "passed": true,
+      "summary": "Tests passed",
+      "details": [
+        "Passed!  - Failed:     0, Passed:    45, Skipped:     0, Total:    45, Duration: 661 ms - Bank.Tests.dll (net10.0)"
+      ],
+      "log_file": "evidence/dotnet_test.log"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C01",
+      "dimension": "correctness",
+      "source": "specialist:correctness",
+      "title": "Class-level Customer policy prevents compliance officers from verifying or rejecting registrations",
+      "claim": "In ASP.NET Core, Authorize attributes combine cumulatively across controller and action levels. Because [Authorize(Policy = Policies.Customer)] is declared on the CustomersController class, Verify and Reject require callers to satisfy both Customer and Compliance policies simultaneously, blocking compliance officers who do not hold customer credentials.",
+      "severity": "Blocker",
+      "file": "src/Bank.Api/Modules/Customers/Api/CustomersController.cs",
+      "line_start": 14,
+      "line_end": 14,
+      "evidence": "[Authorize(Policy = Policies.Customer)]",
+      "requirement_link": "HTTP endpoints are exposed with [ApiController] and explicit [Authorize(Policy = ...)] attributes: POST api/customers (Customer policy, derives user id solely from ICurrentUser), GET api/customers/me (Customer policy, returns current user's customer), POST api/customers/{id}/verify (Compliance policy), and POST api/customers/{id}/reject (Compliance policy).",
+      "confidence": 0.95,
+      "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from the CustomersController class declaration so that each action's method-level [Authorize] attribute controls access independently.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated",
+        "panel": {
+          "members": 2,
+          "answered": 1,
+          "real": 1,
+          "votes": [
+            {
+              "member": 0,
+              "error": "panel:0: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'statu"
+            },
+            {
+              "member": 1,
+              "real": true,
+              "nitpick": false,
+              "severity": "Blocker",
+              "reason": "In ASP.NET Core, class-level and method-level [Authorize] attributes combine conjunctively (logical AND). Because [Authorize(Policy = Policies.Customer)] is set at the controller class level, the Verify and Reject endpoints require both Customer and Compliance policies, preventing compliance officers from invoking them."
+            }
+          ],
+          "outcome": "not enough votes"
+        },
+        "investigation": {
+          "verdict": "unsure",
+          "evidence": "",
+          "reason": "investigator call failed: investigator: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateConten",
+          "steps": []
+        }
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          11,
+          "",
+          true
+        ],
+        [
+          12,
+          "[ApiController]",
+          true
+        ],
+        [
+          13,
+          "[Route(\"api/customers\")]",
+          true
+        ],
+        [
+          14,
+          "[Authorize(Policy = Policies.Customer)]",
+          true
+        ],
+        [
+          15,
+          "public sealed class CustomersController : ControllerBase",
+          true
+        ],
+        [
+          16,
+          "{",
+          true
+        ],
+        [
+          17,
+          "    private readonly ICustomerService _customers;",
+          true
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    },
+    {
+      "id": "S01",
+      "dimension": "safety",
+      "source": "specialist:safety",
+      "title": "Class-level Authorize attribute inadvertently requires Customer policy on Compliance endpoints",
+      "claim": "In ASP.NET Core, class-level and action-level [Authorize] attributes are combined with logical AND. Specifying [Authorize(Policy = Policies.Customer)] on CustomersController forces callers of Verify and Reject to satisfy both Policies.Customer and Policies.Compliance, causing HTTP 403 Forbidden for compliance officers who do not possess the Customer role.",
+      "severity": "Blocker",
+      "file": "src/Bank.Api/Modules/Customers/Api/CustomersController.cs",
+      "line_start": 14,
+      "line_end": 14,
+      "evidence": "[Authorize(Policy = Policies.Customer)]",
+      "requirement_link": "HTTP endpoints are exposed with [ApiController] and explicit [Authorize(Policy = ...)] attributes: POST api/customers (Customer policy, derives user id solely from ICurrentUser), GET api/customers/me (Customer policy, returns current user's customer), POST api/customers/{id}/verify (Compliance policy), and POST api/customers/{id}/reject (Compliance policy).",
+      "confidence": 0.95,
+      "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from line 14 on CustomersController so that endpoints rely strictly on their individual method-level [Authorize] attributes.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated",
+        "panel": {
+          "members": 2,
+          "answered": 1,
+          "real": 1,
+          "votes": [
+            {
+              "member": 0,
+              "error": "panel:0: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'statu"
+            },
+            {
+              "member": 1,
+              "real": true,
+              "nitpick": false,
+              "severity": "Blocker",
+              "reason": "In ASP.NET Core, class-level and action-level [Authorize] attributes combine via logical AND. Because CustomersController has [Authorize(Policy = Policies.Customer)] at the class level, callers of Verify and Reject must satisfy both Policies.Customer and Policies.Compliance, blocking compliance officers without the customer role from verifying or rejecting customers."
+            }
+          ],
+          "outcome": "not enough votes"
+        },
+        "investigation": {
+          "verdict": "unsure",
+          "evidence": "",
+          "reason": "investigator call failed: investigator: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateConten",
+          "steps": []
+        }
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          11,
+          "",
+          true
+        ],
+        [
+          12,
+          "[ApiController]",
+          true
+        ],
+        [
+          13,
+          "[Route(\"api/customers\")]",
+          true
+        ],
+        [
+          14,
+          "[Authorize(Policy = Policies.Customer)]",
+          true
+        ],
+        [
+          15,
+          "public sealed class CustomersController : ControllerBase",
+          true
+        ],
+        [
+          16,
+          "{",
+          true
+        ],
+        [
+          17,
+          "    private readonly ICustomerService _customers;",
+          true
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    },
+    {
+      "id": "M01",
+      "dimension": "maintainability",
+      "source": "specialist:maintainability",
+      "title": "Redundant and conflicting controller-level Authorize attribute",
+      "claim": "Applying [Authorize(Policy = Policies.Customer)] at the class level causes ASP.NET Core to evaluate it conjunctively for every action in the controller. This makes lines 27 and 46 redundant and inadvertently forces Verify and Reject (lines 56 and 79) to require both Customer and Compliance policies, risking authorization failures for compliance officers.",
+      "severity": "ShouldFix",
+      "file": "src/Bank.Api/Modules/Customers/Api/CustomersController.cs",
+      "line_start": 14,
+      "line_end": 14,
+      "evidence": "[Authorize(Policy = Policies.Customer)]",
+      "requirement_link": "HTTP endpoints are exposed with [ApiController] and explicit [Authorize(Policy = ...)] attributes: POST api/customers (Customer policy, derives user id solely from ICurrentUser), GET api/customers/me (Customer policy, returns current user's customer), POST api/customers/{id}/verify (Compliance policy), and POST api/customers/{id}/reject (Compliance policy).",
+      "confidence": 0.95,
+      "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from the CustomersController class declaration so that each action exclusively enforces its own explicit Authorize policy.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated"
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          11,
+          "",
+          true
+        ],
+        [
+          12,
+          "[ApiController]",
+          true
+        ],
+        [
+          13,
+          "[Route(\"api/customers\")]",
+          true
+        ],
+        [
+          14,
+          "[Authorize(Policy = Policies.Customer)]",
+          true
+        ],
+        [
+          15,
+          "public sealed class CustomersController : ControllerBase",
+          true
+        ],
+        [
+          16,
+          "{",
+          true
+        ],
+        [
+          17,
+          "    private readonly ICustomerService _customers;",
+          true
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    },
+    {
+      "id": "T01",
+      "dimension": "tests",
+      "source": "specialist:tests",
+      "title": "CustomersController endpoints lack unit or integration tests",
+      "claim": "The newly introduced CustomersController and its four endpoints (Register, Me, Verify, Reject) have no unit or integration tests. Routing, HTTP status code mapping (200, 400, 403, 404, 409), and policy authorization attributes ([Authorize(Policy = ...)]) are entirely unexercised by the test suite.",
+      "severity": "ShouldFix",
+      "file": "src/Bank.Api/Modules/Customers/Api/CustomersController.cs",
+      "line_start": 15,
+      "line_end": 15,
+      "evidence": "public sealed class CustomersController : ControllerBase",
+      "requirement_link": "HTTP endpoints are exposed with [ApiController] and explicit [Authorize(Policy = ...)] attributes: POST api/customers (Customer policy, derives user id solely from ICurrentUser), GET api/customers/me (Customer policy, returns current user's customer), POST api/customers/{id}/verify (Compliance policy), and POST api/customers/{id}/reject (Compliance policy).",
+      "confidence": 0.95,
+      "suggested_fix": "Add controller tests verifying endpoint execution, status code translation for exceptions (BadRequest, Forbid, NotFound, Conflict), and authorization policy metadata.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated"
+      },
+      "kept": true,
+      "drop_reason": "",
+      "anchor": [
+        [
+          12,
+          "[ApiController]",
+          true
+        ],
+        [
+          13,
+          "[Route(\"api/customers\")]",
+          true
+        ],
+        [
+          14,
+          "[Authorize(Policy = Policies.Customer)]",
+          true
+        ],
+        [
+          15,
+          "public sealed class CustomersController : ControllerBase",
+          true
+        ],
+        [
+          16,
+          "{",
+          true
+        ],
+        [
+          17,
+          "    private readonly ICustomerService _customers;",
+          true
+        ],
+        [
+          18,
+          "    private readonly ICurrentUser _user;",
+          true
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    }
+  ],
+  "dropped_findings": [
+    {
+      "id": "M02",
+      "dimension": "maintainability",
+      "source": "specialist:maintainability",
+      "title": "Variable minDob is misleadingly named for maximum allowable birth date",
+      "claim": "The variable minDob represents the latest (maximum) birth date permitted for an applicant to be at least 18 years old. Naming a chronological cutoff date 'minDob' when values greater than it are rejected is inverted and confusing for future maintainers.",
+      "severity": "Nit",
+      "file": "src/Bank.Api/Modules/Customers/Application/CustomerService.cs",
+      "line_start": 48,
+      "line_end": 48,
+      "evidence": "        var minDob = today.Year > 18 ? today.AddYears(-18) : DateOnly.MinValue;",
+      "requirement_link": "all timestamps and age checks use IClock.UtcNow rather than DateTime.Now or DateTimeOffset.UtcNow.",
+      "confidence": 0.85,
+      "suggested_fix": "Rename minDob to maxDob or latestAllowedDob to reflect that it is the upper bound on date of birth.",
+      "evidence_verified": true,
+      "validator": {
+        "status": "not validated"
+      },
+      "kept": false,
+      "drop_reason": "Nit suppressed by policy (gates.show_nits=false)",
+      "anchor": [
+        [
+          45,
+          "",
+          true
+        ],
+        [
+          46,
+          "        var now = _clock.UtcNow;",
+          true
+        ],
+        [
+          47,
+          "        var today = DateOnly.FromDateTime(now.UtcDateTime);",
+          true
+        ],
+        [
+          48,
+          "        var minDob = today.Year > 18 ? today.AddYears(-18) : DateOnly.MinValue;",
+          true
+        ],
+        [
+          49,
+          "        if (request.DateOfBirth > minDob)",
+          true
+        ],
+        [
+          50,
+          "            throw new ArgumentException(\"Applicant must be at least 18 years old.\", nameof(request));",
+          true
+        ],
+        [
+          51,
+          "",
+          true
+        ]
+      ],
+      "patch": "",
+      "patch_explanation": "",
+      "delta": ""
+    }
+  ],
+  "refusals": [
+    {
+      "source": "specialist:architecture",
+      "topic": "Interaction of class-level [Authorize(Policy = Policies.Customer)] with action-level [Authorize(Policy = Policies.Compliance)]",
+      "reason": "The definition of Policies and requirement evaluation logic in Bank.Modules.Auth are outside the shown context; cannot verify whether compliance officers satisfy both policies or whether ASP.NET Core's conjunctive authorization filter evaluation blocks verify/reject endpoints."
+    },
+    {
+      "source": "specialist:safety",
+      "topic": "BankDbContext table marker placement",
+      "reason": "Lines 10-18 and lines after line 19 of BankDbContext.cs are truncated in the context, preventing verification of whether DbSet<Customer> Customers is declared directly above the // TABLES: marker."
+    },
+    {
+      "source": "specialist:tests",
+      "topic": "Test coverage in CustomerTests.cs lines 306-498",
+      "reason": "The diff for CustomerTests.cs is truncated after line 305. Tests for KycAccountOpeningRule, GetAsync, self-verification/rejection prevention, and PII attribute validation may be present in lines 306-498 but cannot be inspected from the provided context."
+    },
+    {
+      "source": "specialist:maintainability",
+      "topic": "BankDbContext // TABLES: marker placement",
+      "reason": "The code slice for BankDbContext.cs does not display the // TABLES: marker, so line placement relative to the marker cannot be verified from the shown context."
+    },
+    {
+      "source": "specialist:maintainability",
+      "topic": "CustomersController endpoint authorization integration tests",
+      "reason": "The unit test file was truncated in the diff and does not reveal whether WebApplicationFactory integration tests exist for the HTTP authorization pipeline."
+    },
+    {
+      "source": "specialist:performance",
+      "topic": "Database query execution plans and physical indexing",
+      "reason": "Execution plan performance and index utilization on the Customers table depend on EF Core relational migrations and the target database engine, which cannot be measured without runtime benchmarks or database profiling."
+    },
+    {
+      "source": "validator",
+      "topic": "Noise filtering",
+      "reason": "Validator call failed; findings are shown unvalidated."
+    }
+  ],
+  "areas": [
+    {
+      "area": "What",
+      "status": "human",
+      "reason": "Requirement match is partial: The domain logic, service workflows, PII annotations, and account opening validation rules align with the specification. However, CustomersController adds [Authorize(Policy = Policies.Customer)] at the class level, causing verify and reject endpoints to combine Customer and Compliance policies and preventing compliance officers without the Customer role from accessing those actions.",
+      "evidence": []
+    },
+    {
+      "area": "Where",
+      "status": "human",
+      "reason": "Tier HIGH → full human read and 2 sign-off(s) required",
+      "evidence": [
+        "src/Bank.Api/Data/BankDbContext.cs: area 'Platform' is high (Database schema, wiring and bank-wide settings touch every module)",
+        "src/Bank.Api/Modules/Customers/Api/CustomersController.cs: area 'Customers' is high (Identity checks (KYC) and personal data)",
+        "src/Bank.Api/Modules/Customers/Api/CustomersController.cs: content rule 'authorization attribute changed' matched → high",
+        "src/Bank.Api/Modules/Customers/Application/CustomerService.cs: area 'Customers' is high (Identity checks (KYC) and personal data)",
+        "src/Bank.Api/Modules/Customers/Application/KycAccountOpeningRule.cs: area 'Customers' is high (Identity checks (KYC) and personal data)",
+        "src/Bank.Api/Modules/Customers/CustomersModule.cs: area 'Customers' is high (Identity checks (KYC) and personal data)"
+      ]
+    },
+    {
+      "area": "Why",
+      "status": "verified",
+      "reason": "Linked to a requirement",
+      "evidence": []
+    },
+    {
+      "area": "Security",
+      "status": "blocked",
+      "reason": "Safety Blocker(s) found",
+      "evidence": [
+        "S01 src/Bank.Api/Modules/Customers/Api/CustomersController.cs:14"
+      ]
+    },
+    {
+      "area": "Build",
+      "status": "verified",
+      "reason": "Build succeeded",
+      "evidence": []
+    },
+    {
+      "area": "Tests",
+      "status": "human",
+      "reason": "Test weakening or gaps to check",
+      "evidence": [
+        "T01 src/Bank.Api/Modules/Customers/Api/CustomersController.cs:15"
+      ]
+    },
+    {
+      "area": "Correctness",
+      "status": "blocked",
+      "reason": "1 Blocker(s)",
+      "evidence": [
+        "C01 src/Bank.Api/Modules/Customers/Api/CustomersController.cs:14"
+      ]
+    },
+    {
+      "area": "Architecture",
+      "status": "verified",
+      "reason": "No blocking issue",
+      "evidence": []
+    },
+    {
+      "area": "Maintainability",
+      "status": "verified",
+      "reason": "No blocking issue; 1 ShouldFix noted (does not hold the merge)",
+      "evidence": [
+        "M01 src/Bank.Api/Modules/Customers/Api/CustomersController.cs:14"
+      ]
+    },
+    {
+      "area": "Performance",
+      "status": "verified",
+      "reason": "No blocking issue",
+      "evidence": []
+    },
+    {
+      "area": "Impact",
+      "status": "verified",
+      "reason": "48 changed member(s); callers covered by tests or none",
+      "evidence": []
+    },
+    {
+      "area": "Requirement",
+      "status": "not_checked",
+      "reason": "Not checked: requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho",
+      "evidence": []
+    }
+  ],
+  "decision": "BLOCKED",
+  "decision_reason": "Merge locked: Security: Safety Blocker(s) found; Correctness: 1 Blocker(s) Not checked: Requirement. WARNING: review-policy.yaml is not approved by a named human yet.",
+  "not_checked": [
+    "Scope vs approved plan (no --plan given)",
+    "Requirement radar (Radar call failed: radar: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}})",
+    "Part of tests/Bank.Tests/Customers/CustomerTests.cs (context truncated)"
+  ],
+  "track_record": {
+    "correctness": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 1,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    },
+    "maintainability": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 1,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    },
+    "safety": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 1,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    },
+    "tests": {
+      "accepted": 0,
+      "rejected": 0,
+      "open": 1,
+      "escapes": 0,
+      "precision": null,
+      "trust": "not enough feedback yet (need 10+ judged findings)"
+    }
+  },
+  "head_sha": "4d8ead5a4c1e4b4304bbd187f5149227346eef6a",
+  "radar": {
+    "items": [],
+    "hunks": [
+      {
+        "id": "H01",
+        "file": "src/Bank.Api/Data/BankDbContext.cs",
+        "start": 3,
+        "end": 3,
+        "added": [
+          "using Bank.Modules.Customers.Domain;"
+        ],
+        "removed": [],
+        "n_added": 1,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H02",
+        "file": "src/Bank.Api/Data/BankDbContext.cs",
+        "start": 19,
+        "end": 19,
+        "added": [
+          "    public DbSet<Customer> Customers => Set<Customer>();"
+        ],
+        "removed": [],
+        "n_added": 1,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H03",
+        "file": "src/Bank.Api/Modules/Customers/Api/CustomersController.cs",
+        "start": 1,
+        "end": 103,
+        "added": [
+          "using Bank.Modules.Auth;",
+          "using Bank.Modules.Auth.Application;",
+          "using Bank.Modules.Customers.Application;",
+          "using Bank.Modules.Customers.Domain;",
+          "using Microsoft.AspNetCore.Authorization;",
+          "using Microsoft.AspNetCore.Mvc;",
+          "",
+          "namespace Bank.Modules.Customers.Api;",
+          "",
+          "public sealed record CustomerDto(string Id, string FullName, string Email, KycStatus Status, string? DecidedBy, DateTimeOffset RegisteredAt);",
+          "",
+          "[ApiController]",
+          "[Route(\"api/customers\")]",
+          "[Authorize(Policy = Policies.Customer)]",
+          "public sealed class CustomersController : ControllerBase",
+          "{",
+          "    private readonly ICustomerService _customers;",
+          "    private readonly ICurrentUser _user;",
+          "",
+          "    public CustomersController(ICustomerService customers, ICurrentUser user)",
+          "    {",
+          "        _customers = customers;",
+          "        _user = user;",
+          "    }",
+          "",
+          "    [HttpPost]",
+          "    [Authorize(Policy = Policies.Customer)]",
+          "    public async Task<ActionResult<CustomerDto>> Register(RegisterCustomerRequest request, CancellationToken ct)",
+          "    {",
+          "        try"
+        ],
+        "removed": [],
+        "n_added": 103,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H04",
+        "file": "src/Bank.Api/Modules/Customers/Application/CustomerService.cs",
+        "start": 1,
+        "end": 107,
+        "added": [
+          "using Bank.Data;",
+          "using Bank.Modules.Auth;",
+          "using Bank.Modules.Auth.Application;",
+          "using Bank.Modules.Customers.Domain;",
+          "using Bank.Shared.Events;",
+          "using Bank.Shared.Time;",
+          "using Microsoft.EntityFrameworkCore;",
+          "",
+          "namespace Bank.Modules.Customers.Application;",
+          "",
+          "public sealed record RegisterCustomerRequest(string FullName, string Email, string NationalId, DateOnly DateOfBirth);",
+          "",
+          "public interface ICustomerService",
+          "{",
+          "    Task<Customer> RegisterAsync(RegisterCustomerRequest request, CancellationToken ct = default);",
+          "    Task<Customer> VerifyAsync(string customerId, CancellationToken ct = default);",
+          "    Task<Customer> RejectAsync(string customerId, CancellationToken ct = default);",
+          "    Task<Customer?> GetAsync(string customerId, CancellationToken ct = default);",
+          "}",
+          "",
+          "public sealed class CustomerService : ICustomerService",
+          "{",
+          "    private readonly BankDbContext _db;",
+          "    private readonly ICurrentUser _user;",
+          "    private readonly IClock _clock;",
+          "    private readonly IEventBus _bus;",
+          "",
+          "    public CustomerService(BankDbContext db, ICurrentUser user, IClock clock, IEventBus bus)",
+          "    {",
+          "        _db = db;"
+        ],
+        "removed": [],
+        "n_added": 107,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H05",
+        "file": "src/Bank.Api/Modules/Customers/Application/KycAccountOpeningRule.cs",
+        "start": 1,
+        "end": 20,
+        "added": [
+          "using Bank.Data;",
+          "using Bank.Modules.Accounts.Application;",
+          "using Bank.Modules.Customers.Domain;",
+          "using Microsoft.EntityFrameworkCore;",
+          "",
+          "namespace Bank.Modules.Customers.Application;",
+          "",
+          "public sealed class KycAccountOpeningRule : IAccountOpeningRule",
+          "{",
+          "    private readonly BankDbContext _db;",
+          "",
+          "    public KycAccountOpeningRule(BankDbContext db) => _db = db;",
+          "",
+          "    public async Task EnsureMayOpenAsync(string ownerId, CancellationToken ct = default)",
+          "    {",
+          "        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == ownerId, ct);",
+          "        if (customer is null || customer.Status != KycStatus.Verified)",
+          "            throw new UnauthorizedAccessException(\"Customer must be KYC verified before opening an account.\");",
+          "    }",
+          "}"
+        ],
+        "removed": [],
+        "n_added": 20,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H06",
+        "file": "src/Bank.Api/Modules/Customers/CustomersModule.cs",
+        "start": 1,
+        "end": 14,
+        "added": [
+          "using Bank.Modules.Accounts.Application;",
+          "using Bank.Modules.Customers.Application;",
+          "",
+          "namespace Bank.Modules.Customers;",
+          "",
+          "public static class CustomersModule",
+          "{",
+          "    public static IServiceCollection AddCustomersModule(this IServiceCollection services)",
+          "    {",
+          "        services.AddScoped<ICustomerService, CustomerService>();",
+          "        services.AddScoped<IAccountOpeningRule, KycAccountOpeningRule>();",
+          "        return services;",
+          "    }",
+          "}"
+        ],
+        "removed": [],
+        "n_added": 14,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H07",
+        "file": "src/Bank.Api/Modules/Customers/Domain/Customer.cs",
+        "start": 1,
+        "end": 49,
+        "added": [
+          "using Bank.Shared;",
+          "using Bank.Shared.Events;",
+          "",
+          "namespace Bank.Modules.Customers.Domain;",
+          "",
+          "public enum KycStatus",
+          "{",
+          "    Pending,",
+          "    Verified,",
+          "    Rejected,",
+          "}",
+          "",
+          "public sealed class Customer",
+          "{",
+          "    public Customer()",
+          "    {",
+          "    }",
+          "",
+          "    public string Id { get; set; } = \"\";",
+          "    public string FullName { get; set; } = \"\";",
+          "    public string Email { get; set; } = \"\";",
+          "    [Pii] public string NationalId { get; set; } = \"\";",
+          "    [Pii] public DateOnly DateOfBirth { get; set; }",
+          "    public KycStatus Status { get; private set; } = KycStatus.Pending;",
+          "    public string? DecidedBy { get; set; }",
+          "    public DateTimeOffset RegisteredAt { get; set; }",
+          "",
+          "    public void Verify(string officerId)",
+          "    {",
+          "        if (Status != KycStatus.Pending)"
+        ],
+        "removed": [],
+        "n_added": 49,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H08",
+        "file": "src/Bank.Api/Program.cs",
+        "start": 5,
+        "end": 5,
+        "added": [
+          "using Bank.Modules.Customers;"
+        ],
+        "removed": [],
+        "n_added": 1,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H09",
+        "file": "src/Bank.Api/Program.cs",
+        "start": 23,
+        "end": 23,
+        "added": [
+          "builder.Services.AddCustomersModule();"
+        ],
+        "removed": [],
+        "n_added": 1,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      },
+      {
+        "id": "H10",
+        "file": "tests/Bank.Tests/Customers/CustomerTests.cs",
+        "start": 1,
+        "end": 498,
+        "added": [
+          "using Bank.Modules.Accounts.Application;",
+          "using Bank.Modules.Audit.Application;",
+          "using Bank.Modules.Auth;",
+          "using Bank.Modules.Customers.Application;",
+          "using Bank.Modules.Customers.Domain;",
+          "using Bank.Shared.Events;",
+          "using Xunit;",
+          "",
+          "namespace Bank.Tests.Customers;",
+          "",
+          "public sealed class CustomerTests",
+          "{",
+          "    [Fact]",
+          "    public void Customer_starts_with_pending_status()",
+          "    {",
+          "        var customer = new Customer();",
+          "",
+          "        Assert.Equal(KycStatus.Pending, customer.Status);",
+          "        Assert.Null(customer.DecidedBy);",
+          "    }",
+          "",
+          "    [Fact]",
+          "    public void Customer_verify_transitions_pending_to_verified_and_sets_decided_by()",
+          "    {",
+          "        var customer = new Customer",
+          "        {",
+          "            Id = \"alice\",",
+          "            FullName = \"Alice Smith\",",
+          "            Email = \"alice@example.com\",",
+          "            NationalId = \"FI-123456\","
+        ],
+        "removed": [],
+        "n_added": 498,
+        "n_removed": 0,
+        "classification": "unclear",
+        "item_ids": [],
+        "reason": "radar failed"
+      }
+    ],
+    "counts": {
+      "unclear": 10
+    },
+    "ran": false,
+    "note": "Radar call failed: radar: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}"
+  },
+  "funnel": {
+    "proposed_by_specialists": 5,
+    "evidence_verified": 5,
+    "dropped_hallucinated_evidence": 0,
+    "dropped_by_validator": 1,
+    "sensor_findings": 0,
+    "shown": 4,
+    "patches": 0
+  },
+  "familiarity": {
+    "src/Bank.Api/Data/BankDbContext.cs": {
+      "recent_commits": [
+        "f0d3f16 2026-11-14 Seed: Nordbank platform (Auth, Accounts, Ledger, Audit, Notifications)"
+      ],
+      "past_findings": []
+    },
+    "src/Bank.Api/Modules/Customers/Api/CustomersController.cs": {
+      "recent_commits": [],
+      "past_findings": []
+    },
+    "src/Bank.Api/Modules/Customers/Application/CustomerService.cs": {
+      "recent_commits": [],
+      "past_findings": []
+    },
+    "src/Bank.Api/Modules/Customers/Application/KycAccountOpeningRule.cs": {
+      "recent_commits": [],
+      "past_findings": []
+    },
+    "src/Bank.Api/Modules/Customers/CustomersModule.cs": {
+      "recent_commits": [],
+      "past_findings": []
+    },
+    "src/Bank.Api/Modules/Customers/Domain/Customer.cs": {
+      "recent_commits": [],
+      "past_findings": []
+    },
+    "src/Bank.Api/Program.cs": {
+      "recent_commits": [
+        "f0d3f16 2026-11-14 Seed: Nordbank platform (Auth, Accounts, Ledger, Audit, Notifications)"
+      ],
+      "past_findings": []
+    },
+    "tests/Bank.Tests/Customers/CustomerTests.cs": {
+      "recent_commits": [],
+      "past_findings": []
+    }
+  },
+  "delta": {
+    "previous_run": null,
+    "summary": "First review of this branch"
+  },
+  "optimization_context": false,
+  "commit_messages": [
+    "PR-1: tests from the requirement",
+    "PR-1: Implement customer onboarding and KYC compliance checks"
+  ],
+  "ai_error": "",
+  "settings": {
+    "fingerprint": "b5e52429b2df",
+    "badge": "balanced preset · default essential · Full on high-risk · 15 plugins ran · #b5e52429b2df",
+    "preset": "balanced",
+    "warnings": [
+      "6 roles share gemini/gemini-3.1-pro-preview (validator, radar, fixer, investigator, requirement_analyst, requirement_judge)."
+    ],
+    "approved_by": "Md Abdullah Al Noman",
+    "file": "/Users/noman/Projects/junction-ai-review/world-v5/plan/batch-settings.yaml"
+  },
+  "coverage": {
+    "Platform": {
+      "tier": "high",
+      "level": "full",
+      "on": [
+        "blind_tests",
+        "fixer",
+        "investigator",
+        "lens.apis",
+        "lens.calls",
+        "lens.data",
+        "lens.events",
+        "lens.risk",
+        "lens.security",
+        "lens.tests",
+        "provider.anthropic",
+        "provider.gemini",
+        "provider.local",
+        "provider.openai",
+        "radar",
+        "requirement_check",
+        "sensor.build_test",
+        "sensor.packages",
+        "sensor.removed_guards",
+        "sensor.risky_code",
+        "sensor.secrets",
+        "sensor.test_weakening",
+        "specialist.architecture",
+        "specialist.correctness",
+        "specialist.maintainability",
+        "specialist.performance",
+        "specialist.safety",
+        "specialist.tests",
+        "validator",
+        "validator_panel",
+        "writer"
+      ],
+      "off": {},
+      "files": [
+        "src/Bank.Api/Data/BankDbContext.cs",
+        "src/Bank.Api/Program.cs"
+      ],
+      "estimate_calls": 20
+    },
+    "Customers": {
+      "tier": "high",
+      "level": "full",
+      "on": [
+        "blind_tests",
+        "fixer",
+        "investigator",
+        "lens.apis",
+        "lens.calls",
+        "lens.data",
+        "lens.events",
+        "lens.risk",
+        "lens.security",
+        "lens.tests",
+        "provider.anthropic",
+        "provider.gemini",
+        "provider.local",
+        "provider.openai",
+        "radar",
+        "requirement_check",
+        "sensor.build_test",
+        "sensor.packages",
+        "sensor.removed_guards",
+        "sensor.risky_code",
+        "sensor.secrets",
+        "sensor.test_weakening",
+        "specialist.architecture",
+        "specialist.correctness",
+        "specialist.maintainability",
+        "specialist.performance",
+        "specialist.safety",
+        "specialist.tests",
+        "validator",
+        "validator_panel",
+        "writer"
+      ],
+      "off": {},
+      "files": [
+        "src/Bank.Api/Modules/Customers/Api/CustomersController.cs",
+        "src/Bank.Api/Modules/Customers/Application/CustomerService.cs",
+        "src/Bank.Api/Modules/Customers/Application/KycAccountOpeningRule.cs",
+        "src/Bank.Api/Modules/Customers/CustomersModule.cs",
+        "src/Bank.Api/Modules/Customers/Domain/Customer.cs"
+      ],
+      "estimate_calls": 20
+    },
+    "Tests": {
+      "tier": "low",
+      "level": "essential",
+      "on": [
+        "blind_tests",
+        "lens.apis",
+        "lens.calls",
+        "lens.data",
+        "lens.events",
+        "lens.risk",
+        "lens.security",
+        "lens.tests",
+        "provider.anthropic",
+        "provider.gemini",
+        "provider.local",
+        "provider.openai",
+        "sensor.build_test",
+        "sensor.packages",
+        "sensor.removed_guards",
+        "sensor.risky_code",
+        "sensor.secrets",
+        "sensor.test_weakening",
+        "specialist.correctness",
+        "specialist.safety",
+        "validator",
+        "writer"
+      ],
+      "off": {
+        "specialist.tests": "not part of Essential coverage",
+        "specialist.architecture": "not part of Essential coverage",
+        "specialist.maintainability": "not part of Essential coverage",
+        "specialist.performance": "not part of Essential coverage",
+        "validator_panel": "not part of Essential coverage",
+        "investigator": "not part of Essential coverage",
+        "requirement_check": "not part of Essential coverage",
+        "radar": "not part of Essential coverage",
+        "fixer": "not part of Essential coverage"
+      },
+      "files": [
+        "tests/Bank.Tests/Customers/CustomerTests.cs"
+      ],
+      "estimate_calls": 6
+    }
+  },
+  "plugins_run": [
+    "fixer",
+    "investigator",
+    "sensor.build_test",
+    "sensor.packages",
+    "sensor.removed_guards",
+    "sensor.risky_code",
+    "sensor.secrets",
+    "sensor.test_weakening",
+    "specialist.architecture",
+    "specialist.correctness",
+    "specialist.maintainability",
+    "specialist.performance",
+    "specialist.safety",
+    "specialist.tests",
+    "validator_panel"
+  ],
+  "not_checked_plugins": [
+    {
+      "plugin": "specialist.tests",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "specialist.architecture",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "specialist.maintainability",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "specialist.performance",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "validator_panel",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "investigator",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "requirement_check",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "radar",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "fixer",
+      "area": "Tests",
+      "reason": "not part of Essential coverage"
+    },
+    {
+      "plugin": "requirement_check",
+      "area": "(all touched)",
+      "reason": "requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho"
+    }
+  ],
+  "requirement_check": {
+    "ran": false,
+    "reason": "requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho"
+  },
+  "panel": {
+    "ran": true,
+    "size": 2,
+    "votes": {
+      "C01": {
+        "members": 2,
+        "answered": 1,
+        "real": 1,
+        "votes": [
+          {
+            "member": 0,
+            "error": "panel:0: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'statu"
+          },
+          {
+            "member": 1,
+            "real": true,
+            "nitpick": false,
+            "severity": "Blocker",
+            "reason": "In ASP.NET Core, class-level and method-level [Authorize] attributes combine conjunctively (logical AND). Because [Authorize(Policy = Policies.Customer)] is set at the controller class level, the Verify and Reject endpoints require both Customer and Compliance policies, preventing compliance officers from invoking them."
+          }
+        ],
+        "outcome": "not enough votes"
+      },
+      "S01": {
+        "members": 2,
+        "answered": 1,
+        "real": 1,
+        "votes": [
+          {
+            "member": 0,
+            "error": "panel:0: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'statu"
+          },
+          {
+            "member": 1,
+            "real": true,
+            "nitpick": false,
+            "severity": "Blocker",
+            "reason": "In ASP.NET Core, class-level and action-level [Authorize] attributes combine via logical AND. Because CustomersController has [Authorize(Policy = Policies.Customer)] at the class level, callers of Verify and Reject must satisfy both Policies.Customer and Policies.Compliance, blocking compliance officers without the customer role from verifying or rejecting customers."
+          }
+        ],
+        "outcome": "not enough votes"
+      }
+    }
+  },
+  "investigations": {
+    "ran": true,
+    "cases": {
+      "C01": {
+        "verdict": "unsure",
+        "evidence": "",
+        "reason": "investigator call failed: investigator: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateConten",
+        "steps": []
+      },
+      "S01": {
+        "verdict": "unsure",
+        "evidence": "",
+        "reason": "investigator call failed: investigator: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateConten",
+        "steps": []
+      }
+    }
+  },
+  "cost": {
+    "calls": 17,
+    "cost_eur": 0.0,
+    "usage": {
+      "prompt_tokens": 310436,
+      "output_tokens": 20510
+    },
+    "by_role": {
+      "change_interpreter": {
+        "calls": 1,
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "cost_eur": 0.0
+      },
+      "specialist": {
+        "calls": 6,
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "cost_eur": 0.0
+      },
+      "panel:1": {
+        "calls": 2,
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "cost_eur": 0.0
+      }
+    },
+    "budget": {
+      "max_calls": 40,
+      "max_cost_eur": 5.0
+    },
+    "refused_for_budget": [],
+    "local_only_active": false
+  },
+  "integrations": []
+}

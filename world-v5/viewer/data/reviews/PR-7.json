@@ -1,0 +1,308 @@
+{
+ "decision": "BLOCKED",
+ "reason": "Merge locked: Security: Safety Blocker(s) found; Tests: Tests failed; Correctness: 1 Blocker(s) Not checked: Requirement. WARNING: review-policy.yaml is not approved by a named human yet.",
+ "tier": "high",
+ "ai_error": "",
+ "findings": [
+  {
+   "id": "C01",
+   "dimension": "correctness",
+   "severity": "Blocker",
+   "title": "Missing four-eyes check in LoanService.ApproveAsync",
+   "claim": "ApproveAsync does not verify whether the approving officer is also the applicant (loan.CustomerId == officerId). This allows loan officers to approve their own loans and disburse funds to themselves, violating the four-eyes requirement and causing test failure.",
+   "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+   "line_start": 128,
+   "line_end": 133,
+   "evidence": "                loan = await _db.Loans.FirstOrDefaultAsync(l => l.Id == loanId, ct)\n                    ?? throw new KeyNotFoundException($\"Loan {loanId} not found.\");\n\n                if (loan.Status != LoanStatus.Submitted)\n                    throw new InvalidOperationException($\"Cannot approve loan in status {loan.Status}.\");",
+   "evidence_verified": true,
+   "suggested_fix": "Add `if (loan.CustomerId == officerId) throw new UnauthorizedAccessException(\"Loan officers cannot approve their own loan.\");` immediately after loading the loan.",
+   "patch": "",
+   "requirement_link": "POST api/loans/{id}/approve (Policies.LoanOfficer) calls ILoanService.ApproveAsync, which throws KeyNotFoundException if not found, UnauthorizedAccessException if the caller is not in Roles.LoanOfficer or if caller UserId equals Loan.CustomerId (four-eyes check), and InvalidOperationException if Loan.Status is not Submitted.",
+   "source": "specialist:correctness",
+   "confidence": 1.0
+  },
+  {
+   "id": "S01",
+   "dimension": "safety",
+   "severity": "Blocker",
+   "title": "Missing four-eyes check allows loan officers to approve their own loans",
+   "claim": "ApproveAsync does not verify whether loan.CustomerId matches the caller's officerId before disbursing funds. A loan officer with a customer account can approve their own application and trigger unauthorized principal payout.",
+   "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+   "line_start": 131,
+   "line_end": 135,
+   "evidence": "                if (loan.Status != LoanStatus.Submitted)\n                    throw new InvalidOperationException($\"Cannot approve loan in status {loan.Status}.\");\n\n                var account = await _accounts.GetAsync(loan.DisbursementAccountId, ct)",
+   "evidence_verified": true,
+   "suggested_fix": "Add `if (loan.CustomerId == officerId) throw new UnauthorizedAccessException(\"Loan officers cannot approve their own loan.\");` prior to initiating disbursement.",
+   "patch": "",
+   "requirement_link": "POST api/loans/{id}/approve (Policies.LoanOfficer) calls ILoanService.ApproveAsync, which throws KeyNotFoundException if not found, UnauthorizedAccessException if the caller is not in Roles.LoanOfficer or if caller UserId equals Loan.CustomerId (four-eyes check), and InvalidOperationException if Loan.Status is not Submitted.",
+   "source": "specialist:safety",
+   "confidence": 1.0
+  },
+  {
+   "id": "A01",
+   "dimension": "architecture",
+   "severity": "ShouldFix",
+   "title": "Class-level Customer policy blocks LoanOfficer access to Approve and Reject endpoints",
+   "claim": "In ASP.NET Core, authorization attributes combine additively. Placing [Authorize(Policy = Policies.Customer)] on the controller class forces all actions—including Approve and Reject—to require both Policies.Customer and Policies.LoanOfficer. Loan officers without the Customer role will receive 403 Forbidden, violating the API specification.",
+   "file": "src/Bank.Api/Modules/Loans/Api/LoansController.cs",
+   "line_start": 29,
+   "line_end": 32,
+   "evidence": "[ApiController]\n[Route(\"api/loans\")]\n[Authorize(Policy = Policies.Customer)]\npublic sealed class LoansController : ControllerBase",
+   "evidence_verified": true,
+   "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from the LoansController class and apply it directly to Apply and Get actions so Approve and Reject only require Policies.LoanOfficer.",
+   "patch": "",
+   "requirement_link": "POST api/loans/{id}/approve (Policies.LoanOfficer) calls ILoanService.ApproveAsync, which throws KeyNotFoundException if not found, UnauthorizedAccessException if the caller is not in Roles.LoanOfficer or if caller UserId equals Loan.CustomerId (four-eyes check), and InvalidOperationException if Loan.Status is not Submitted.",
+   "source": "specialist:architecture",
+   "confidence": 0.95
+  },
+  {
+   "id": "A02",
+   "dimension": "architecture",
+   "severity": "ShouldFix",
+   "title": "Static LoanLocks creates an unbounded memory leak and ineffective distributed synchronization",
+   "claim": "LoanService stores SemaphoreSlim instances in a static ConcurrentDictionary keyed by loanId without any cleanup or eviction, leaking memory over the lifetime of the process. In-memory semaphores also fail to prevent concurrency races across multiple service instances in a distributed deployment.",
+   "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+   "line_start": 35,
+   "line_end": 35,
+   "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> LoanLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Remove the in-memory SemaphoreSlim dictionary and rely on database transactions and status checks (or a distributed lock if multi-node serialization is required).",
+   "patch": "",
+   "requirement_link": "none",
+   "source": "specialist:architecture",
+   "confidence": 0.9
+  },
+  {
+   "id": "C02",
+   "dimension": "correctness",
+   "severity": "ShouldFix",
+   "title": "Class-level Customer policy on LoansController restricts LoanOfficer endpoints",
+   "claim": "LoansController is decorated with [Authorize(Policy = Policies.Customer)] at the class level. In ASP.NET Core, class-level and action-level authorization attributes combine, requiring callers of Approve and Reject to satisfy both Policies.Customer and Policies.LoanOfficer, which denies loan officers who do not also possess the Customer role.",
+   "file": "src/Bank.Api/Modules/Loans/Api/LoansController.cs",
+   "line_start": 31,
+   "line_end": 32,
+   "evidence": "[Authorize(Policy = Policies.Customer)]\npublic sealed class LoansController : ControllerBase",
+   "evidence_verified": true,
+   "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from the controller class and place it specifically on the Apply and Get action methods.",
+   "patch": "",
+   "requirement_link": "POST api/loans/{id}/approve (Policies.LoanOfficer) calls ILoanService.ApproveAsync",
+   "source": "specialist:correctness",
+   "confidence": 0.95
+  },
+  {
+   "id": "P01",
+   "dimension": "performance",
+   "severity": "ShouldFix",
+   "title": "Unbounded memory retention in static LoanLocks dictionary",
+   "claim": "LoanLocks accumulates a SemaphoreSlim instance for every approved or rejected loan ID in a static ConcurrentDictionary without eviction or disposal. In a running service, this creates an unbounded memory leak as loan volume increases over time.",
+   "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+   "line_start": 35,
+   "line_end": 35,
+   "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> LoanLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Use database row-level locking or an entity concurrency token instead of an unbounded in-memory static semaphore dictionary, or remove keys when work completes.",
+   "patch": "",
+   "requirement_link": "none",
+   "source": "specialist:performance",
+   "confidence": 0.9
+  },
+  {
+   "id": "S02",
+   "dimension": "safety",
+   "severity": "ShouldFix",
+   "title": "Unbounded static dictionary for per-loan locks creates memory leak",
+   "claim": "LoanLocks statically retains a SemaphoreSlim instance for every processed loanId without eviction or cleanup. In long-running service instances, this causes monotonically increasing memory consumption.",
+   "file": "src/Bank.Api/Modules/Loans/Application/LoanService.cs",
+   "line_start": 35,
+   "line_end": 35,
+   "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> LoanLocks = new();",
+   "evidence_verified": true,
+   "suggested_fix": "Rely on database transactions with concurrency tokens/optimistic concurrency on the Loan entity, or remove entries from LoanLocks when locks are no longer in use.",
+   "patch": "",
+   "requirement_link": "Double disbursement race condition: concurrent approval requests could disburse principal multiple times if the Submitted status transition and persistence are not atomic.",
+   "source": "specialist:safety",
+   "confidence": 0.85
+  },
+  {
+   "id": "T02",
+   "dimension": "tests",
+   "severity": "ShouldFix",
+   "title": "LoansController endpoints and status code translations lack test coverage",
+   "claim": "LoansController introduces four HTTP endpoints (POST api/loans, GET api/loans/{id}, POST api/loans/{id}/approve, POST api/loans/{id}/reject), custom JSON body reading, and exception-to-HTTP-status mappings (400, 403, 404, 409). None of these actions or controller behaviors are covered by any unit or integration tests.",
+   "file": "src/Bank.Api/Modules/Loans/Api/LoansController.cs",
+   "line_start": 32,
+   "line_end": 38,
+   "evidence": "public sealed class LoansController : ControllerBase\n{\n    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);\n\n    private readonly ILoanService _loans;\n\n    public LoansController(ILoanService loans) => _loans = loans;",
+   "evidence_verified": true,
+   "suggested_fix": "Add controller unit tests or integration tests verifying routing, authorization policy enforcement, status code mappings, and request body deserialization for all four endpoints.",
+   "patch": "",
+   "requirement_link": "POST api/loans (Policies.Customer) delegates to ILoanService.ApplyAsync using ICurrentUser.UserId as CustomerId and IClock.UtcNow as AppliedAt, ignoring any user id supplied in request bodies.",
+   "source": "specialist:tests",
+   "confidence": 0.9
+  },
+  {
+   "id": "T03",
+   "dimension": "tests",
+   "severity": "ShouldFix",
+   "title": "Loan domain entity invalid state transitions are not directly tested",
+   "claim": "The acceptance criteria requires testing invalid state transitions, and the Loan domain entity defines Approve and Reject methods that validate Status == LoanStatus.Submitted. However, no tests execute Loan.Approve or Loan.Reject directly on the domain model to verify state transition guards independently of LoanService.",
+   "file": "src/Bank.Api/Modules/Loans/Domain/Loan.cs",
+   "line_start": 30,
+   "line_end": 37,
+   "evidence": "    public void Approve(string officerId, string? note)\n    {\n        if (Status != LoanStatus.Submitted)\n            throw new InvalidOperationException($\"Cannot approve loan in status {Status}.\");\n        Status = LoanStatus.Disbursed;\n        DecidedBy = officerId;\n        DecisionNote = note;\n    }",
+   "evidence_verified": true,
+   "suggested_fix": "Add domain unit tests verifying that calling Approve or Reject directly on a Loan instance that is already Disbursed or Rejected throws InvalidOperationException.",
+   "patch": "",
+   "requirement_link": "Loan entity in Bank.Modules.Loans.Domain owns Status (LoanStatus: Submitted, Rejected, Disbursed) with a private setter, transitions state only via domain methods that validate current status, and includes a parameterless constructor and public settable non-status properties.",
+   "source": "specialist:tests",
+   "confidence": 0.85
+  },
+  {
+   "id": "T01",
+   "dimension": "tests",
+   "severity": "ShouldFix",
+   "title": "Annuity rounding test does not test midpoint rounding half-away-from-zero",
+   "claim": "The test Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero claims to verify that payments round half-away-from-zero, but none of the test cases calculate a monthly payment ending in a half-cent midpoint (.XX5). For the inputs tested (169.3496..., 858.374..., 542.628...), MidpointRounding.ToEven and MidpointRounding.AwayFromZero produce identical results, so the test would pass even if banker's rounding or default rounding were used.",
+   "file": "tests/Bank.Tests/Loans/LoanTests.cs",
+   "line_start": 60,
+   "line_end": 65,
+   "evidence": "    [Theory]\n    [InlineData(1000, 6, 169.35)]\n    [InlineData(10000, 12, 858.37)]\n    [InlineData(50000, 120, 542.63)]\n    public async Task Apply_accepts_inclusive_boundaries_and_rounds_annuity_away_from_zero(\n        decimal principal, int termMonths, decimal expectedMonthlyPayment)",
+   "evidence_verified": true,
+   "suggested_fix": "Add a test case with principal and term values where the third decimal digit of the calculated annuity is exactly 5, ensuring that AwayFromZero rounding behaves differently from default ToEven rounding.",
+   "patch": "",
+   "requirement_link": "ILoanService.ApplyAsync sets AnnualRatePercent to 5.5m and calculates MonthlyPayment using the standard monthly annuity formula P * r / (1 - (1 + r)^(-n)) with monthly rate r = 0.055m / 12m, rounded to 2 decimal places using Math.Round(value, 2, MidpointRounding.AwayFromZero).",
+   "source": "specialist:tests",
+   "confidence": 0.95
+  }
+ ],
+ "areas": [
+  {
+   "area": "What",
+   "status": "human",
+   "reason": "Requirement match is partial: The four-eyes validation rule is missing in ILoanService.ApproveAsync: it does not check whether the approving officer is the borrower (loan.CustomerId == officerId), violating a core requirement and causing automated test failures.",
+   "evidence": []
+  },
+  {
+   "area": "Where",
+   "status": "human",
+   "reason": "Tier HIGH → full human read and 2 sign-off(s) required",
+   "evidence": [
+    "src/Bank.Api/Data/BankDbContext.cs: area 'Platform' is high (Database schema, wiring and bank-wide settings touch every module)",
+    "src/Bank.Api/Modules/Loans/Api/LoansController.cs: area 'Loans' is high (Credit decisions and payouts)",
+    "src/Bank.Api/Modules/Loans/Api/LoansController.cs: content rule 'authorization attribute changed' matched → high",
+    "src/Bank.Api/Modules/Loans/Application/LoanService.cs: area 'Loans' is high (Credit decisions and payouts)",
+    "src/Bank.Api/Modules/Loans/Domain/Loan.cs: area 'Loans' is high (Credit decisions and payouts)",
+    "src/Bank.Api/Modules/Loans/LoansModule.cs: area 'Loans' is high (Credit decisions and payouts)"
+   ]
+  },
+  {
+   "area": "Why",
+   "status": "verified",
+   "reason": "Linked to a requirement",
+   "evidence": []
+  },
+  {
+   "area": "Security",
+   "status": "blocked",
+   "reason": "Safety Blocker(s) found",
+   "evidence": [
+    "S01 src/Bank.Api/Modules/Loans/Application/LoanService.cs:131"
+   ]
+  },
+  {
+   "area": "Build",
+   "status": "verified",
+   "reason": "Build succeeded",
+   "evidence": []
+  },
+  {
+   "area": "Tests",
+   "status": "blocked",
+   "reason": "Tests failed",
+   "evidence": [
+    "Failed!  - Failed:     4, Passed:   189, Skipped:     0, Total:   193, Duration: 1 s - Bank.Tests.dll (net10.0)"
+   ]
+  },
+  {
+   "area": "Correctness",
+   "status": "blocked",
+   "reason": "1 Blocker(s)",
+   "evidence": [
+    "C01 src/Bank.Api/Modules/Loans/Application/LoanService.cs:128"
+   ]
+  },
+  {
+   "area": "Architecture",
+   "status": "verified",
+   "reason": "No blocking issue; 2 ShouldFix noted (does not hold the merge)",
+   "evidence": [
+    "A01 src/Bank.Api/Modules/Loans/Api/LoansController.cs:29",
+    "A02 src/Bank.Api/Modules/Loans/Application/LoanService.cs:35"
+   ]
+  },
+  {
+   "area": "Maintainability",
+   "status": "verified",
+   "reason": "No blocking issue",
+   "evidence": []
+  },
+  {
+   "area": "Performance",
+   "status": "verified",
+   "reason": "No blocking issue; 1 ShouldFix noted (does not hold the merge)",
+   "evidence": [
+    "P01 src/Bank.Api/Modules/Loans/Application/LoanService.cs:35"
+   ]
+  },
+  {
+   "area": "Impact",
+   "status": "verified",
+   "reason": "41 changed member(s); callers covered by tests or none",
+   "evidence": []
+  },
+  {
+   "area": "Requirement",
+   "status": "not_checked",
+   "reason": "Not checked: requirement check failed: requirement:analyst: Gemini call failed after retries: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3.1-pro-preview is not found for API version v1, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported metho",
+   "evidence": []
+  }
+ ],
+ "run_id": "20261114-202124-pr-7",
+ "sensors": [
+  {
+   "name": "secret_scan",
+   "result": null,
+   "summary": "No secret patterns in added lines"
+  },
+  {
+   "name": "package_check",
+   "result": null,
+   "summary": "No package references added"
+  },
+  {
+   "name": "test_integrity",
+   "result": null,
+   "summary": "No test files edited"
+  },
+  {
+   "name": "removed_guards",
+   "result": null,
+   "summary": "No validation/guard lines removed"
+  },
+  {
+   "name": "risky_code",
+   "result": null,
+   "summary": "0 pattern hit(s) in added code"
+  },
+  {
+   "name": "dotnet_build",
+   "result": null,
+   "summary": "Build succeeded"
+  },
+  {
+   "name": "dotnet_test",
+   "result": null,
+   "summary": "Tests failed (exit 1)"
+  }
+ ]
+}

@@ -1,0 +1,2876 @@
+{
+ "pr": "PR-1",
+ "findings": [
+  {
+   "id": "C01",
+   "severity": "Blocker",
+   "title": "Class-level Customer policy prevents compliance officers from verifying or rejecting registrations",
+   "dimension": "correctness"
+  },
+  {
+   "id": "S01",
+   "severity": "Blocker",
+   "title": "Class-level Authorize attribute inadvertently requires Customer policy on Compliance endpoints",
+   "dimension": "safety"
+  },
+  {
+   "id": "M01",
+   "severity": "ShouldFix",
+   "title": "Redundant and conflicting controller-level Authorize attribute",
+   "dimension": "maintainability"
+  },
+  {
+   "id": "T01",
+   "severity": "ShouldFix",
+   "title": "CustomersController endpoints lack unit or integration tests",
+   "dimension": "tests"
+  }
+ ],
+ "source": "ai",
+ "model": "gemini-4-hydrogen",
+ "headline": "Add customer KYC onboarding, compliance verification, and account-opening gate",
+ "summary": "Introduces the Customers module with customer registration, age validation, and compliance officer verify/reject workflows backed by a new Customers table. Registers KycAccountOpeningRule so account opening requires a verified customer record, and exposes customer and compliance HTTP endpoints.",
+ "business": "New applicants aged 18 or older must register and wait for a compliance officer other than themselves to verify their identity before opening a bank account. Unverified or underage applicants are blocked from opening accounts.",
+ "business_impact": "high",
+ "notes": {
+  "P:Bank.Data.BankDbContext.Customers": {
+   "changed": "Adds the Customers DbSet to BankDbContext for persisting customer KYC records.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Customers.Api.CustomerDto": {
+   "changed": "Adds a read-only customer response DTO exposing status, decision officer, and registration timestamp without NationalId or DateOfBirth.",
+   "changed_facts": "New record with 7 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Customers.Api.CustomerDto.#ctor(System.String,System.String,System.String,Bank.Modules.Customers.Domain.KycStatus,System.String,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Customers.Api.CustomerDto.Id": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Api.CustomerDto.FullName": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Api.CustomerDto.Email": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Api.CustomerDto.Status": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Api.CustomerDto.DecidedBy": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Api.CustomerDto.RegisteredAt": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Customers.Api.CustomersController": {
+   "changed": "New class with 12 member(s)."
+  },
+  "F:Bank.Modules.Customers.Api.CustomersController._customers": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Customers.Api.CustomersController._user": {
+   "changed": "New field."
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.#ctor(Bank.Modules.Customers.Application.ICustomerService,Bank.Modules.Auth.Application.ICurrentUser)": {
+   "changed": "New ctor."
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls CustomersController.ToDto(), calls ICustomerService.RegisterAsync()."
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls CustomersController.ToDto(), calls ICustomerService.GetAsync()."
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls CustomersController.ToDto(), calls ICustomerService.VerifyAsync()."
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.Reject(System.String,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls CustomersController.ToDto(), calls ICustomerService.RejectAsync()."
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Customers.Application.RegisterCustomerRequest": {
+   "changed": "Defines the registration payload containing full name, email, national ID, and date of birth.",
+   "changed_facts": "New record with 5 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Customers.Application.RegisterCustomerRequest.#ctor(System.String,System.String,System.String,System.DateOnly)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Customers.Application.RegisterCustomerRequest.FullName": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Application.RegisterCustomerRequest.Email": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Application.RegisterCustomerRequest.NationalId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Application.RegisterCustomerRequest.DateOfBirth": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Customers.Application.ICustomerService": {
+   "changed": "Defines the customer service contract for registering, verifying, rejecting, and fetching customer records.",
+   "changed_facts": "New interface with 4 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Customers.Application.ICustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Customers.Application.ICustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Customers.Application.ICustomerService.RejectAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Customers.Application.ICustomerService.GetAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Customers.Application.CustomerService": {
+   "changed": "New class with 9 member(s)."
+  },
+  "F:Bank.Modules.Customers.Application.CustomerService._db": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Customers.Application.CustomerService._user": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Customers.Application.CustomerService._clock": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Customers.Application.CustomerService._bus": {
+   "changed": "New field."
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": {
+   "changed": "New ctor."
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls IEventBus.PublishAsync(), publishes CustomerRegistered, writes to Customers."
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls ICurrentUser.IsInRole(), calls Customer.Verify(), calls IEventBus.PublishAsync(), publishes CustomerVerified."
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls ICurrentUser.IsInRole(), calls Customer.Reject(), calls IEventBus.PublishAsync(), publishes CustomerRejected."
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.GetAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Customers.Application.KycAccountOpeningRule": {
+   "changed": "New class with 3 member(s)."
+  },
+  "F:Bank.Modules.Customers.Application.KycAccountOpeningRule._db": {
+   "changed": "New field."
+  },
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.#ctor(Bank.Data.BankDbContext)": {
+   "changed": "New ctor."
+  },
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Customers.CustomersModule": {
+   "changed": "New class with 1 member(s)."
+  },
+  "M:Bank.Modules.Customers.CustomersModule.AddCustomersModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Customers.Domain.KycStatus": {
+   "changed": "Adds the KycStatus enum with Pending, Verified, and Rejected states.",
+   "changed_facts": "New enum with 3 member(s).",
+   "changed_src": "ai"
+  },
+  "F:Bank.Modules.Customers.Domain.KycStatus.Pending": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Customers.Domain.KycStatus.Verified": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Customers.Domain.KycStatus.Rejected": {
+   "changed": "New field."
+  },
+  "T:Bank.Modules.Customers.Domain.Customer": {
+   "changed": "Adds the Customer entity holding identity fields, registration timestamp, decision officer, and Pending default status.",
+   "changed_facts": "New class with 11 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Customers.Domain.Customer.#ctor": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Id": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.FullName": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Email": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.NationalId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.DateOfBirth": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Status": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.DecidedBy": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.RegisteredAt": {
+   "changed": "New property."
+  },
+  "M:Bank.Modules.Customers.Domain.Customer.Verify(System.String)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Customers.Domain.Customer.Reject(System.String)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Customers.Domain.CustomerRegistered": {
+   "changed": "Adds the CustomerRegistered domain event carrying CustomerId and OccurredAt.",
+   "changed_facts": "New record with 3 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Customers.Domain.CustomerRegistered.#ctor(System.String,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Customers.Domain.CustomerRegistered.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Domain.CustomerRegistered.OccurredAt": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Customers.Domain.CustomerVerified": {
+   "changed": "Adds the CustomerVerified domain event carrying CustomerId, VerifiedBy, and OccurredAt.",
+   "changed_facts": "New record with 4 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Customers.Domain.CustomerVerified.#ctor(System.String,System.String,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Customers.Domain.CustomerVerified.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Domain.CustomerVerified.VerifiedBy": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Domain.CustomerVerified.OccurredAt": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Customers.Domain.CustomerRejected": {
+   "changed": "Adds the CustomerRejected domain event carrying CustomerId, RejectedBy, and OccurredAt.",
+   "changed_facts": "New record with 4 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Customers.Domain.CustomerRejected.#ctor(System.String,System.String,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Customers.Domain.CustomerRejected.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Domain.CustomerRejected.RejectedBy": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Customers.Domain.CustomerRejected.OccurredAt": {
+   "changed": "New property."
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "changed": "Modified (lines 5, 23)."
+  },
+  "table:Customers.Id": {
+   "changed": "New column."
+  },
+  "table:Customers.FullName": {
+   "changed": "New column."
+  },
+  "table:Customers.Email": {
+   "changed": "New column."
+  },
+  "table:Customers.NationalId": {
+   "changed": "New column."
+  },
+  "table:Customers.DateOfBirth": {
+   "changed": "New column."
+  },
+  "table:Customers.Status": {
+   "changed": "New column."
+  },
+  "table:Customers.DecidedBy": {
+   "changed": "New column."
+  },
+  "table:Customers.RegisteredAt": {
+   "changed": "New column."
+  },
+  "endpoint:POST /api/customers": {
+   "changed": "New endpoint."
+  },
+  "endpoint:GET /api/customers/me": {
+   "changed": "New endpoint."
+  },
+  "endpoint:POST /api/customers/{id}/verify": {
+   "changed": "New endpoint."
+  },
+  "endpoint:POST /api/customers/{id}/reject": {
+   "changed": "New endpoint."
+  },
+  "T:Bank.Data.BankDbContext": {
+   "changed": "added Customers."
+  },
+  "module:Platform": {
+   "changed": "Classes: 2 changed (BankDbContext, Program).",
+   "affected": "4 part(s) are reached by it: PublishAsync, DefaultCurrency, DailyTransferLimit, SupportedCurrencies."
+  },
+  "module:Customers": {
+   "changed": "Classes: 12 new (CustomerDto, CustomersController, RegisterCustomerRequest, ICustomerService…)."
+  },
+  "T:Program": {
+   "changed": "modified <Main>$."
+  },
+  "table:Customers": {
+   "changed": "Adds the Customers database table with identity, KYC status, decision officer, and registration columns.",
+   "changed_facts": "added Id, FullName, Email, NationalId, DateOfBirth.",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)": {
+   "affected": "Depends on the change through IAccountOpeningRule.EnsureMayOpenAsync() (calls), 2 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)": {
+   "affected": "Depends on the change through IAccountService.OpenAsync() (calls), 4 hop(s)."
+  },
+  "F:Bank.Modules.Auth.Roles.ComplianceOfficer": {
+   "affected": "Reached by the change through CustomerService.VerifyAsync() (uses), 1 hop(s)."
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "affected": "Reached by the change through CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "affected": "Reached by the change through CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "affected": "Reached by the change through CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening() (uses), 1 hop(s)."
+  },
+  "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)": {
+   "affected": "Reached by the change through CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii() (calls), 1 hop(s)."
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IEventBus.PublishAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)": {
+   "affected": "Reached by the change through ICurrentUser.IsInRole() (resolves), 2 hop(s)."
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "affected": "Reached by the change through TestKit.Settings() (uses), 2 hop(s)."
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "affected": "Reached by the change through TestKit.Settings() (uses), 2 hop(s)."
+  },
+  "P:Bank.Shared.Settings.BankSettings.SupportedCurrencies": {
+   "affected": "Reached by the change through AccountService.OpenAsync() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "affected": "Reached by the change through AccountService.OpenAsync() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "affected": "Reached by the change through AccountService.OpenAsync() (uses), 2 hop(s)."
+  },
+  "M:Bank.Modules.Audit.Application.AuditLog.IsPiiParameter(System.Type,System.String)": {
+   "affected": "Reached by the change through AuditLog.Redact() (calls), 2 hop(s)."
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IEventHandler.HandleAsync() (resolves), 4 hop(s)."
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "affected": "AccountService.OpenAsync now enforces KYC verification by calling the new KycAccountOpeningRule via IAccountOpeningRule.EnsureMayOpenAsync.",
+   "affected_facts": "1 part(s) depend on the change: OpenAsync.",
+   "affected_src": "ai"
+  },
+  "module:Accounts": {
+   "affected": "2 part(s) depend on the change and 4 part(s) are reached by it: OpenAsync, Open, OwnerId, Currency…."
+  },
+  "T:Bank.Modules.Accounts.Api.AccountsController": {
+   "affected": "AccountsController.Open is affected through IAccountOpeningRule enforcement inside IAccountService.OpenAsync, rejecting unverified customers.",
+   "affected_facts": "1 part(s) depend on the change: Open.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Auth.Roles": {
+   "affected": "Roles.ComplianceOfficer and Roles.Customer are used by CustomerService authorization checks and endpoint policies.",
+   "affected_facts": "2 part(s) are reached by it: ComplianceOfficer, Customer.",
+   "affected_src": "ai"
+  },
+  "module:Auth": {
+   "affected": "3 part(s) are reached by it: ComplianceOfficer, Customer, IsInRole."
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "affected": "Account creation via AccountService.OpenAsync is now gated by the customer's KYC status for Account.OwnerId.",
+   "affected_facts": "4 part(s) are reached by it: OwnerId, Currency, Iban, Id.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Audit.Application.AuditLog": {
+   "affected": "AuditLog redaction inspects PII parameters on Customer operations through AuditLog.Redact and IsPiiParameter.",
+   "affected_facts": "2 part(s) are reached by it: Redact, IsPiiParameter.",
+   "affected_src": "ai"
+  },
+  "module:Audit": {
+   "affected": "3 part(s) are reached by it: Redact, IsPiiParameter, HandleAsync."
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "affected": "InMemoryEventBus.PublishAsync dispatches the new CustomerRegistered, CustomerVerified, and CustomerRejected events published by CustomerService.",
+   "affected_facts": "1 part(s) are reached by it: PublishAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Auth.Application.CurrentUser": {
+   "affected": "CurrentUser.IsInRole is invoked by CustomerService.VerifyAsync and RejectAsync to enforce the ComplianceOfficer role.",
+   "affected_facts": "1 part(s) are reached by it: IsInRole.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Shared.Settings.BankSettings": {
+   "affected": "BankSettings currency and limit settings interact with AccountService.OpenAsync alongside the new KYC account-opening rule.",
+   "affected_facts": "3 part(s) are reached by it: DefaultCurrency, DailyTransferLimit, SupportedCurrencies.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+   "affected": "AuditEventHandler.HandleAsync receives the new customer lifecycle events dispatched through IEventBus.",
+   "affected_facts": "1 part(s) are reached by it: HandleAsync.",
+   "affected_src": "ai"
+  }
+ },
+ "verdict": {
+  "label": "fix",
+  "reasons": [
+   {
+    "kind": "critical",
+    "level": "fix",
+    "text": "Class-level Customer policy prevents compliance officers from verifying or rejecting registrations",
+    "finding": "C01",
+    "node": "T:Bank.Modules.Customers.Api.CustomersController",
+    "detail": "no failing test reaches it",
+    "tests": [],
+    "claim": "In ASP.NET Core, Authorize attributes combine cumulatively across controller and action levels. Because [Authorize(Policy = Policies.Customer)] is declared on the CustomersController class, Verify and Reject require callers to satisfy both Customer and Compliance policies simultaneously, blocking compliance officers who do not hold customer credentials.",
+    "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from the CustomersController class declaration so that each action's method-level [Authorize] attribute controls access independently.",
+    "file": "src/Bank.Api/Modules/Customers/Api/CustomersController.cs",
+    "line_start": 14,
+    "evidence": "[Authorize(Policy = Policies.Customer)]",
+    "evidence_verified": true,
+    "dimension": "correctness",
+    "severity": "Blocker",
+    "say": "Compliance officers cannot verify or reject customer registrations unless they also hold a customer account. Ask the author to remove the class-level policy from CustomersController so staff can review applications.",
+    "say_facts": "Because [Authorize(Policy = Policies.Customer)] is declared on the CustomersController class, Verify and Reject require callers to satisfy both Customer and Compliance policies simultaneously, blocking compliance officers who do not hold customer credentials. Ask for a fix before merging.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "critical",
+    "level": "fix",
+    "text": "Class-level Authorize attribute inadvertently requires Customer policy on Compliance endpoints",
+    "finding": "S01",
+    "node": "T:Bank.Modules.Customers.Api.CustomersController",
+    "detail": "no failing test reaches it",
+    "tests": [],
+    "claim": "In ASP.NET Core, class-level and action-level [Authorize] attributes are combined with logical AND. Specifying [Authorize(Policy = Policies.Customer)] on CustomersController forces callers of Verify and Reject to satisfy both Policies.Customer and Policies.Compliance, causing HTTP 403 Forbidden for compliance officers who do not possess the Customer role.",
+    "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from line 14 on CustomersController so that endpoints rely strictly on their individual method-level [Authorize] attributes.",
+    "file": "src/Bank.Api/Modules/Customers/Api/CustomersController.cs",
+    "line_start": 14,
+    "evidence": "[Authorize(Policy = Policies.Customer)]",
+    "evidence_verified": true,
+    "dimension": "safety",
+    "severity": "Blocker",
+    "say": "Compliance staff will be blocked with access denied errors when trying to approve or reject applicants. Check CustomersController and ensure compliance endpoints do not also require customer permissions.",
+    "say_facts": "Specifying [Authorize(Policy = Policies.Customer)] on CustomersController forces callers of Verify and Reject to satisfy both Policies.Customer and Policies.Compliance, causing HTTP 403 Forbidden for compliance officers who do not possess the Customer role. Ask for a fix before merging.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "business",
+    "level": "check",
+    "text": "High business impact",
+    "detail": "New applicants aged 18 or older must register and wait for a compliance officer other than themselves to verify their identity before opening a bank account. Unverified or underage applicants are blocked from opening accounts.",
+    "say": "Underage or unverified applicants are blocked from opening bank accounts, and staff cannot verify their own applications. Verify that these onboarding safeguards and conflict-of-interest rules match bank policy.",
+    "say_facts": "This change has a high impact on customers or money: New applicants aged 18 or older must register and wait for a compliance officer other than themselves to verify their identity before opening a bank account. Unverified or underage applicants are blocked from opening accounts. Confirm the business owner agrees.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Redundant and conflicting controller-level Authorize attribute",
+    "finding": "M01",
+    "node": "T:Bank.Modules.Customers.Api.CustomersController",
+    "detail": "maintainability",
+    "claim": "Applying [Authorize(Policy = Policies.Customer)] at the class level causes ASP.NET Core to evaluate it conjunctively for every action in the controller. This makes lines 27 and 46 redundant and inadvertently forces Verify and Reject (lines 56 and 79) to require both Customer and Compliance policies, risking authorization failures for compliance officers.",
+    "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from the CustomersController class declaration so that each action exclusively enforces its own explicit Authorize policy.",
+    "file": "src/Bank.Api/Modules/Customers/Api/CustomersController.cs",
+    "line_start": 14,
+    "evidence": "[Authorize(Policy = Policies.Customer)]",
+    "evidence_verified": true,
+    "dimension": "maintainability",
+    "severity": "ShouldFix",
+    "say": "The controller-level customer access rule makes individual customer endpoint rules redundant and blocks compliance staff from reviewing applications. Ask the author to restrict the customer policy to customer endpoints only.",
+    "say_facts": "This makes lines 27 and 46 redundant and inadvertently forces Verify and Reject (lines 56 and 79) to require both Customer and Compliance policies, risking authorization failures for compliance officers. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "CustomersController endpoints lack unit or integration tests",
+    "finding": "T01",
+    "node": "T:Bank.Modules.Customers.Api.CustomersController",
+    "detail": "tests",
+    "claim": "The newly introduced CustomersController and its four endpoints (Register, Me, Verify, Reject) have no unit or integration tests. Routing, HTTP status code mapping (200, 400, 403, 404, 409), and policy authorization attributes ([Authorize(Policy = ...)]) are entirely unexercised by the test suite.",
+    "suggested_fix": "Add controller tests verifying endpoint execution, status code translation for exceptions (BadRequest, Forbid, NotFound, Conflict), and authorization policy metadata.",
+    "file": "src/Bank.Api/Modules/Customers/Api/CustomersController.cs",
+    "line_start": 15,
+    "evidence": "public sealed class CustomersController : ControllerBase",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "None of the four new customer and compliance endpoints have automated tests for access rules or responses. Ask the author to add tests proving unauthorized users are blocked and errors return properly.",
+    "say_facts": "Routing, HTTP status code mapping (200, 400, 403, 404, 409), and policy authorization attributes ([Authorize(Policy = ...)]) are entirely unexercised by the test suite. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "untested",
+    "level": "check",
+    "text": "11 changed method(s) have no usable test evidence",
+    "nodes": [
+     "M:Bank.Modules.Customers.Api.CustomersController.#ctor(Bank.Modules.Customers.Application.ICustomerService,Bank.Modules.Auth.Application.ICurrentUser)",
+     "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)",
+     "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Customers.Api.CustomersController.Reject(System.String,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)"
+    ],
+    "detail": "CustomersController.CustomersController(), CustomersController.Register(), CustomersController.Me(), CustomersController.Verify()",
+    "say": "Eleven new or changed methods, including the registration, profile, and verification endpoints, lack test evidence. Ask for test coverage proving customer onboarding and staff verification work reliably before approving.",
+    "say_facts": "11 changed parts of the code are not covered by any working test. Read them yourself or ask for tests.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "reviewer",
+    "level": "check",
+    "text": "Reviewer asks a human to check What",
+    "detail": "Requirement match is partial: The domain logic, service workflows, PII annotations, and account opening validation rules align with the specification. However, CustomersController adds [Authorize(Policy = Policies.Customer)] at the class level, causing verify and reject endpoints to combine Customer and Compliance policies and preventing compliance officers without the Customer role from accessing",
+    "say": "Core onboarding logic and age checks match requirements, except compliance staff without customer access are blocked from verifying applicants. Confirm the controller access rules are fixed before signing off.",
+    "say_facts": "The reviewer is not sure the change does everything the requirement asks. Compare the change with the requirement.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "reviewer",
+    "level": "check",
+    "text": "Reviewer asks a human to check Where",
+    "detail": "Tier HIGH → full human read and 2 sign-off(s) required",
+    "say": "This high-risk change affects customer onboarding and identity checks. Perform a full read of the pull request and ensure two human reviewers sign off before merging.",
+    "say_facts": "The change touches a sensitive part of the bank. Check that only the intended places changed.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "not_checked",
+    "level": "info",
+    "text": "Not checked at this coverage level: Requirement",
+    "say": "Not checked (switched off by the team's coverage level, or did not run): Requirement. Not counted as passed; trust cannot be High."
+   }
+  ],
+  "risk_areas": [
+   {
+    "module": "Customers",
+    "why": "Identity checks (KYC) and personal data"
+   },
+   {
+    "module": "Platform",
+    "why": "Database schema, wiring and bank-wide settings touch every module"
+   }
+  ],
+  "reviewer_gate": "BLOCKED",
+  "failures": {
+   "new": 0,
+   "broken": 0,
+   "inherited": 0,
+   "cases_failed": 0
+  }
+ },
+ "units": {
+  "M:Bank.Modules.Customers.Api.CustomersController.#ctor(Bank.Modules.Customers.Application.ICustomerService,Bank.Modules.Auth.Application.ICurrentUser)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.Reject(System.String,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Events_audit_logs_and_exceptions_do_not_expose_pii",
+     "Get_returns_customer_when_exists_and_null_when_missing",
+     "Kyc_rule_allows_verified_customer",
+     "Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+     "Register_accepts_applicant_turning_18_on_clock_date",
+     "Register_creates_pending_customer_for_current_user_and_publishes_event",
+     "Register_rejects_applicant_one_day_under_18_on_clock_date",
+     "Register_rejects_null_empty_or_whitespace_fields",
+     "Register_rejects_underage_applicant_even_when_days_exceed_365_times_18",
+     "Register_uses_clock_rather_than_system_time_for_age_check"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Events_audit_logs_and_exceptions_do_not_expose_pii",
+     "Kyc_rule_allows_verified_customer",
+     "Verify_and_reject_already_decided_customer_throw_invalid_operation",
+     "Verify_and_reject_by_non_compliance_role_throw_unauthorized",
+     "Verify_and_reject_unknown_customer_throw_key_not_found",
+     "Verify_by_compliance_officer_updates_status_persists_and_publishes_event"
+    ],
+    "passed_n": 8,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Events_audit_logs_and_exceptions_do_not_expose_pii",
+     "Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+     "Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+     "Verify_and_reject_already_decided_customer_throw_invalid_operation",
+     "Verify_and_reject_by_non_compliance_role_throw_unauthorized",
+     "Verify_and_reject_unknown_customer_throw_key_not_found"
+    ],
+    "passed_n": 8,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.GetAsync(System.String,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Get_returns_customer_when_exists_and_null_when_missing"
+    ],
+    "passed_n": 1,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.#ctor(Bank.Data.BankDbContext)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Kyc_rule_allows_verified_customer",
+     "Kyc_rule_blocks_unknown_pending_and_rejected_customers"
+    ],
+    "passed_n": 5,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.CustomersModule.AddCustomersModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Domain.Customer.#ctor": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Id": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Customer_reject_transitions_pending_to_rejected_and_sets_decided_by",
+     "Customer_verify_or_reject_when_not_pending_throws_invalid_operation",
+     "Customer_verify_transitions_pending_to_verified_and_sets_decided_by",
+     "Events_audit_logs_and_exceptions_do_not_expose_pii",
+     "Get_returns_customer_when_exists_and_null_when_missing",
+     "Kyc_rule_allows_verified_customer",
+     "Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+     "Register_accepts_applicant_turning_18_on_clock_date"
+    ],
+    "passed_n": 23,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.FullName": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Customer_reject_transitions_pending_to_rejected_and_sets_decided_by",
+     "Customer_verify_or_reject_when_not_pending_throws_invalid_operation",
+     "Customer_verify_transitions_pending_to_verified_and_sets_decided_by",
+     "Events_audit_logs_and_exceptions_do_not_expose_pii",
+     "Get_returns_customer_when_exists_and_null_when_missing",
+     "Kyc_rule_allows_verified_customer",
+     "Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+     "Register_accepts_applicant_turning_18_on_clock_date",
+     "Register_creates_pending_customer_for_current_user_and_publishes_event",
+     "Register_rejects_applicant_one_day_under_18_on_clock_date"
+    ],
+    "passed_n": 20,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Email": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Customer_reject_transitions_pending_to_rejected_and_sets_decided_by",
+     "Customer_verify_or_reject_when_not_pending_throws_invalid_operation",
+     "Customer_verify_transitions_pending_to_verified_and_sets_decided_by",
+     "Events_audit_logs_and_exceptions_do_not_expose_pii",
+     "Get_returns_customer_when_exists_and_null_when_missing",
+     "Kyc_rule_allows_verified_customer",
+     "Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+     "Register_accepts_applicant_turning_18_on_clock_date",
+     "Register_creates_pending_customer_for_current_user_and_publishes_event",
+     "Register_rejects_applicant_one_day_under_18_on_clock_date"
+    ],
+    "passed_n": 20,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.NationalId": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Customer_reject_transitions_pending_to_rejected_and_sets_decided_by",
+     "Customer_verify_or_reject_when_not_pending_throws_invalid_operation",
+     "Customer_verify_transitions_pending_to_verified_and_sets_decided_by",
+     "Events_audit_logs_and_exceptions_do_not_expose_pii",
+     "Get_returns_customer_when_exists_and_null_when_missing",
+     "Kyc_rule_allows_verified_customer",
+     "Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+     "Register_accepts_applicant_turning_18_on_clock_date",
+     "Register_creates_pending_customer_for_current_user_and_publishes_event",
+     "Register_rejects_applicant_one_day_under_18_on_clock_date"
+    ],
+    "passed_n": 20,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Status": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Customer_reject_transitions_pending_to_rejected_and_sets_decided_by",
+     "Customer_starts_with_pending_status",
+     "Customer_verify_transitions_pending_to_verified_and_sets_decided_by",
+     "Kyc_rule_allows_verified_customer",
+     "Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+     "Register_accepts_applicant_turning_18_on_clock_date",
+     "Register_creates_pending_customer_for_current_user_and_publishes_event",
+     "Register_uses_clock_rather_than_system_time_for_age_check"
+    ],
+    "passed_n": 15,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Domain.Customer.Verify(System.String)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Customer_verify_or_reject_when_not_pending_throws_invalid_operation",
+     "Customer_verify_transitions_pending_to_verified_and_sets_decided_by",
+     "Events_audit_logs_and_exceptions_do_not_expose_pii",
+     "Kyc_rule_allows_verified_customer",
+     "Verify_and_reject_already_decided_customer_throw_invalid_operation",
+     "Verify_and_reject_by_non_compliance_role_throw_unauthorized",
+     "Verify_and_reject_unknown_customer_throw_key_not_found",
+     "Verify_by_compliance_officer_updates_status_persists_and_publishes_event"
+    ],
+    "passed_n": 10,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Customers.Domain.Customer.Reject(System.String)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Customer_reject_transitions_pending_to_rejected_and_sets_decided_by",
+     "Customer_verify_or_reject_when_not_pending_throws_invalid_operation",
+     "Events_audit_logs_and_exceptions_do_not_expose_pii",
+     "Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+     "Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+     "Verify_and_reject_already_decided_customer_throw_invalid_operation",
+     "Verify_and_reject_by_non_compliance_role_throw_unauthorized",
+     "Verify_and_reject_unknown_customer_throw_key_not_found"
+    ],
+    "passed_n": 10,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening"
+    ],
+    "passed_n": 3,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)",
+    "calls"
+   ],
+   "direction": "depends on the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+    "calls"
+   ],
+   "direction": "depends on the change",
+   "hops": 4
+  },
+  "F:Bank.Modules.Auth.Roles.ComplianceOfficer": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Events_audit_logs_and_exceptions_do_not_expose_pii",
+     "Kyc_rule_allows_verified_customer",
+     "Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+     "Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+     "Verify_and_reject_already_decided_customer_throw_invalid_operation",
+     "Verify_and_reject_by_non_compliance_role_throw_unauthorized",
+     "Verify_and_reject_unknown_customer_throw_key_not_found",
+     "Verify_by_compliance_officer_updates_status_persists_and_publishes_event"
+    ],
+    "passed_n": 10,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Events_audit_logs_and_exceptions_do_not_expose_pii",
+     "Get_returns_customer_when_exists_and_null_when_missing",
+     "Kyc_rule_allows_verified_customer",
+     "Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+     "Register_accepts_applicant_turning_18_on_clock_date",
+     "Register_creates_pending_customer_for_current_user_and_publishes_event",
+     "Register_rejects_applicant_one_day_under_18_on_clock_date",
+     "Register_rejects_null_empty_or_whitespace_fields",
+     "Register_rejects_underage_applicant_even_when_days_exceed_365_times_18",
+     "Register_uses_clock_rather_than_system_time_for_age_check"
+    ],
+    "passed_n": 17,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Customers.CustomerTests.Register_creates_pending_customer_for_current_user_and_publishes_event",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening"
+    ],
+    "passed_n": 3,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening"
+    ],
+    "passed_n": 3,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Customers.CustomerTests.Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Events_audit_logs_and_exceptions_do_not_expose_pii"
+    ],
+    "passed_n": 1,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Customers.CustomerTests.Events_audit_logs_and_exceptions_do_not_expose_pii",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Events_audit_logs_and_exceptions_do_not_expose_pii",
+     "Get_returns_customer_when_exists_and_null_when_missing",
+     "Kyc_rule_allows_verified_customer",
+     "Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+     "Register_accepts_applicant_turning_18_on_clock_date",
+     "Register_creates_pending_customer_for_current_user_and_publishes_event",
+     "Register_rejects_applicant_one_day_under_18_on_clock_date",
+     "Register_rejects_null_empty_or_whitespace_fields"
+    ],
+    "passed_n": 20,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Events_audit_logs_and_exceptions_do_not_expose_pii",
+     "Kyc_rule_allows_verified_customer",
+     "Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+     "Reject_by_compliance_officer_updates_status_persists_and_publishes_event",
+     "Verify_and_reject_already_decided_customer_throw_invalid_operation",
+     "Verify_and_reject_by_non_compliance_role_throw_unauthorized",
+     "Verify_and_reject_unknown_customer_throw_key_not_found",
+     "Verify_by_compliance_officer_updates_status_persists_and_publishes_event"
+    ],
+    "passed_n": 10,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening"
+    ],
+    "passed_n": 3,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening"
+    ],
+    "passed_n": 3,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Shared.Settings.BankSettings.SupportedCurrencies": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening"
+    ],
+    "passed_n": 3,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening"
+    ],
+    "passed_n": 3,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening"
+    ],
+    "passed_n": 3,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Audit.Application.AuditLog.IsPiiParameter(System.Type,System.String)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Events_audit_logs_and_exceptions_do_not_expose_pii"
+    ],
+    "passed_n": 1,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "New_account_uses_the_default_currency_and_belongs_to_the_caller",
+     "Unsupported_currency_is_refused",
+     "Account_service_with_kyc_rule_enforces_verified_kyc_before_opening",
+     "Compliance_officer_cannot_self_verify_or_self_reject",
+     "Events_audit_logs_and_exceptions_do_not_expose_pii",
+     "Get_returns_customer_when_exists_and_null_when_missing",
+     "Kyc_rule_allows_verified_customer",
+     "Kyc_rule_blocks_unknown_pending_and_rejected_customers",
+     "Register_accepts_applicant_turning_18_on_clock_date",
+     "Register_creates_pending_customer_for_current_user_and_publishes_event",
+     "Register_rejects_applicant_one_day_under_18_on_clock_date",
+     "Register_rejects_null_empty_or_whitespace_fields"
+    ],
+    "passed_n": 20,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 4
+  }
+ },
+ "roll": {
+  "M:Bank.Modules.Customers.Api.CustomersController.#ctor(Bank.Modules.Customers.Application.ICustomerService,Bank.Modules.Auth.Application.ICurrentUser)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.#ctor(Bank.Modules.Customers.Application.ICustomerService,Bank.Modules.Auth.Application.ICurrentUser)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Customers.Api.CustomersController": {
+   "changed": {
+    "n": 6,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 6,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.#ctor(Bank.Modules.Customers.Application.ICustomerService,Bank.Modules.Auth.Application.ICurrentUser)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.071,
+    "lo": 0.0,
+    "hi": 0.33
+   },
+   "affected": null
+  },
+  "layer:Customers/Api": {
+   "changed": {
+    "n": 6,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 6,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.#ctor(Bank.Modules.Customers.Application.ICustomerService,Bank.Modules.Auth.Application.ICurrentUser)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.071,
+    "lo": 0.0,
+    "hi": 0.33
+   },
+   "affected": null
+  },
+  "module:Customers": {
+   "changed": {
+    "n": 22,
+    "verified": 12,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 10,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.#ctor(Bank.Modules.Customers.Application.ICustomerService,Bank.Modules.Auth.Application.ICurrentUser)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 55,
+    "conf": 0.543,
+    "lo": 0.343,
+    "hi": 0.737
+   },
+   "affected": null
+  },
+  "pr": {
+   "changed": {
+    "n": 23,
+    "verified": 12,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 11,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.#ctor(Bank.Modules.Customers.Application.ICustomerService,Bank.Modules.Auth.Application.ICurrentUser)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 52,
+    "conf": 0.521,
+    "lo": 0.325,
+    "hi": 0.713
+   },
+   "affected": {
+    "n": 16,
+    "verified": 15,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 94,
+    "conf": 0.912,
+    "lo": 0.743,
+    "hi": 0.993
+   }
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Register(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Me(System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Verify(System.String,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.Reject(System.String,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.Reject(System.String,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Api.CustomersController.ToDto(Bank.Modules.Customers.Domain.Customer)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Application.CustomerService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Customers.Application.CustomerService": {
+   "changed": {
+    "n": 5,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Application.CustomerService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 80,
+    "conf": 0.75,
+    "lo": 0.371,
+    "hi": 0.977
+   },
+   "affected": null
+  },
+  "layer:Customers/Application": {
+   "changed": {
+    "n": 7,
+    "verified": 5,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 2,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Application.CustomerService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.#ctor(Bank.Data.BankDbContext)",
+      "none"
+     ]
+    ],
+    "pct": 71,
+    "conf": 0.688,
+    "lo": 0.352,
+    "hi": 0.935
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.RegisterAsync(Bank.Modules.Customers.Application.RegisterCustomerRequest,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.VerifyAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.RejectAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.Application.CustomerService.GetAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.#ctor(Bank.Data.BankDbContext)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.#ctor(Bank.Data.BankDbContext)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Customers.Application.KycAccountOpeningRule": {
+   "changed": {
+    "n": 2,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.#ctor(Bank.Data.BankDbContext)",
+      "none"
+     ]
+    ],
+    "pct": 50,
+    "conf": 0.5,
+    "lo": 0.061,
+    "hi": 0.939
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.Application.KycAccountOpeningRule.EnsureMayOpenAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.CustomersModule.AddCustomersModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.CustomersModule.AddCustomersModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Customers.CustomersModule": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.CustomersModule.AddCustomersModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "layer:Customers/Wiring": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.CustomersModule.AddCustomersModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.Domain.Customer.#ctor": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Domain.Customer.#ctor",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Customers.Domain.Customer": {
+   "changed": {
+    "n": 8,
+    "verified": 7,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Domain.Customer.#ctor",
+      "none"
+     ]
+    ],
+    "pct": 88,
+    "conf": 0.833,
+    "lo": 0.546,
+    "hi": 0.986
+   },
+   "affected": null
+  },
+  "layer:Customers/Domain": {
+   "changed": {
+    "n": 8,
+    "verified": 7,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Customers.Domain.Customer.#ctor",
+      "none"
+     ]
+    ],
+    "pct": 88,
+    "conf": 0.833,
+    "lo": 0.546,
+    "hi": 0.986
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Id": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.FullName": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Email": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.NationalId": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Customers.Domain.Customer.Status": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.Domain.Customer.Verify(System.String)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Customers.Domain.Customer.Reject(System.String)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Program": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "layer:Platform/Host": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "module:Platform": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.OpenAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Accounts/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "module:Accounts": {
+   "changed": null,
+   "affected": {
+    "n": 6,
+    "verified": 5,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 83,
+    "conf": 0.786,
+    "lo": 0.442,
+    "hi": 0.981
+   }
+  },
+  "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Accounts.Api.AccountsController": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "layer:Accounts/Api": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Api.AccountsController.Open(Bank.Modules.Accounts.Api.OpenAccountRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "F:Bank.Modules.Auth.Roles.ComplianceOfficer": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Auth.Roles": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "layer:Auth/Wiring": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "module:Auth": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "layer:Accounts/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Audit.Application.AuditLog": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "layer:Audit/Application": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "module:Audit": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Platform/Shared": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Auth.Application.CurrentUser": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Auth/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Shared.Settings.BankSettings": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.SupportedCurrencies": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Audit.Application.AuditLog.IsPiiParameter(System.Type,System.String)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  }
+ },
+ "tests_ran": true,
+ "findings_at": {
+  "T:Bank.Modules.Customers.Api.CustomersController": [
+   "C01",
+   "S01",
+   "M01",
+   "T01"
+  ]
+ },
+ "trust": {
+  "level": "low",
+  "why": "the PR is labelled Fix before merge"
+ }
+}

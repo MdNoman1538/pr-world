@@ -1,0 +1,1818 @@
+{
+ "changed": {
+  "T:Bank.Data.BankDbContext": "contains",
+  "P:Bank.Data.BankDbContext.Cards": "new",
+  "T:Bank.Modules.Cards.Api.IssueCardRequest": "new",
+  "M:Bank.Modules.Cards.Api.IssueCardRequest.#ctor(System.Guid)": "new",
+  "P:Bank.Modules.Cards.Api.IssueCardRequest.AccountId": "new",
+  "T:Bank.Modules.Cards.Api.AuthoriseCardRequest": "new",
+  "M:Bank.Modules.Cards.Api.AuthoriseCardRequest.#ctor(System.Decimal,System.String)": "new",
+  "P:Bank.Modules.Cards.Api.AuthoriseCardRequest.Amount": "new",
+  "P:Bank.Modules.Cards.Api.AuthoriseCardRequest.Merchant": "new",
+  "T:Bank.Modules.Cards.Api.CardDto": "new",
+  "M:Bank.Modules.Cards.Api.CardDto.#ctor(System.Guid,System.Guid,System.String,System.String,Bank.Modules.Cards.Domain.CardStatus,System.Decimal)": "new",
+  "P:Bank.Modules.Cards.Api.CardDto.Id": "new",
+  "P:Bank.Modules.Cards.Api.CardDto.AccountId": "new",
+  "P:Bank.Modules.Cards.Api.CardDto.CustomerId": "new",
+  "P:Bank.Modules.Cards.Api.CardDto.Last4": "new",
+  "P:Bank.Modules.Cards.Api.CardDto.Status": "new",
+  "P:Bank.Modules.Cards.Api.CardDto.PerTransactionLimit": "new",
+  "T:Bank.Modules.Cards.Api.CardsController": "new",
+  "F:Bank.Modules.Cards.Api.CardsController._cards": "new",
+  "M:Bank.Modules.Cards.Api.CardsController.#ctor(Bank.Modules.Cards.Application.ICardService)": "new",
+  "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Api.CardsController.Cancel(System.Guid,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Api.CardsController.Authorise(System.Guid,Bank.Modules.Cards.Api.AuthoriseCardRequest,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)": "new",
+  "T:Bank.Modules.Cards.Application.CardAuthorisation": "new",
+  "M:Bank.Modules.Cards.Application.CardAuthorisation.#ctor(System.Boolean,System.String,System.Nullable{System.Guid})": "new",
+  "P:Bank.Modules.Cards.Application.CardAuthorisation.Approved": "new",
+  "P:Bank.Modules.Cards.Application.CardAuthorisation.DeclineReason": "new",
+  "P:Bank.Modules.Cards.Application.CardAuthorisation.TransferId": "new",
+  "T:Bank.Modules.Cards.Application.ICardService": "new",
+  "M:Bank.Modules.Cards.Application.ICardService.IssueAsync(System.Guid,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Application.ICardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Application.ICardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Application.ICardService.CancelAsync(System.Guid,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Application.ICardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": "new",
+  "T:Bank.Modules.Cards.Application.CardService": "new",
+  "F:Bank.Modules.Cards.Application.CardService.AccountLocks": "new",
+  "F:Bank.Modules.Cards.Application.CardService._db": "new",
+  "F:Bank.Modules.Cards.Application.CardService._ledger": "new",
+  "F:Bank.Modules.Cards.Application.CardService._accounts": "new",
+  "F:Bank.Modules.Cards.Application.CardService._user": "new",
+  "F:Bank.Modules.Cards.Application.CardService._clock": "new",
+  "F:Bank.Modules.Cards.Application.CardService._bus": "new",
+  "M:Bank.Modules.Cards.Application.CardService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": "new",
+  "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Application.CardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Application.CardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Application.CardService.CancelAsync(System.Guid,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Application.CardService.GetOwnedCardAsync(System.Guid,System.Threading.CancellationToken)": "new",
+  "M:Bank.Modules.Cards.Application.CardService.GenerateCardNumber": "new",
+  "T:Bank.Modules.Cards.CardsModule": "new",
+  "M:Bank.Modules.Cards.CardsModule.AddCardsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": "new",
+  "T:Bank.Modules.Cards.Domain.CardStatus": "new",
+  "F:Bank.Modules.Cards.Domain.CardStatus.Active": "new",
+  "F:Bank.Modules.Cards.Domain.CardStatus.Frozen": "new",
+  "F:Bank.Modules.Cards.Domain.CardStatus.Cancelled": "new",
+  "T:Bank.Modules.Cards.Domain.Card": "new",
+  "M:Bank.Modules.Cards.Domain.Card.#ctor": "new",
+  "P:Bank.Modules.Cards.Domain.Card.Id": "new",
+  "P:Bank.Modules.Cards.Domain.Card.AccountId": "new",
+  "P:Bank.Modules.Cards.Domain.Card.CustomerId": "new",
+  "P:Bank.Modules.Cards.Domain.Card.Number": "new",
+  "P:Bank.Modules.Cards.Domain.Card.Last4": "new",
+  "P:Bank.Modules.Cards.Domain.Card.Status": "new",
+  "P:Bank.Modules.Cards.Domain.Card.PerTransactionLimit": "new",
+  "M:Bank.Modules.Cards.Domain.Card.Freeze": "new",
+  "M:Bank.Modules.Cards.Domain.Card.Unfreeze": "new",
+  "M:Bank.Modules.Cards.Domain.Card.Cancel": "new",
+  "T:Bank.Modules.Cards.Domain.CardIssued": "new",
+  "M:Bank.Modules.Cards.Domain.CardIssued.#ctor(System.Guid,System.String,System.String,System.DateTimeOffset)": "new",
+  "P:Bank.Modules.Cards.Domain.CardIssued.CardId": "new",
+  "P:Bank.Modules.Cards.Domain.CardIssued.CustomerId": "new",
+  "P:Bank.Modules.Cards.Domain.CardIssued.Last4": "new",
+  "P:Bank.Modules.Cards.Domain.CardIssued.OccurredAt": "new",
+  "T:Bank.Modules.Cards.Domain.CardPaymentAuthorised": "new",
+  "M:Bank.Modules.Cards.Domain.CardPaymentAuthorised.#ctor(System.Guid,System.Decimal,System.String,System.String,System.DateTimeOffset)": "new",
+  "P:Bank.Modules.Cards.Domain.CardPaymentAuthorised.CardId": "new",
+  "P:Bank.Modules.Cards.Domain.CardPaymentAuthorised.Amount": "new",
+  "P:Bank.Modules.Cards.Domain.CardPaymentAuthorised.Currency": "new",
+  "P:Bank.Modules.Cards.Domain.CardPaymentAuthorised.Merchant": "new",
+  "P:Bank.Modules.Cards.Domain.CardPaymentAuthorised.OccurredAt": "new",
+  "T:Bank.Modules.Cards.Domain.CardPaymentDeclined": "new",
+  "M:Bank.Modules.Cards.Domain.CardPaymentDeclined.#ctor(System.Guid,System.String,System.DateTimeOffset)": "new",
+  "P:Bank.Modules.Cards.Domain.CardPaymentDeclined.CardId": "new",
+  "P:Bank.Modules.Cards.Domain.CardPaymentDeclined.Reason": "new",
+  "P:Bank.Modules.Cards.Domain.CardPaymentDeclined.OccurredAt": "new",
+  "M:Program.{Main}$(System.String[])": "modified",
+  "T:Bank.Tests.Cards.CardTests": "new",
+  "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])": "new",
+  "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued": "new",
+  "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_non_owner_with_UnauthorizedAccessException": "new",
+  "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_unknown_account_with_UnauthorizedAccessException": "new",
+  "M:Bank.Tests.Cards.CardTests.FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen": "new",
+  "M:Bank.Tests.Cards.CardTests.CancelAsync_cancels_active_and_frozen_cards": "new",
+  "M:Bank.Tests.Cards.CardTests.Lifecycle_operations_reject_non_owner_without_changing_status": "new",
+  "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods": "new",
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event": "new",
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_uses_account_currency_for_Suspense_and_event": "new",
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance": "new",
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places(System.Decimal,System.Decimal)": "new",
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(System.Decimal)": "new",
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds": "new",
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_cancelled_card_without_moving_funds": "new",
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit(System.Decimal)": "new",
+  "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_account_has_insufficient_funds": "new",
+  "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number": "new",
+  "table:Cards.Id": "new",
+  "table:Cards.AccountId": "new",
+  "table:Cards.CustomerId": "new",
+  "table:Cards.Number": "new",
+  "table:Cards.Last4": "new",
+  "table:Cards.Status": "new",
+  "table:Cards.PerTransactionLimit": "new",
+  "endpoint:POST /api/cards": "new",
+  "endpoint:POST /api/cards/{id:guid}/freeze": "new",
+  "endpoint:POST /api/cards/{id:guid}/unfreeze": "new",
+  "endpoint:POST /api/cards/{id:guid}/cancel": "new",
+  "endpoint:POST /api/cards/{id:guid}/authorise": "new"
+ },
+ "removed_nodes": [],
+ "new_edges": [
+  [
+   "M:Bank.Modules.Cards.Api.CardsController.Authorise(System.Guid,Bank.Modules.Cards.Api.AuthoriseCardRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Application.ICardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Api.CardsController.Cancel(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Api.CardsController.Cancel(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Application.ICardService.CancelAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Application.ICardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Application.ICardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)",
+   "P:Bank.Modules.Cards.Domain.Card.CustomerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)",
+   "P:Bank.Modules.Cards.Domain.Card.Last4",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)",
+   "P:Bank.Modules.Cards.Domain.Card.PerTransactionLimit",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)",
+   "P:Bank.Modules.Cards.Domain.Card.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Application.ICardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Accounts.Domain.Account.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Cards.Domain.Card.Last4",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Cards.Domain.Card.PerTransactionLimit",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Cards.Domain.Card.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Cards.Domain.CardPaymentAuthorised",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Cards.Domain.CardPaymentDeclined",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "table:Cards",
+   "reads"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.CancelAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Application.CardService.GetOwnedCardAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.CancelAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Domain.Card.Cancel",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Application.CardService.GetOwnedCardAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Domain.Card.Freeze",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.GetOwnedCardAsync(System.Guid,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Cards.Domain.Card.CustomerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.GetOwnedCardAsync(System.Guid,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.GetOwnedCardAsync(System.Guid,System.Threading.CancellationToken)",
+   "table:Cards",
+   "reads"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Application.CardService.GenerateCardNumber",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Cards.Domain.Card.CustomerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Cards.Domain.Card.Last4",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Cards.Domain.Card.Number",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Cards.Domain.Card.PerTransactionLimit",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Cards.Domain.CardIssued",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "table:Cards",
+   "writes"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Application.CardService.GetOwnedCardAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Domain.Card.Unfreeze",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.ICardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.ICardService.CancelAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Application.CardService.CancelAsync(System.Guid,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.ICardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Application.CardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.ICardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.ICardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Cards.Application.CardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Cards.CardsModule.AddCardsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+   "T:Bank.Modules.Cards.Application.CardService",
+   "registers"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "M:Bank.Tests.FakeClock.Advance(System.TimeSpan)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "table:LedgerEntries",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+   "M:Bank.Modules.Cards.Application.CardService.CancelAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_cancelled_card_without_moving_funds",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds",
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds",
+   "M:Bank.Modules.Cards.Application.CardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds",
+   "M:Bank.Tests.FakeClock.Advance(System.TimeSpan)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_frozen_card_without_moving_funds",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_account_has_insufficient_funds",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_account_has_insufficient_funds",
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_account_has_insufficient_funds",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_account_has_insufficient_funds",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_account_has_insufficient_funds",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_account_has_insufficient_funds",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_account_has_insufficient_funds",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_account_has_insufficient_funds",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_account_has_insufficient_funds",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit(System.Decimal)",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit(System.Decimal)",
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit(System.Decimal)",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit(System.Decimal)",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit(System.Decimal)",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit(System.Decimal)",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit(System.Decimal)",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit(System.Decimal)",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_declines_when_rounded_amount_exceeds_per_transaction_limit(System.Decimal)",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(System.Decimal)",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(System.Decimal)",
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(System.Decimal)",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(System.Decimal)",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(System.Decimal)",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(System.Decimal)",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(System.Decimal)",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rejects_amounts_less_than_or_equal_to_zero_after_rounding(System.Decimal)",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places(System.Decimal,System.Decimal)",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places(System.Decimal,System.Decimal)",
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places(System.Decimal,System.Decimal)",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places(System.Decimal,System.Decimal)",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places(System.Decimal,System.Decimal)",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places(System.Decimal,System.Decimal)",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places(System.Decimal,System.Decimal)",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_rounds_amount_AwayFromZero_to_two_decimal_places(System.Decimal,System.Decimal)",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_succeeds_at_exact_2000_limit_and_exact_balance",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_uses_account_currency_for_Suspense_and_event",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CancelAsync_cancels_active_and_frozen_cards",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CancelAsync_cancels_active_and_frozen_cards",
+   "M:Bank.Modules.Cards.Application.CardService.CancelAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CancelAsync_cancels_active_and_frozen_cards",
+   "M:Bank.Modules.Cards.Application.CardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CancelAsync_cancels_active_and_frozen_cards",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CancelAsync_cancels_active_and_frozen_cards",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CancelAsync_cancels_active_and_frozen_cards",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CancelAsync_cancels_active_and_frozen_cards",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CancelAsync_cancels_active_and_frozen_cards",
+   "P:Bank.Modules.Cards.Domain.Card.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CancelAsync_cancels_active_and_frozen_cards",
+   "table:Cards",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods",
+   "M:Bank.Modules.Cards.Application.CardService.CancelAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods",
+   "M:Bank.Modules.Cards.Application.CardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods",
+   "M:Bank.Modules.Cards.Application.CardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods",
+   "M:Bank.Modules.Cards.Domain.Card.Cancel",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods",
+   "M:Bank.Modules.Cards.Domain.Card.Freeze",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods",
+   "M:Bank.Modules.Cards.Domain.Card.Unfreeze",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods",
+   "P:Bank.Modules.Cards.Domain.Card.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Cancelled_is_terminal_for_service_and_domain_methods",
+   "table:Cards",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number",
+   "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number",
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number",
+   "P:Bank.Modules.Cards.Domain.Card.Last4",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number",
+   "P:Bank.Modules.Cards.Domain.Card.Number",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+   "M:Bank.Modules.Cards.Application.CardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+   "M:Bank.Modules.Cards.Application.CardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+   "P:Bank.Modules.Cards.Domain.Card.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.FreezeAsync_and_UnfreezeAsync_transition_card_between_Active_and_Frozen",
+   "table:Cards",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "P:Bank.Modules.Cards.Domain.Card.CustomerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "P:Bank.Modules.Cards.Domain.Card.Last4",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "P:Bank.Modules.Cards.Domain.Card.Number",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "P:Bank.Modules.Cards.Domain.Card.PerTransactionLimit",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "P:Bank.Modules.Cards.Domain.Card.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "table:Cards",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_non_owner_with_UnauthorizedAccessException",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_non_owner_with_UnauthorizedAccessException",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_non_owner_with_UnauthorizedAccessException",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_non_owner_with_UnauthorizedAccessException",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_non_owner_with_UnauthorizedAccessException",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_non_owner_with_UnauthorizedAccessException",
+   "table:Cards",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_unknown_account_with_UnauthorizedAccessException",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_unknown_account_with_UnauthorizedAccessException",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_unknown_account_with_UnauthorizedAccessException",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_unknown_account_with_UnauthorizedAccessException",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_rejects_unknown_account_with_UnauthorizedAccessException",
+   "table:Cards",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Lifecycle_operations_reject_non_owner_without_changing_status",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Lifecycle_operations_reject_non_owner_without_changing_status",
+   "M:Bank.Modules.Cards.Application.CardService.CancelAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Lifecycle_operations_reject_non_owner_without_changing_status",
+   "M:Bank.Modules.Cards.Application.CardService.FreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Lifecycle_operations_reject_non_owner_without_changing_status",
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Lifecycle_operations_reject_non_owner_without_changing_status",
+   "M:Bank.Modules.Cards.Application.CardService.UnfreezeAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Lifecycle_operations_reject_non_owner_without_changing_status",
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Lifecycle_operations_reject_non_owner_without_changing_status",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Lifecycle_operations_reject_non_owner_without_changing_status",
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Lifecycle_operations_reject_non_owner_without_changing_status",
+   "P:Bank.Modules.Cards.Domain.Card.Status",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Lifecycle_operations_reject_non_owner_without_changing_status",
+   "table:Cards",
+   "reads"
+  ],
+  [
+   "P:Bank.Modules.Cards.Domain.Card.AccountId",
+   "table:Cards.AccountId",
+   "maps"
+  ],
+  [
+   "P:Bank.Modules.Cards.Domain.Card.CustomerId",
+   "table:Cards.CustomerId",
+   "maps"
+  ],
+  [
+   "P:Bank.Modules.Cards.Domain.Card.Id",
+   "table:Cards.Id",
+   "maps"
+  ],
+  [
+   "P:Bank.Modules.Cards.Domain.Card.Last4",
+   "table:Cards.Last4",
+   "maps"
+  ],
+  [
+   "P:Bank.Modules.Cards.Domain.Card.Number",
+   "table:Cards.Number",
+   "maps"
+  ],
+  [
+   "P:Bank.Modules.Cards.Domain.Card.PerTransactionLimit",
+   "table:Cards.PerTransactionLimit",
+   "maps"
+  ],
+  [
+   "P:Bank.Modules.Cards.Domain.Card.Status",
+   "table:Cards.Status",
+   "maps"
+  ],
+  [
+   "P:Bank.Shared.Events.IDomainEvent.OccurredAt",
+   "P:Bank.Modules.Cards.Domain.CardIssued.OccurredAt",
+   "resolves"
+  ],
+  [
+   "P:Bank.Shared.Events.IDomainEvent.OccurredAt",
+   "P:Bank.Modules.Cards.Domain.CardPaymentAuthorised.OccurredAt",
+   "resolves"
+  ],
+  [
+   "P:Bank.Shared.Events.IDomainEvent.OccurredAt",
+   "P:Bank.Modules.Cards.Domain.CardPaymentDeclined.OccurredAt",
+   "resolves"
+  ],
+  [
+   "T:Bank.Modules.Cards.Api.CardDto",
+   "T:Bank.Modules.Cards.Domain.CardStatus",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Cards.Api.CardsController",
+   "T:Bank.Modules.Cards.Application.ICardService",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Cards.Application.CardService",
+   "T:Bank.Data.BankDbContext",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Cards.Application.CardService",
+   "T:Bank.Modules.Accounts.Application.IAccountService",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Cards.Application.CardService",
+   "T:Bank.Modules.Auth.Application.ICurrentUser",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Cards.Application.CardService",
+   "T:Bank.Modules.Cards.Application.ICardService",
+   "implements"
+  ],
+  [
+   "T:Bank.Modules.Cards.Application.CardService",
+   "T:Bank.Modules.Ledger.Application.ILedger",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Cards.Application.CardService",
+   "T:Bank.Shared.Events.IEventBus",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Cards.Application.CardService",
+   "T:Bank.Shared.Time.IClock",
+   "injects"
+  ],
+  [
+   "T:Bank.Modules.Cards.Domain.Card",
+   "table:Cards",
+   "maps"
+  ],
+  [
+   "T:Bank.Modules.Cards.Domain.CardIssued",
+   "T:Bank.Shared.Events.IDomainEvent",
+   "implements"
+  ],
+  [
+   "T:Bank.Modules.Cards.Domain.CardPaymentAuthorised",
+   "T:Bank.Shared.Events.IDomainEvent",
+   "implements"
+  ],
+  [
+   "T:Bank.Modules.Cards.Domain.CardPaymentDeclined",
+   "T:Bank.Shared.Events.IDomainEvent",
+   "implements"
+  ],
+  [
+   "endpoint:POST /api/cards",
+   "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)",
+   "routes"
+  ],
+  [
+   "endpoint:POST /api/cards/{id:guid}/authorise",
+   "M:Bank.Modules.Cards.Api.CardsController.Authorise(System.Guid,Bank.Modules.Cards.Api.AuthoriseCardRequest,System.Threading.CancellationToken)",
+   "routes"
+  ],
+  [
+   "endpoint:POST /api/cards/{id:guid}/cancel",
+   "M:Bank.Modules.Cards.Api.CardsController.Cancel(System.Guid,System.Threading.CancellationToken)",
+   "routes"
+  ],
+  [
+   "endpoint:POST /api/cards/{id:guid}/freeze",
+   "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)",
+   "routes"
+  ],
+  [
+   "endpoint:POST /api/cards/{id:guid}/unfreeze",
+   "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)",
+   "routes"
+  ]
+ ],
+ "removed_edges": [],
+ "upstream": {
+  "P:Bank.Shared.Events.IDomainEvent.OccurredAt": 1
+ },
+ "downstream": {
+  "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": 1,
+  "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 1,
+  "T:Bank.Modules.Cards.Domain.CardIssued": 1,
+  "table:Cards": 1,
+  "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": 1,
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": 1,
+  "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": 1,
+  "T:Bank.Modules.Cards.Domain.CardPaymentDeclined": 1,
+  "T:Bank.Modules.Cards.Domain.CardPaymentAuthorised": 1,
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": 1,
+  "M:Bank.Tests.TestKit.Db": 1,
+  "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)": 1,
+  "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)": 1,
+  "F:Bank.Modules.Auth.Roles.Customer": 1,
+  "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)": 1,
+  "P:Bank.Tests.RecordingBus.Events": 1,
+  "P:Bank.Tests.FakeClock.UtcNow": 1,
+  "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)": 1,
+  "M:Bank.Tests.FakeClock.Advance(System.TimeSpan)": 1,
+  "table:LedgerEntries": 1,
+  "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)": 1,
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": 2,
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 2,
+  "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)": 2,
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": 2,
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": 2,
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": 2,
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": 2,
+  "table:Accounts": 2,
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": 2,
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": 2,
+  "P:Bank.Modules.Accounts.Domain.Account.Id": 2,
+  "M:Bank.Modules.Audit.Application.AuditLog.IsPiiParameter(System.Type,System.String)": 2,
+  "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)": 3,
+  "T:Bank.Modules.Ledger.Domain.TransferPosted": 3,
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": 3,
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": 3,
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": 4
+ },
+ "up_via": {
+  "P:Bank.Shared.Events.IDomainEvent.OccurredAt": [
+   "P:Bank.Modules.Cards.Domain.CardIssued.OccurredAt",
+   "resolves"
+  ]
+ },
+ "down_via": {
+  "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "T:Bank.Modules.Cards.Domain.CardIssued": [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "publishes"
+  ],
+  "table:Cards": [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "writes"
+  ],
+  "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "T:Bank.Modules.Cards.Domain.CardPaymentDeclined": [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "publishes"
+  ],
+  "T:Bank.Modules.Cards.Domain.CardPaymentAuthorised": [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "publishes"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "M:Bank.Tests.TestKit.Db": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "calls"
+  ],
+  "F:Bank.Modules.Auth.Roles.Customer": [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "uses"
+  ],
+  "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)": [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "calls"
+  ],
+  "P:Bank.Tests.RecordingBus.Events": [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "uses"
+  ],
+  "P:Bank.Tests.FakeClock.UtcNow": [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "uses"
+  ],
+  "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)": [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "calls"
+  ],
+  "M:Bank.Tests.FakeClock.Advance(System.TimeSpan)": [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "calls"
+  ],
+  "table:LedgerEntries": [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "reads"
+  ],
+  "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)": [
+   "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number",
+   "calls"
+  ],
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": [
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "uses"
+  ],
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "uses"
+  ],
+  "table:Accounts": [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "writes"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "uses"
+  ],
+  "P:Bank.Modules.Accounts.Domain.Account.Id": [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "uses"
+  ],
+  "M:Bank.Modules.Audit.Application.AuditLog.IsPiiParameter(System.Type,System.String)": [
+   "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)",
+   "calls"
+  ],
+  "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  "T:Bank.Modules.Ledger.Domain.TransferPosted": [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "publishes"
+  ],
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "uses"
+  ],
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": [
+   "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+   "resolves"
+  ]
+ },
+ "hot_edges": [
+  [
+   "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)",
+   "M:Bank.Modules.Audit.Application.AuditLog.IsPiiParameter(System.Type,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Accounts.Domain.Account.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Cards.Domain.CardPaymentAuthorised",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.AuthoriseAsync(System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Cards.Domain.CardPaymentDeclined",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Cards.Domain.CardIssued",
+   "publishes"
+  ],
+  [
+   "M:Bank.Modules.Cards.Application.CardService.IssueAsync(System.Guid,System.Threading.CancellationToken)",
+   "table:Cards",
+   "writes"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference",
+   "uses"
+  ],
+  [
+   "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+   "T:Bank.Modules.Ledger.Domain.TransferPosted",
+   "publishes"
+  ],
+  [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "M:Bank.Tests.RecordingBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+   "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)",
+   "resolves"
+  ],
+  [
+   "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+   "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "M:Bank.Tests.FakeClock.Advance(System.TimeSpan)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "M:Bank.Tests.TestKit.Balance(Bank.Data.BankDbContext,System.Guid)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.AuthoriseAsync_approves_payment_moves_funds_to_Suspense_and_publishes_event",
+   "table:LedgerEntries",
+   "reads"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "F:Bank.Modules.Auth.Roles.Customer",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "M:Bank.Tests.TestKit.Db",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "M:Bank.Tests.TestKit.Ledger(Bank.Data.BankDbContext,Bank.Shared.Events.IEventBus,Bank.Shared.Time.IClock)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.CreateSut(System.String,System.String[])",
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.Domain_events_and_audit_redaction_never_expose_full_card_number",
+   "M:Bank.Modules.Audit.Application.AuditLog.Redact(Bank.Shared.Events.IDomainEvent)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "calls"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "P:Bank.Tests.FakeClock.UtcNow",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.Cards.CardTests.IssueAsync_creates_active_card_for_owner_and_publishes_CardIssued",
+   "P:Bank.Tests.RecordingBus.Events",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "P:Bank.Modules.Accounts.Domain.Account.Iban",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "P:Bank.Modules.Accounts.Domain.Account.Id",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+   "table:Accounts",
+   "writes"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+   "uses"
+  ],
+  [
+   "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+   "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+   "uses"
+  ],
+  [
+   "P:Bank.Shared.Events.IDomainEvent.OccurredAt",
+   "P:Bank.Modules.Cards.Domain.CardIssued.OccurredAt",
+   "resolves"
+  ]
+ ],
+ "modules": {
+  "Platform": "changed",
+  "Accounts": "impacted",
+  "Cards": "changed",
+  "Database": "changed",
+  "Ledger": "impacted",
+  "Tests": "changed",
+  "Auth": "impacted",
+  "Audit": "impacted"
+ },
+ "untested_changed": [
+  "M:Bank.Modules.Cards.Api.IssueCardRequest.#ctor(System.Guid)",
+  "M:Bank.Modules.Cards.Api.AuthoriseCardRequest.#ctor(System.Decimal,System.String)",
+  "M:Bank.Modules.Cards.Api.CardDto.#ctor(System.Guid,System.Guid,System.String,System.String,Bank.Modules.Cards.Domain.CardStatus,System.Decimal)",
+  "M:Bank.Modules.Cards.Api.CardsController.#ctor(Bank.Modules.Cards.Application.ICardService)",
+  "M:Bank.Modules.Cards.Api.CardsController.Issue(Bank.Modules.Cards.Api.IssueCardRequest,System.Threading.CancellationToken)",
+  "M:Bank.Modules.Cards.Api.CardsController.Freeze(System.Guid,System.Threading.CancellationToken)",
+  "M:Bank.Modules.Cards.Api.CardsController.Unfreeze(System.Guid,System.Threading.CancellationToken)",
+  "M:Bank.Modules.Cards.Api.CardsController.Cancel(System.Guid,System.Threading.CancellationToken)",
+  "M:Bank.Modules.Cards.Api.CardsController.Authorise(System.Guid,Bank.Modules.Cards.Api.AuthoriseCardRequest,System.Threading.CancellationToken)",
+  "M:Bank.Modules.Cards.Api.CardsController.ToDto(Bank.Modules.Cards.Domain.Card)",
+  "M:Bank.Modules.Cards.Application.CardAuthorisation.#ctor(System.Boolean,System.String,System.Nullable{System.Guid})",
+  "M:Bank.Modules.Cards.Application.CardService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+  "M:Bank.Modules.Cards.Application.CardService.GetOwnedCardAsync(System.Guid,System.Threading.CancellationToken)",
+  "M:Bank.Modules.Cards.Application.CardService.GenerateCardNumber",
+  "M:Bank.Modules.Cards.CardsModule.AddCardsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+  "M:Bank.Modules.Cards.Domain.Card.#ctor",
+  "M:Bank.Modules.Cards.Domain.CardIssued.#ctor(System.Guid,System.String,System.String,System.DateTimeOffset)",
+  "M:Bank.Modules.Cards.Domain.CardPaymentAuthorised.#ctor(System.Guid,System.Decimal,System.String,System.String,System.DateTimeOffset)",
+  "M:Bank.Modules.Cards.Domain.CardPaymentDeclined.#ctor(System.Guid,System.String,System.DateTimeOffset)",
+  "M:Program.{Main}$(System.String[])"
+ ],
+ "changed_lines": {
+  "src/Bank.Api/Data/BankDbContext.cs": [
+   [
+    3,
+    3
+   ],
+   [
+    23,
+    23
+   ]
+  ],
+  "src/Bank.Api/Modules/Cards/Api/CardsController.cs": [
+   [
+    1,
+    141
+   ]
+  ],
+  "src/Bank.Api/Modules/Cards/Application/CardService.cs": [
+   [
+    1,
+    182
+   ]
+  ],
+  "src/Bank.Api/Modules/Cards/CardsModule.cs": [
+   [
+    1,
+    12
+   ]
+  ],
+  "src/Bank.Api/Modules/Cards/Domain/Card.cs": [
+   [
+    1,
+    53
+   ]
+  ],
+  "src/Bank.Api/Program.cs": [
+   [
+    5,
+    5
+   ],
+   [
+    31,
+    31
+   ]
+  ],
+  "tests/Bank.Tests/Cards/CardTests.cs": [
+   [
+    1,
+    372
+   ]
+  ]
+ }
+}

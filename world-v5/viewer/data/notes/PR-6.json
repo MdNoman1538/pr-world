@@ -1,0 +1,2917 @@
+{
+ "pr": "PR-6",
+ "findings": [
+  {
+   "id": "C01",
+   "severity": "Blocker",
+   "title": "Controller-level Customer policy prevents Staff from calling mature endpoint",
+   "dimension": "correctness"
+  },
+  {
+   "id": "S01",
+   "severity": "Blocker",
+   "title": "Controller-level Customer policy blocks Staff access to Mature endpoint",
+   "dimension": "safety"
+  },
+  {
+   "id": "A01",
+   "severity": "ShouldFix",
+   "title": "Controller-level Customer authorization policy blocks Staff from mature endpoint",
+   "dimension": "architecture"
+  },
+  {
+   "id": "C02",
+   "severity": "ShouldFix",
+   "title": "Unbounded memory growth in DepositLocks ConcurrentDictionary",
+   "dimension": "correctness"
+  },
+  {
+   "id": "P01",
+   "severity": "ShouldFix",
+   "title": "Unbounded memory accumulation in static DepositLocks dictionary",
+   "dimension": "performance"
+  },
+  {
+   "id": "S02",
+   "severity": "ShouldFix",
+   "title": "Static DepositLocks dictionary leaks memory over time",
+   "dimension": "safety"
+  },
+  {
+   "id": "T02",
+   "severity": "ShouldFix",
+   "title": "DepositsController endpoints and authorization policies have zero test coverage",
+   "dimension": "tests"
+  },
+  {
+   "id": "T03",
+   "severity": "ShouldFix",
+   "title": "No test coverage for non-EUR multi-currency deposit lifecycle",
+   "dimension": "tests"
+  },
+  {
+   "id": "T01",
+   "severity": "ShouldFix",
+   "title": "Staff-only maturity enforcement required by acceptance criteria is not tested",
+   "dimension": "tests"
+  }
+ ],
+ "source": "ai",
+ "model": "gemini-4-hydrogen",
+ "headline": "Adds the term deposits module supporting opening, maturing, and breaking 3, 6, or 12-month fixed-rate deposits.",
+ "summary": "Introduces the Deposits module with domain entities, application service, API controller, database table, and DI registration. Customers can lock at least 500 in whole cents for 3, 6, or 12 months at fixed rates or break early without interest. Staff can mature deposits once due, transferring principal and rounded simple interest via the ledger.",
+ "business": "Customers can lock funds of at least 500 for 3, 6, or 12 months at 2.0%, 2.5%, or 3.0% annual interest, or break early to recover principal only. Staff trigger payouts after maturity.",
+ "business_impact": "high",
+ "notes": {
+  "P:Bank.Data.BankDbContext.TermDeposits": {
+   "changed": "Exposes the TermDeposits database set on BankDbContext for persisting term deposit records.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Deposits.Api.OpenDepositRequest": {
+   "changed": "Defines the API request payload carrying account ID, principal amount, and term in months.",
+   "changed_facts": "New record with 4 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Deposits.Api.OpenDepositRequest.#ctor(System.Guid,System.Decimal,System.Int32)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Deposits.Api.OpenDepositRequest.AccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Api.OpenDepositRequest.Principal": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Api.OpenDepositRequest.TermMonths": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Deposits.Api.TermDepositDto": {
+   "changed": "Defines the API response representation of a term deposit's terms, timestamps, status, and interest paid.",
+   "changed_facts": "New record with 12 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Deposits.Api.TermDepositDto.#ctor(System.Guid,System.String,System.Guid,System.Decimal,System.String,System.Int32,System.Decimal,System.DateTimeOffset,System.DateTimeOffset,Bank.Modules.Deposits.Domain.DepositStatus,System.Decimal)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Deposits.Api.TermDepositDto.Id": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Api.TermDepositDto.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Api.TermDepositDto.AccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Api.TermDepositDto.Principal": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Api.TermDepositDto.Currency": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Api.TermDepositDto.TermMonths": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Api.TermDepositDto.AnnualRatePercent": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Api.TermDepositDto.OpenedAt": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Api.TermDepositDto.MaturesAt": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Api.TermDepositDto.Status": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Api.TermDepositDto.InterestPaid": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Deposits.Api.DepositsController": {
+   "changed": "New class with 9 member(s)."
+  },
+  "F:Bank.Modules.Deposits.Api.DepositsController._deposits": {
+   "changed": "New field."
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.#ctor(Bank.Modules.Deposits.Application.IDepositService)": {
+   "changed": "New ctor."
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)": {
+   "changed": "Accepts customer requests to open a deposit and maps authorization, validation, missing, and conflict errors to HTTP responses.",
+   "changed_facts": "New method. Now calls DepositsController.ToDto(), calls IDepositService.OpenAsync().",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "Allows staff to mature a deposit by ID and maps missing or invalid-state errors to HTTP responses.",
+   "changed_facts": "New method. Now calls DepositsController.ToDto(), calls IDepositService.MatureAsync().",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Break(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "Allows customers to break a deposit early and maps authorization, missing, and conflict errors to HTTP responses.",
+   "changed_facts": "New method. Now calls DepositsController.ToDto(), calls IDepositService.BreakAsync().",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.ToDto(Bank.Modules.Deposits.Domain.TermDeposit)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Deposits.Application.IDepositService": {
+   "changed": "Defines the application service contract for opening, maturing, and breaking term deposits.",
+   "changed_facts": "New interface with 3 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Deposits.Application.IDepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Deposits.Application.IDepositService.MatureAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Deposits.Application.IDepositService.BreakAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Deposits.Application.DepositService": {
+   "changed": "New class with 5 member(s)."
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": {
+   "changed": "New ctor."
+  },
+  "F:Bank.Modules.Deposits.Application.DepositService.DepositLocks": {
+   "changed": "New field."
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)": {
+   "changed": "Validates principal, whole cents, term rate, and account ownership, transfers principal to DepositHolding, saves the deposit, and publishes DepositOpened.",
+   "changed_facts": "New method. Now calls IAccountService.GetAsync(), calls IAccountService.IsOwnerAsync(), calls ILedger.PostTransferAsync(), calls BankAccounts.For()….",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.MatureAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "Locks the deposit, verifies open status and maturity date, pays principal and rounded simple interest via the ledger, and emits DepositClosed.",
+   "changed_facts": "New method. Now calls TermDeposit.Mature(), calls ILedger.PostTransferAsync(), calls BankAccounts.For(), calls IEventBus.PublishAsync()….",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.BreakAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": "Locks the deposit, verifies caller ownership and open status, returns principal from DepositHolding without interest, and emits DepositClosed.",
+   "changed_facts": "New method. Now calls TermDeposit.BreakEarly(), calls ILedger.PostTransferAsync(), calls BankAccounts.For(), calls IEventBus.PublishAsync()….",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Deposits.DepositsModule": {
+   "changed": "New class with 1 member(s)."
+  },
+  "M:Bank.Modules.Deposits.DepositsModule.AddDepositsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "changed": "Registers IDepositService with DepositService in the dependency injection container.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Deposits.Domain.DepositStatus": {
+   "changed": "Defines the Open, Matured, and BrokenEarly lifecycle states for a term deposit.",
+   "changed_facts": "New enum with 3 member(s).",
+   "changed_src": "ai"
+  },
+  "F:Bank.Modules.Deposits.Domain.DepositStatus.Open": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Deposits.Domain.DepositStatus.Matured": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Deposits.Domain.DepositStatus.BrokenEarly": {
+   "changed": "New field."
+  },
+  "T:Bank.Modules.Deposits.Domain.TermDeposit": {
+   "changed": "New class with 14 member(s)."
+  },
+  "M:Bank.Modules.Deposits.Domain.TermDeposit.#ctor": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Id": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.AccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Principal": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Currency": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.TermMonths": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.AnnualRatePercent": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.OpenedAt": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.MaturesAt": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Status": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.InterestPaid": {
+   "changed": "New property."
+  },
+  "M:Bank.Modules.Deposits.Domain.TermDeposit.Mature(System.Decimal)": {
+   "changed": "Transitions an open deposit to Matured and records non-negative interest paid, rejecting other statuses or negative interest.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Deposits.Domain.TermDeposit.BreakEarly": {
+   "changed": "Transitions an open deposit to BrokenEarly with zero interest paid, rejecting deposits that are not open.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Deposits.Domain.DepositOpened": {
+   "changed": "Defines the domain event emitted when a term deposit is opened.",
+   "changed_facts": "New record with 6 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Deposits.Domain.DepositOpened.#ctor(System.Guid,System.String,System.Decimal,System.Int32,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Deposits.Domain.DepositOpened.DepositId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.DepositOpened.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.DepositOpened.Principal": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.DepositOpened.TermMonths": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.DepositOpened.OccurredAt": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Deposits.Domain.DepositClosed": {
+   "changed": "Defines the domain event emitted when a term deposit matures or is broken early.",
+   "changed_facts": "New record with 6 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Deposits.Domain.DepositClosed.#ctor(System.Guid,System.String,System.Decimal,System.Boolean,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Deposits.Domain.DepositClosed.DepositId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.DepositClosed.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.DepositClosed.InterestPaid": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.DepositClosed.Early": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Deposits.Domain.DepositClosed.OccurredAt": {
+   "changed": "New property."
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "changed": "Registers the Deposits module services in the application startup pipeline.",
+   "changed_facts": "Modified (lines 7, 33).",
+   "changed_src": "ai"
+  },
+  "table:TermDeposits.Id": {
+   "changed": "New column."
+  },
+  "table:TermDeposits.CustomerId": {
+   "changed": "New column."
+  },
+  "table:TermDeposits.AccountId": {
+   "changed": "New column."
+  },
+  "table:TermDeposits.Principal": {
+   "changed": "New column."
+  },
+  "table:TermDeposits.Currency": {
+   "changed": "New column."
+  },
+  "table:TermDeposits.TermMonths": {
+   "changed": "New column."
+  },
+  "table:TermDeposits.AnnualRatePercent": {
+   "changed": "New column."
+  },
+  "table:TermDeposits.OpenedAt": {
+   "changed": "New column."
+  },
+  "table:TermDeposits.MaturesAt": {
+   "changed": "New column."
+  },
+  "table:TermDeposits.Status": {
+   "changed": "New column."
+  },
+  "table:TermDeposits.InterestPaid": {
+   "changed": "New column."
+  },
+  "endpoint:POST /api/deposits": {
+   "changed": "Adds the customer-authorized endpoint for opening a new term deposit.",
+   "changed_facts": "New endpoint.",
+   "changed_src": "ai"
+  },
+  "endpoint:POST /api/deposits/{id:guid}/mature": {
+   "changed": "Adds the staff-authorized endpoint for maturing an open term deposit.",
+   "changed_facts": "New endpoint.",
+   "changed_src": "ai"
+  },
+  "endpoint:POST /api/deposits/{id:guid}/break": {
+   "changed": "Adds the customer-authorized endpoint for breaking an open term deposit early.",
+   "changed_facts": "New endpoint.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Data.BankDbContext": {
+   "changed": "added TermDeposits."
+  },
+  "module:Platform": {
+   "changed": "Classes: 2 changed (BankDbContext, Program).",
+   "affected": "3 part(s) are reached by it: PublishAsync, DefaultCurrency, DailyTransferLimit."
+  },
+  "module:Deposits": {
+   "changed": "Classes: 10 new (OpenDepositRequest, TermDepositDto, DepositsController, IDepositService…)."
+  },
+  "T:Program": {
+   "changed": "modified <Main>$."
+  },
+  "table:TermDeposits": {
+   "changed": "Adds the TermDeposits table storing customer, account, principal, currency, term, rate, timestamps, status, and interest paid.",
+   "changed_facts": "added Id, CustomerId, AccountId, Principal, Currency.",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "affected": "Reached by the change through DepositService.OpenAsync() (calls), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "affected": "Reached by the change through DepositService.OpenAsync() (uses), 1 hop(s)."
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "affected": "Reached by the change through DepositTests.CreateSut() (uses), 1 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IAccountService.IsOwnerAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IAccountService.GetAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through ILedger.PostTransferAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IEventBus.PublishAsync() (resolves), 2 hop(s)."
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "affected": "Reached by the change through TestKit.Settings() (uses), 2 hop(s)."
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "affected": "Reached by the change through TestKit.Settings() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "affected": "Reached by the change through TestKit.Account() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "affected": "Reached by the change through TestKit.Account() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "affected": "Reached by the change through TestKit.Account() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "affected": "Reached by the change through Ledger.PostTransferAsync() (uses), 3 hop(s)."
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "affected": "Reached by the change through Ledger.PostTransferAsync() (uses), 3 hop(s)."
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IEventHandler.HandleAsync() (resolves), 4 hop(s)."
+  },
+  "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+   "affected": "BankAccounts.For() is called by DepositService.OpenAsync(), MatureAsync(), and BreakAsync() to resolve DepositHolding and InterestExpense accounts.",
+   "affected_facts": "1 part(s) are reached by it: For.",
+   "affected_src": "ai"
+  },
+  "module:Ledger": {
+   "affected": "4 part(s) are reached by it: For, PostTransferAsync, Currency, Reference."
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "affected": "Account.Currency is read by DepositService.OpenAsync() to set deposit currency, and Account fields are used by TestKit.Account().",
+   "affected_facts": "4 part(s) are reached by it: Currency, OwnerId, Iban, Id.",
+   "affected_src": "ai"
+  },
+  "module:Accounts": {
+   "affected": "6 part(s) are reached by it: Currency, IsOwnerAsync, GetAsync, OwnerId…."
+  },
+  "T:Bank.Modules.Auth.Roles": {
+   "affected": "Roles.Customer is used by DepositTests.CreateSut() when setting up test authorization context.",
+   "affected_facts": "1 part(s) are reached by it: Customer.",
+   "affected_src": "ai"
+  },
+  "module:Auth": {
+   "affected": "1 part(s) are reached by it: Customer."
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "affected": "AccountService.IsOwnerAsync() and GetAsync() are resolved via IAccountService to verify account ownership and retrieve account currency in DepositService.OpenAsync().",
+   "affected_facts": "2 part(s) are reached by it: IsOwnerAsync, GetAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Ledger.Application.Ledger": {
+   "affected": "Ledger.PostTransferAsync() is resolved via ILedger to move principal and interest between customer and internal accounts during deposit lifecycle operations.",
+   "affected_facts": "1 part(s) are reached by it: PostTransferAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "affected": "InMemoryEventBus.PublishAsync() is resolved via IEventBus to publish DepositOpened and DepositClosed domain events.",
+   "affected_facts": "1 part(s) are reached by it: PublishAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Shared.Settings.BankSettings": {
+   "affected": "BankSettings.DefaultCurrency and DailyTransferLimit are used via TestKit.Settings() in test setup.",
+   "affected_facts": "2 part(s) are reached by it: DefaultCurrency, DailyTransferLimit.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+   "affected": "LedgerEntry.Currency and Reference are used through Ledger.PostTransferAsync() when recording deposit transfers.",
+   "affected_facts": "2 part(s) are reached by it: Currency, Reference.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+   "affected": "AuditEventHandler.HandleAsync() is reached via IEventHandler.HandleAsync() when deposit domain events are published.",
+   "affected_facts": "1 part(s) are reached by it: HandleAsync.",
+   "affected_src": "ai"
+  },
+  "module:Audit": {
+   "affected": "1 part(s) are reached by it: HandleAsync."
+  }
+ },
+ "verdict": {
+  "label": "fix",
+  "reasons": [
+   {
+    "kind": "critical",
+    "level": "fix",
+    "text": "Controller-level Customer policy prevents Staff from calling mature endpoint",
+    "finding": "C01",
+    "node": "T:Bank.Modules.Deposits.Api.DepositsController",
+    "detail": "no failing test reaches it",
+    "tests": [],
+    "claim": "DepositsController is annotated with [Authorize(Policy = Policies.Customer)] at the class level, which ASP.NET Core applies conjunctively with the action-level [Authorize(Policy = Policies.Staff)] on the Mature endpoint. Consequently, Staff users who do not have the Customer role receive a 403 Forbidden response when attempting to mature deposits.",
+    "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from the DepositsController class declaration. The Open and Break endpoints already declare [Authorize(Policy = Policies.Customer)] on their respective actions.",
+    "file": "src/Bank.Api/Modules/Deposits/Api/DepositsController.cs",
+    "line_start": 26,
+    "evidence": "[Authorize(Policy = Policies.Customer)]",
+    "evidence_verified": true,
+    "dimension": "correctness",
+    "severity": "Blocker",
+    "say": "Staff without customer credentials cannot trigger term deposit payouts after maturity, leaving customers waiting for their money. Ask the author to move the customer restriction off the DepositsController class onto customer-only actions.",
+    "say_facts": "Consequently, Staff users who do not have the Customer role receive a 403 Forbidden response when attempting to mature deposits. Ask for a fix before merging.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "critical",
+    "level": "fix",
+    "text": "Controller-level Customer policy blocks Staff access to Mature endpoint",
+    "finding": "S01",
+    "node": "T:Bank.Modules.Deposits.Api.DepositsController",
+    "detail": "no failing test reaches it",
+    "tests": [],
+    "claim": "In ASP.NET Core, [Authorize] attributes are evaluated additively across class and action levels. Because DepositsController is decorated with [Authorize(Policy = Policies.Customer)], the Mature action decorated with [Authorize(Policy = Policies.Staff)] requires callers to satisfy both policies, returning HTTP 403 Forbidden to staff accounts and preventing staff execution.",
+    "suggested_fix": "Remove [Authorize(Policy = Policies.Customer)] from the class declaration (or replace it with [Authorize] without policy), as Open, Mature, and Break already specify their respective Customer and Staff policies on each action method.",
+    "file": "src/Bank.Api/Modules/Deposits/Api/DepositsController.cs",
+    "line_start": 26,
+    "evidence": "[Authorize(Policy = Policies.Customer)]",
+    "evidence_verified": true,
+    "dimension": "safety",
+    "severity": "Blocker",
+    "say": "Staff cannot mature deposits and pay out customer funds because DepositsController stacks customer and staff permissions together. Ask the author to separate the policies per endpoint so staff-only access works.",
+    "say_facts": "Because DepositsController is decorated with [Authorize(Policy = Policies.Customer)], the Mature action decorated with [Authorize(Policy = Policies.Staff)] requires callers to satisfy both policies, returning HTTP 403 Forbidden to staff accounts and preventing staff execution. Ask for a fix before merging.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "business",
+    "level": "check",
+    "text": "High business impact",
+    "detail": "Customers can lock funds of at least 500 for 3, 6, or 12 months at 2.0%, 2.5%, or 3.0% annual interest, or break early to recover principal only. Staff trigger payouts after maturity.",
+    "say": "This change handles customer funds of 500 or more, fixed interest payouts, and early breaks. Verify the interest math, principal handling, and maturity payout rules against bank policy before signing off.",
+    "say_facts": "This change has a high impact on customers or money: Customers can lock funds of at least 500 for 3, 6, or 12 months at 2.0%, 2.5%, or 3.0% annual interest, or break early to recover principal only. Staff trigger payouts after maturity. Confirm the business owner agrees.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Controller-level Customer authorization policy blocks Staff from mature endpoint",
+    "finding": "A01",
+    "node": "T:Bank.Modules.Deposits.Api.DepositsController",
+    "detail": "architecture",
+    "claim": "In ASP.NET Core, authorization attributes combine additively. Because `[Authorize(Policy = Policies.Customer)]` is declared on DepositsController, the `Mature` action requires both `Policies.Customer` and `Policies.Staff`, which prevents pure Staff users from maturing deposits.",
+    "suggested_fix": "Remove `[Authorize(Policy = Policies.Customer)]` from the controller class level (or replace with bare `[Authorize]`), keeping explicit policy checks on individual actions (`Open` and `Break` already specify `Policies.Customer`).",
+    "file": "src/Bank.Api/Modules/Deposits/Api/DepositsController.cs",
+    "line_start": 26,
+    "evidence": "[Authorize(Policy = Policies.Customer)]",
+    "evidence_verified": true,
+    "dimension": "architecture",
+    "severity": "ShouldFix",
+    "say": "Because DepositsController combines customer and staff access rules, staff cannot mature deposits for customers. Check the endpoint permissions and ask for the customer-level restriction to be moved to individual endpoints.",
+    "say_facts": "Because `[Authorize(Policy = Policies.Customer)]` is declared on DepositsController, the `Mature` action requires both `Policies.Customer` and `Policies.Staff`, which prevents pure Staff users from maturing deposits. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Unbounded memory growth in DepositLocks ConcurrentDictionary",
+    "finding": "C02",
+    "node": "F:Bank.Modules.Deposits.Application.DepositService.DepositLocks",
+    "detail": "correctness",
+    "claim": "DepositLocks stores a SemaphoreSlim for each deposit ID processed in MatureAsync and BreakAsync but never removes entries. Over the lifetime of the application, this static collection will grow unbounded as term deposits are matured or broken.",
+    "suggested_fix": "Clean up unused semaphores using TryRemove once the lock is released and no other threads are waiting, or use a size-bounded eviction cache.",
+    "file": "src/Bank.Api/Modules/Deposits/Application/DepositService.cs",
+    "line_start": 24,
+    "evidence": "private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> DepositLocks = new();",
+    "evidence_verified": true,
+    "dimension": "correctness",
+    "severity": "ShouldFix",
+    "say": "Locking entries in DepositLocks are never cleaned up, which can slowly exhaust server memory and disrupt deposit services. Ask the author to add cleanup or a bounded cache for these locks.",
+    "say_facts": "Over the lifetime of the application, this static collection will grow unbounded as term deposits are matured or broken. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Unbounded memory accumulation in static DepositLocks dictionary",
+    "finding": "P01",
+    "node": "F:Bank.Modules.Deposits.Application.DepositService.DepositLocks",
+    "detail": "performance",
+    "claim": "DepositLocks stores a SemaphoreSlim instance for every deposit ID passed to MatureAsync or BreakAsync without an eviction or cleanup mechanism. Because entries are added before confirming whether the deposit exists and are never pruned, this results in continuous memory growth over time and creates a potential resource exhaustion vector.",
+    "suggested_fix": "Use keyed lock striping or a size-bounded/sliding cache with eviction, or rely on database-level row locking / concurrency tokens rather than an unbounded static dictionary.",
+    "file": "src/Bank.Api/Modules/Deposits/Application/DepositService.cs",
+    "line_start": 24,
+    "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> DepositLocks = new();",
+    "evidence_verified": true,
+    "dimension": "performance",
+    "severity": "ShouldFix",
+    "say": "Uncleaned lock entries in DepositLocks pile up even for invalid deposit requests, risking server slowdown or downtime for customers. Ask the author to remove finished locks or bound the collection.",
+    "say_facts": "Because entries are added before confirming whether the deposit exists and are never pruned, this results in continuous memory growth over time and creates a potential resource exhaustion vector. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Static DepositLocks dictionary leaks memory over time",
+    "finding": "S02",
+    "node": "F:Bank.Modules.Deposits.Application.DepositService.DepositLocks",
+    "detail": "safety",
+    "claim": "DepositService allocates a SemaphoreSlim for each deposit ID into a static ConcurrentDictionary that is never pruned. Every deposit that is matured or broken leaves an entry in memory indefinitely, causing unbounded resource consumption over the application's lifetime.",
+    "suggested_fix": "Rely on database transaction concurrency control (such as concurrency tokens or row versioning) rather than an unbounded in-memory static dictionary, or evict lock entries once transitions complete.",
+    "file": "src/Bank.Api/Modules/Deposits/Application/DepositService.cs",
+    "line_start": 24,
+    "evidence": "    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> DepositLocks = new();",
+    "evidence_verified": true,
+    "dimension": "safety",
+    "severity": "ShouldFix",
+    "say": "DepositLocks keeps a lock in memory forever for every matured or broken deposit, risking outages over time. Ask how locks will be evicted once deposit processing finishes.",
+    "say_facts": "Every deposit that is matured or broken leaves an entry in memory indefinitely, causing unbounded resource consumption over the application's lifetime. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "DepositsController endpoints and authorization policies have zero test coverage",
+    "finding": "T02",
+    "node": "T:Bank.Modules.Deposits.Api.DepositsController",
+    "detail": "tests",
+    "claim": "DepositsController defines endpoints with class-level Policies.Customer and action-level Policies.Staff, but has zero test references across the test suite. The combination of class-level Customer policy with action-level Staff policy on Mature risks rejecting Staff callers unless explicitly verified by tests.",
+    "suggested_fix": "Add controller tests covering Open, Mature, and Break endpoints and verify the correct policies and status codes.",
+    "file": "src/Bank.Api/Modules/Deposits/Api/DepositsController.cs",
+    "line_start": 26,
+    "evidence": "[Authorize(Policy = Policies.Customer)]\npublic sealed class DepositsController : ControllerBase",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "DepositsController endpoints and access rules have no automated tests, leaving staff payouts and customer protections unverified. Ask for endpoint tests covering both allowed and forbidden user roles.",
+    "say_facts": "The combination of class-level Customer policy with action-level Staff policy on Mature risks rejecting Staff callers unless explicitly verified by tests. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "No test coverage for non-EUR multi-currency deposit lifecycle",
+    "finding": "T03",
+    "node": "M:Bank.Tests.Deposits.DepositTests.Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+    "detail": "tests",
+    "claim": "All test fixtures hardcode EUR accounts and verify ledger balances only in EUR. The requirement highlights multi-currency ledger routing to DepositHolding and InterestExpense as an operational risk, but non-EUR flows are unexercised.",
+    "suggested_fix": "Add a test scenario creating and maturing a deposit with a non-EUR account (such as USD) to verify multi-currency holding and expense account routing.",
+    "file": "tests/Bank.Tests/Deposits/DepositTests.cs",
+    "line_start": 33,
+    "evidence": "        var accountId = TestKit.Account(db, \"alice\", 1000m, \"EUR\");",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "Multi-currency deposits are untested, so interest payouts and holding accounts in non-EUR currencies could route money incorrectly. Ask for tests covering non-EUR deposits from opening through maturity and early break.",
+    "say_facts": "The requirement highlights multi-currency ledger routing to DepositHolding and InterestExpense as an operational risk, but non-EUR flows are unexercised. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Staff-only maturity enforcement required by acceptance criteria is not tested",
+    "finding": "T01",
+    "node": "M:Bank.Tests.Deposits.DepositTests.Mature_succeeds_without_owner_check_when_called_by_different_user",
+    "detail": "tests",
+    "claim": "The acceptance criteria mandate automated xUnit tests verifying Staff-only maturity enforcement. Existing tests only invoke IDepositService.MatureAsync directly using a caller that still has the Customer role, without asserting that non-Staff callers are rejected.",
+    "suggested_fix": "Add an integration or controller test verifying that POST api/deposits/{id}/mature permits Staff callers and returns Forbid or Unauthorized for Customer callers.",
+    "file": "tests/Bank.Tests/Deposits/DepositTests.cs",
+    "line_start": 185,
+    "evidence": "    public async Task Mature_succeeds_without_owner_check_when_called_by_different_user()",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "There is no automated proof that only staff can trigger deposit payouts, risking unauthorized payouts or blocked operations. Ask for tests verifying that non-staff callers are rejected on maturity.",
+    "say_facts": "The acceptance criteria mandate automated xUnit tests verifying Staff-only maturity enforcement. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "untested",
+    "level": "check",
+    "text": "9 changed method(s) have no usable test evidence",
+    "nodes": [
+     "M:Bank.Modules.Deposits.Api.DepositsController.#ctor(Bank.Modules.Deposits.Application.IDepositService)",
+     "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Deposits.Api.DepositsController.Break(System.Guid,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Deposits.Api.DepositsController.ToDto(Bank.Modules.Deposits.Domain.TermDeposit)",
+     "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)"
+    ],
+    "detail": "DepositsController.DepositsController(), DepositsController.Open(), DepositsController.Mature(), DepositsController.Break()",
+    "say": "Four DepositsController endpoints and constructor have no test evidence, meaning HTTP routing and access checks could fail in production. Ask for integration tests exercising all deposit endpoints.",
+    "say_facts": "9 changed parts of the code are not covered by any working test. Read them yourself or ask for tests.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "reviewer",
+    "level": "check",
+    "text": "Reviewer asks a human to check What",
+    "detail": "Requirement match is partial: While domain logic and service layer operations align well with the specification, the HTTP controller applies Policies.Customer at the class level. In ASP.NET Core, class-level authorization applies conjunctively with action-level authorization, preventing Staff users from calling the Staff-only POST api/deposits/{id}/mature endpoint unless they also have Customer cr",
+    "say": "The HTTP layer in DepositsController blocks staff from maturing deposits unless they also hold customer access. Check how endpoint permissions match the requirement and ask for a fix and confirmation.",
+    "say_facts": "The reviewer is not sure the change does everything the requirement asks. Compare the change with the requirement.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "reviewer",
+    "level": "check",
+    "text": "Reviewer asks a human to check Where",
+    "detail": "Tier HIGH → full human read and 2 sign-off(s) required",
+    "say": "This is a high-risk financial change handling locked savings and interest payouts. Perform a full read of the deposit code and ensure two human sign-offs are recorded before merging.",
+    "say_facts": "The change touches a sensitive part of the bank. Check that only the intended places changed.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "not_checked",
+    "level": "info",
+    "text": "Not checked at this coverage level: Requirement",
+    "say": "Not checked (switched off by the team's coverage level, or did not run): Requirement. Not counted as passed; trust cannot be High."
+   },
+   {
+    "kind": "inherited",
+    "level": "info",
+    "text": "2 failing case(s) already failed before this PR (in PR-5): not counted here",
+    "say": "2 failing test case(s) were already failing before this PR (in PR-5); they are not held against it."
+   }
+  ],
+  "risk_areas": [
+   {
+    "module": "Platform",
+    "why": "Database schema, wiring and bank-wide settings touch every module"
+   }
+  ],
+  "reviewer_gate": "BLOCKED",
+  "failures": {
+   "new": 0,
+   "broken": 0,
+   "inherited": 2,
+   "cases_failed": 2
+  }
+ },
+ "units": {
+  "M:Bank.Modules.Deposits.Api.DepositsController.#ctor(Bank.Modules.Deposits.Application.IDepositService)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Break(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.ToDto(Bank.Modules.Deposits.Domain.TermDeposit)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "F:Bank.Modules.Deposits.Application.DepositService.DepositLocks": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [
+    {
+     "id": "C02",
+     "severity": "ShouldFix",
+     "title": "Unbounded memory growth in DepositLocks ConcurrentDictionary",
+     "file": "src/Bank.Api/Modules/Deposits/Application/DepositService.cs",
+     "line_start": 24,
+     "dimension": "correctness"
+    },
+    {
+     "id": "P01",
+     "severity": "ShouldFix",
+     "title": "Unbounded memory accumulation in static DepositLocks dictionary",
+     "file": "src/Bank.Api/Modules/Deposits/Application/DepositService.cs",
+     "line_start": 24,
+     "dimension": "performance"
+    },
+    {
+     "id": "S02",
+     "severity": "ShouldFix",
+     "title": "Static DepositLocks dictionary leaks memory over time",
+     "file": "src/Bank.Api/Modules/Deposits/Application/DepositService.cs",
+     "line_start": 24,
+     "dimension": "safety"
+    }
+   ],
+   "how": "new"
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.MatureAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense"
+    ],
+    "passed_n": 6,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.BreakAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit"
+    ],
+    "passed_n": 4,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Deposits.DepositsModule.AddDepositsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Deposits.Domain.TermDeposit.#ctor": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Id": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.CustomerId": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Currency": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Status": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event"
+    ],
+    "passed_n": 9,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Deposits.Domain.TermDeposit.Mature(System.Decimal)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense"
+    ],
+    "passed_n": 6,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Deposits.Domain.TermDeposit.BreakEarly": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit"
+    ],
+    "passed_n": 4,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Deposits.DepositTests.CreateSut(Bank.Data.BankDbContext,System.String,System.String[])",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Break_by_non_owner_throws_UnauthorizedAccessException",
+     "Break_by_owner_returns_principal_only_with_zero_interest_and_publishes_early_closed_event",
+     "Cannot_break_or_mature_an_already_broken_deposit",
+     "Cannot_mature_or_break_an_already_matured_deposit",
+     "Mature_at_maturity_date_pays_principal_and_interest_rounded_half_away_from_zero",
+     "Mature_before_MaturesAt_throws_InvalidOperationException_and_leaves_balances_intact",
+     "Mature_succeeds_without_owner_check_when_called_by_different_user",
+     "Multi_currency_deposit_uses_account_currency_for_holding_and_interest_expense",
+     "Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event",
+     "Open_by_non_owner_throws_UnauthorizedAccessException",
+     "Open_maps_term_months_to_expected_annual_rate_and_maturity_date",
+     "Open_rejects_principal_below_500"
+    ],
+    "passed_n": 14,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 4
+  }
+ },
+ "roll": {
+  "M:Bank.Modules.Deposits.Api.DepositsController.#ctor(Bank.Modules.Deposits.Application.IDepositService)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.#ctor(Bank.Modules.Deposits.Application.IDepositService)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Deposits.Api.DepositsController": {
+   "changed": {
+    "n": 5,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 5,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.#ctor(Bank.Modules.Deposits.Application.IDepositService)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Break(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.083,
+    "lo": 0.0,
+    "hi": 0.379
+   },
+   "affected": null
+  },
+  "layer:Deposits/Api": {
+   "changed": {
+    "n": 5,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 5,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.#ctor(Bank.Modules.Deposits.Application.IDepositService)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Break(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.083,
+    "lo": 0.0,
+    "hi": 0.379
+   },
+   "affected": null
+  },
+  "module:Deposits": {
+   "changed": {
+    "n": 18,
+    "verified": 9,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 8,
+    "weakest": [
+     [
+      "F:Bank.Modules.Deposits.Application.DepositService.DepositLocks",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.#ctor(Bank.Modules.Deposits.Application.IDepositService)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 50,
+    "conf": 0.5,
+    "lo": 0.284,
+    "hi": 0.716
+   },
+   "affected": null
+  },
+  "pr": {
+   "changed": {
+    "n": 19,
+    "verified": 9,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 9,
+    "weakest": [
+     [
+      "F:Bank.Modules.Deposits.Application.DepositService.DepositLocks",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.#ctor(Bank.Modules.Deposits.Application.IDepositService)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 47,
+    "conf": 0.475,
+    "lo": 0.266,
+    "hi": 0.688
+   },
+   "affected": {
+    "n": 15,
+    "verified": 15,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.969,
+    "lo": 0.848,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Open(Bank.Modules.Deposits.Api.OpenDepositRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Mature(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.Break(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.Break(System.Guid,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Deposits.Api.DepositsController.ToDto(Bank.Modules.Deposits.Domain.TermDeposit)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Api.DepositsController.ToDto(Bank.Modules.Deposits.Domain.TermDeposit)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Deposits.Application.DepositService": {
+   "changed": {
+    "n": 5,
+    "verified": 3,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "F:Bank.Modules.Deposits.Application.DepositService.DepositLocks",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 60,
+    "conf": 0.583,
+    "lo": 0.209,
+    "hi": 0.906
+   },
+   "affected": null
+  },
+  "layer:Deposits/Application": {
+   "changed": {
+    "n": 5,
+    "verified": 3,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "F:Bank.Modules.Deposits.Application.DepositService.DepositLocks",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Deposits.Application.DepositService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 60,
+    "conf": 0.583,
+    "lo": 0.209,
+    "hi": 0.906
+   },
+   "affected": null
+  },
+  "F:Bank.Modules.Deposits.Application.DepositService.DepositLocks": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "F:Bank.Modules.Deposits.Application.DepositService.DepositLocks",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.OpenAsync(System.Guid,System.Decimal,System.Int32,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.MatureAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Deposits.Application.DepositService.BreakAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Deposits.DepositsModule.AddDepositsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.DepositsModule.AddDepositsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Deposits.DepositsModule": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.DepositsModule.AddDepositsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "layer:Deposits/Wiring": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.DepositsModule.AddDepositsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Deposits.Domain.TermDeposit.#ctor": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Domain.TermDeposit.#ctor",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Deposits.Domain.TermDeposit": {
+   "changed": {
+    "n": 7,
+    "verified": 6,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Domain.TermDeposit.#ctor",
+      "none"
+     ]
+    ],
+    "pct": 86,
+    "conf": 0.812,
+    "lo": 0.499,
+    "hi": 0.984
+   },
+   "affected": null
+  },
+  "layer:Deposits/Domain": {
+   "changed": {
+    "n": 7,
+    "verified": 6,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Deposits.Domain.TermDeposit.#ctor",
+      "none"
+     ]
+    ],
+    "pct": 86,
+    "conf": 0.812,
+    "lo": 0.499,
+    "hi": 0.984
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Id": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.CustomerId": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Currency": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Deposits.Domain.TermDeposit.Status": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Deposits.Domain.TermDeposit.Mature(System.Decimal)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Deposits.Domain.TermDeposit.BreakEarly": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Program": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "layer:Platform/Host": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "module:Platform": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Ledger/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "module:Ledger": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "layer:Accounts/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "module:Accounts": {
+   "changed": null,
+   "affected": {
+    "n": 6,
+    "verified": 6,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.929,
+    "lo": 0.67,
+    "hi": 1.0
+   }
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Auth.Roles": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Auth/Wiring": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "module:Auth": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "layer:Accounts/Application": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Application.Ledger": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Ledger/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Platform/Shared": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Shared.Settings.BankSettings": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Audit/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "module:Audit": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  }
+ },
+ "tests_ran": true,
+ "findings_at": {
+  "T:Bank.Modules.Deposits.Api.DepositsController": [
+   "C01",
+   "S01",
+   "A01",
+   "T02"
+  ],
+  "F:Bank.Modules.Deposits.Application.DepositService.DepositLocks": [
+   "C02",
+   "P01",
+   "S02"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Open_3_month_deposit_at_minimum_principal_sets_rate_moves_funds_and_publishes_event": [
+   "T03"
+  ],
+  "M:Bank.Tests.Deposits.DepositTests.Mature_succeeds_without_owner_check_when_called_by_different_user": [
+   "T01"
+  ]
+ },
+ "trust": {
+  "level": "low",
+  "why": "1 changed method(s) contradicted by a failing test or a Critical finding"
+ }
+}

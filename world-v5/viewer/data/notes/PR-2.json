@@ -1,0 +1,3973 @@
+{
+ "pr": "PR-2",
+ "findings": [
+  {
+   "id": "C02",
+   "severity": "Blocker",
+   "title": "Composite index on CustomerId and IdempotencyKey is not configured as unique",
+   "dimension": "correctness"
+  },
+  {
+   "id": "C01",
+   "severity": "Blocker",
+   "title": "Missing idempotency check prior to daily limit calculation and ledger posting",
+   "dimension": "correctness"
+  },
+  {
+   "id": "S02",
+   "severity": "Blocker",
+   "title": "CustomerId and IdempotencyKey database index is not unique",
+   "dimension": "safety"
+  },
+  {
+   "id": "S01",
+   "severity": "Blocker",
+   "title": "PayAsync executes transfer before checking for existing idempotency key",
+   "dimension": "safety"
+  },
+  {
+   "id": "A02",
+   "severity": "ShouldFix",
+   "title": "Idempotency database index lacks unique constraint",
+   "dimension": "architecture"
+  },
+  {
+   "id": "A01",
+   "severity": "ShouldFix",
+   "title": "Idempotency check is bypassed before money movement in ledger",
+   "dimension": "architecture"
+  },
+  {
+   "id": "A03",
+   "severity": "ShouldFix",
+   "title": "Speculative domain methods implemented for out-of-scope workflows",
+   "dimension": "architecture"
+  },
+  {
+   "id": "P02",
+   "severity": "ShouldFix",
+   "title": "In-memory materialization of daily payment amounts causes unnecessary allocations",
+   "dimension": "performance"
+  },
+  {
+   "id": "P01",
+   "severity": "ShouldFix",
+   "title": "Unconditional ledger transfer execution causes repeated redundant work on retried idempotency keys",
+   "dimension": "performance"
+  },
+  {
+   "id": "P03",
+   "severity": "ShouldFix",
+   "title": "Missing AsNoTracking in customer payment history query creates unnecessary change tracker overhead",
+   "dimension": "performance"
+  },
+  {
+   "id": "T01",
+   "severity": "ShouldFix",
+   "title": "No unit or integration tests for PaymentsController endpoints",
+   "dimension": "tests"
+  },
+  {
+   "id": "T02",
+   "severity": "ShouldFix",
+   "title": "IPaymentService.ForCustomerAsync has zero test coverage",
+   "dimension": "tests"
+  }
+ ],
+ "source": "ai",
+ "model": "gemini-4-hydrogen",
+ "headline": "Add Payments module for same-currency customer transfers between accounts",
+ "summary": "Introduces the Payments module with domain types, database table, service validation, and HTTP endpoints to submit and list payments. Enforces whole-cent positive amounts, source account ownership, currency matching, and a UTC daily transfer limit before posting transfers through the ledger.",
+ "business": "Authenticated customers can now transfer whole-cent amounts in the same currency from their own accounts to any bank account and view their payment history, subject to daily transfer limits.",
+ "business_impact": "high",
+ "notes": {
+  "P:Bank.Data.BankDbContext.Payments": {
+   "changed": "Exposes the Payments table as a database set for storing and querying payment records.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)": {
+   "changed": "Adds a composite index on customer ID and idempotency key for the Payment entity.",
+   "changed_facts": "Modified (lines 48–50).",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Payments.Api.PaymentDto": {
+   "changed": "Defines the API response record for a payment, including accounts, amount, currency, status, ledger transfer ID, and timestamp.",
+   "changed_facts": "New record with 12 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Payments.Api.PaymentDto.#ctor(System.Guid,System.String,System.String,System.Guid,System.Guid,System.Decimal,System.String,Bank.Modules.Payments.Domain.PaymentStatus,System.Nullable{System.Guid},System.String,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Payments.Api.PaymentDto.Id": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Api.PaymentDto.IdempotencyKey": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Api.PaymentDto.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Api.PaymentDto.FromAccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Api.PaymentDto.ToAccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Api.PaymentDto.Amount": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Api.PaymentDto.Currency": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Api.PaymentDto.Status": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Api.PaymentDto.TransferId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Api.PaymentDto.Reference": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Api.PaymentDto.CreatedAt": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Payments.Api.PaymentsController": {
+   "changed": "New class with 8 member(s)."
+  },
+  "F:Bank.Modules.Payments.Api.PaymentsController._payments": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Payments.Api.PaymentsController._user": {
+   "changed": "New field."
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.#ctor(Bank.Modules.Payments.Application.IPaymentService,Bank.Modules.Auth.Application.ICurrentUser)": {
+   "changed": "New ctor."
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "changed": "Submits a payment request and maps ownership, validation, missing-account, and state-conflict exceptions to HTTP responses.",
+   "changed_facts": "New method. Now calls PaymentsController.ToDto(), calls IPaymentService.PayAsync().",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Mine(System.Threading.CancellationToken)": {
+   "changed": "Fetches and returns all payments belonging to the currently authenticated user.",
+   "changed_facts": "New method. Now calls IPaymentService.ForCustomerAsync().",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.ToDto(Bank.Modules.Payments.Domain.Payment)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Payments.Application.PaymentRequest": {
+   "changed": "Carries the idempotency key, source and destination account IDs, amount, and optional reference for a payment.",
+   "changed_facts": "New record with 6 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Payments.Application.PaymentRequest.#ctor(System.String,System.Guid,System.Guid,System.Decimal,System.String)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Payments.Application.PaymentRequest.IdempotencyKey": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Application.PaymentRequest.FromAccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Application.PaymentRequest.ToAccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Application.PaymentRequest.Amount": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Application.PaymentRequest.Reference": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Payments.Application.DailyLimitExceededException": {
+   "changed": "Signals that executing a payment would exceed the customer's daily transfer limit.",
+   "changed_facts": "New class with 2 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Payments.Application.DailyLimitExceededException.#ctor": {
+   "changed": "New ctor."
+  },
+  "M:Bank.Modules.Payments.Application.DailyLimitExceededException.#ctor(System.String)": {
+   "changed": "New ctor."
+  },
+  "T:Bank.Modules.Payments.Application.IPaymentService": {
+   "changed": "Defines the service contract for executing payments and querying a customer's payments.",
+   "changed_facts": "New interface with 2 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Payments.Application.IPaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "M:Bank.Modules.Payments.Application.IPaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Payments.Application.PaymentService": {
+   "changed": "New class with 10 member(s)."
+  },
+  "F:Bank.Modules.Payments.Application.PaymentService._db": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Payments.Application.PaymentService._ledger": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Payments.Application.PaymentService._accounts": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Payments.Application.PaymentService._user": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Payments.Application.PaymentService._clock": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Payments.Application.PaymentService._settings": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Payments.Application.PaymentService._bus": {
+   "changed": "New field."
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Shared.Events.IEventBus)": {
+   "changed": "New ctor."
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "changed": "Validates whole-cent amounts, account ownership, matching currencies, and the UTC daily transfer limit before posting to the ledger.",
+   "changed_facts": "New method. Now calls IAccountService.GetAsync(), calls IAccountService.IsOwnerAsync(), calls ILedger.PostTransferAsync(), calls Payment.Complete()….",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": "Returns a customer's payments ordered from newest to oldest.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Payments.Domain.PaymentStatus": {
+   "changed": "Defines the payment lifecycle states: Completed, Held, and Rejected.",
+   "changed_facts": "New enum with 3 member(s).",
+   "changed_src": "ai"
+  },
+  "F:Bank.Modules.Payments.Domain.PaymentStatus.Completed": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Payments.Domain.PaymentStatus.Held": {
+   "changed": "New field."
+  },
+  "F:Bank.Modules.Payments.Domain.PaymentStatus.Rejected": {
+   "changed": "New field."
+  },
+  "T:Bank.Modules.Payments.Domain.Payment": {
+   "changed": "Represents a customer payment record with amount, currency, accounts, status, reference, and ledger transfer link.",
+   "changed_facts": "New class with 15 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Payments.Domain.Payment.#ctor": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.Id": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.IdempotencyKey": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.FromAccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.ToAccountId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.Amount": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.Currency": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.Status": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.TransferId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.Reference": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.CreatedAt": {
+   "changed": "New property."
+  },
+  "M:Bank.Modules.Payments.Domain.Payment.Complete(System.Guid)": {
+   "changed": "Marks the payment as completed with a ledger transfer ID unless it is already rejected or completed.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Payments.Domain.Payment.Hold": {
+   "changed": "Transitions the payment to Held unless it is already rejected or completed with a transfer ID.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Payments.Domain.Payment.Reject": {
+   "changed": "Transitions the payment to Rejected unless it is already rejected or completed with a transfer ID.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Payments.Domain.PaymentCompleted": {
+   "changed": "Domain event carrying payment ID, customer ID, amount, currency, and completion timestamp.",
+   "changed_facts": "New record with 6 member(s).",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Payments.Domain.PaymentCompleted.#ctor(System.Guid,System.String,System.Decimal,System.String,System.DateTimeOffset)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Payments.Domain.PaymentCompleted.PaymentId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Domain.PaymentCompleted.CustomerId": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Domain.PaymentCompleted.Amount": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Domain.PaymentCompleted.Currency": {
+   "changed": "New property."
+  },
+  "P:Bank.Modules.Payments.Domain.PaymentCompleted.OccurredAt": {
+   "changed": "New property."
+  },
+  "T:Bank.Modules.Payments.PaymentsModule": {
+   "changed": "New class with 1 member(s)."
+  },
+  "M:Bank.Modules.Payments.PaymentsModule.AddPaymentsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "changed": "Registers the payment service in the dependency injection container.",
+   "changed_facts": "New method.",
+   "changed_src": "ai"
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "changed": "Registers the new Payments module during application startup.",
+   "changed_facts": "Modified (lines 8, 25).",
+   "changed_src": "ai"
+  },
+  "table:Payments.Id": {
+   "changed": "New column."
+  },
+  "table:Payments.IdempotencyKey": {
+   "changed": "New column."
+  },
+  "table:Payments.CustomerId": {
+   "changed": "New column."
+  },
+  "table:Payments.FromAccountId": {
+   "changed": "New column."
+  },
+  "table:Payments.ToAccountId": {
+   "changed": "New column."
+  },
+  "table:Payments.Amount": {
+   "changed": "New column."
+  },
+  "table:Payments.Currency": {
+   "changed": "New column."
+  },
+  "table:Payments.Status": {
+   "changed": "New column."
+  },
+  "table:Payments.TransferId": {
+   "changed": "New column."
+  },
+  "table:Payments.Reference": {
+   "changed": "New column."
+  },
+  "table:Payments.CreatedAt": {
+   "changed": "New column."
+  },
+  "endpoint:POST /api/payments": {
+   "changed": "Adds the HTTP endpoint for submitting a payment between accounts.",
+   "changed_facts": "New endpoint.",
+   "changed_src": "ai"
+  },
+  "endpoint:GET /api/payments": {
+   "changed": "Adds the HTTP endpoint for retrieving the authenticated customer's payment history.",
+   "changed_facts": "New endpoint.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Data.BankDbContext": {
+   "changed": "added Payments; modified OnModelCreating."
+  },
+  "module:Platform": {
+   "changed": "Classes: 2 changed (BankDbContext, Program).",
+   "affected": "3 part(s) are reached by it: DailyTransferLimit, PublishAsync, DefaultCurrency."
+  },
+  "module:Payments": {
+   "changed": "Classes: 10 new (PaymentDto, PaymentsController, PaymentRequest, DailyLimitExceededException…)."
+  },
+  "T:Program": {
+   "changed": "modified <Main>$."
+  },
+  "table:Payments": {
+   "changed": "Creates the Payments table storing payment amounts, currencies, account references, statuses, transfer IDs, and timestamps.",
+   "changed_facts": "added Id, IdempotencyKey, CustomerId, FromAccountId, ToAccountId.",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "affected": "Reached by the change through BankDbContext.OnModelCreating() (calls), 1 hop(s)."
+  },
+  "F:Bank.Modules.Ledger.Domain.BankAccounts.Currencies": {
+   "affected": "Reached by the change through BankDbContext.OnModelCreating() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "affected": "Reached by the change through BankDbContext.OnModelCreating() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "affected": "Reached by the change through BankDbContext.OnModelCreating() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "affected": "Reached by the change through BankDbContext.OnModelCreating() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "affected": "Reached by the change through BankDbContext.OnModelCreating() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Kind": {
+   "affected": "Reached by the change through BankDbContext.OnModelCreating() (uses), 1 hop(s)."
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "affected": "Reached by the change through PaymentService.PayAsync() (uses), 1 hop(s)."
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "affected": "Reached by the change through PaymentTests.PayAsync_valid_transfer_moves_money_persists_completed_payment_and_publishes_event() (uses), 1 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IAccountService.IsOwnerAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IAccountService.GetAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through ILedger.PostTransferAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IEventBus.PublishAsync() (resolves), 2 hop(s)."
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "affected": "Reached by the change through TestKit.Settings() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "affected": "Reached by the change through Ledger.PostTransferAsync() (uses), 3 hop(s)."
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "affected": "Reached by the change through Ledger.PostTransferAsync() (uses), 3 hop(s)."
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IEventHandler.HandleAsync() (resolves), 4 hop(s)."
+  },
+  "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+   "affected": "Called during database model configuration in BankDbContext to seed internal bank accounts.",
+   "affected_facts": "2 part(s) are reached by it: For, Currencies.",
+   "affected_src": "ai"
+  },
+  "module:Ledger": {
+   "affected": "5 part(s) are reached by it: For, Currencies, PostTransferAsync, Currency…."
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "affected": "Seeded as internal bank accounts when BankDbContext configures the database model.",
+   "affected_facts": "5 part(s) are reached by it: Id, OwnerId, Iban, Currency….",
+   "affected_src": "ai"
+  },
+  "module:Accounts": {
+   "affected": "7 part(s) are reached by it: Id, OwnerId, Iban, Currency…."
+  },
+  "T:Bank.Shared.Settings.BankSettings": {
+   "affected": "Supplies DailyTransferLimit enforced by PaymentService.PayAsync before executing transfers.",
+   "affected_facts": "2 part(s) are reached by it: DailyTransferLimit, DefaultCurrency.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Auth.Roles": {
+   "affected": "Referenced by payment tests exercising the new payment flow.",
+   "affected_facts": "1 part(s) are reached by it: Customer.",
+   "affected_src": "ai"
+  },
+  "module:Auth": {
+   "affected": "1 part(s) are reached by it: Customer."
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "affected": "Handles IAccountService calls from PaymentService.PayAsync to check ownership and load source and destination accounts.",
+   "affected_facts": "2 part(s) are reached by it: IsOwnerAsync, GetAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Ledger.Application.Ledger": {
+   "affected": "Handles ILedger.PostTransferAsync calls from PaymentService.PayAsync to transfer funds between accounts.",
+   "affected_facts": "1 part(s) are reached by it: PostTransferAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "affected": "Handles IEventBus.PublishAsync calls when payment events are published.",
+   "affected_facts": "1 part(s) are reached by it: PublishAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+   "affected": "Written by Ledger.PostTransferAsync when a payment transfer is posted.",
+   "affected_facts": "2 part(s) are reached by it: Currency, Reference.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+   "affected": "Resolves IEventHandler.HandleAsync to process domain events published on the event bus.",
+   "affected_facts": "1 part(s) are reached by it: HandleAsync.",
+   "affected_src": "ai"
+  },
+  "module:Audit": {
+   "affected": "1 part(s) are reached by it: HandleAsync."
+  }
+ },
+ "verdict": {
+  "label": "fix",
+  "reasons": [
+   {
+    "kind": "critical",
+    "level": "fix",
+    "text": "Composite index on CustomerId and IdempotencyKey is not configured as unique",
+    "finding": "C02",
+    "node": "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+    "detail": "no failing test reaches it",
+    "tests": [],
+    "claim": "The EF Core index on Payment (CustomerId, IdempotencyKey) lacks .IsUnique(). Without a unique constraint at the database level, duplicate payment records can be persisted and DbUpdateException will not be raised during concurrent duplicate requests.",
+    "suggested_fix": "Chain .IsUnique() to the index configuration: modelBuilder.Entity<Payment>().HasIndex(p => new { p.CustomerId, p.IdempotencyKey }).IsUnique();",
+    "file": "src/Bank.Api/Data/BankDbContext.cs",
+    "line_start": 49,
+    "evidence": "        modelBuilder.Entity<Payment>()\n            .HasIndex(p => new { p.CustomerId, p.IdempotencyKey });",
+    "evidence_verified": true,
+    "dimension": "correctness",
+    "severity": "Blocker",
+    "say": "Duplicate payments can slip through when concurrent requests arrive because the database lacks a unique constraint on customer and idempotency key. Ask the author to enforce uniqueness in the Payment index configuration.",
+    "say_facts": "Without a unique constraint at the database level, duplicate payment records can be persisted and DbUpdateException will not be raised during concurrent duplicate requests. Ask for a fix before merging.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "critical",
+    "level": "fix",
+    "text": "Missing idempotency check prior to daily limit calculation and ledger posting",
+    "finding": "C01",
+    "node": "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+    "detail": "2 failing test(s) reach this code",
+    "tests": [
+     "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+     "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing"
+    ],
+    "claim": "PayAsync does not check whether a payment with (CustomerId, IdempotencyKey) already exists before checking the daily transfer limit and calling ILedger.PostTransferAsync. As a result, retried requests with an existing key can fail daily limit checks or move money again via the ledger instead of returning the existing payment without ledger calls.",
+    "suggested_fix": "Query _db.Payments for an existing payment matching customerId and request.IdempotencyKey at the beginning of PayAsync. If found, return it immediately before evaluating daily transfer limits or posting transfers to ILedger.",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "line_start": 94,
+    "evidence": "            var todayAmounts = await _db.Payments\n                .Where(p => p.CustomerId == customerId\n                    && p.Status == PaymentStatus.Completed\n                    && p.CreatedAt >= dayStart\n                    && p.CreatedAt < dayEnd)\n                .Select(p => p.Amount)\n                .ToListAsync(ct);\n\n            if (todayAmounts.Sum() + request.Amount > _settings.DailyTransferLimit)\n                throw new DailyLimitExceededException();\n\n            var transferId = await _ledger.PostTransferAsync(\n                request.FromAccountId,\n                request.ToAccountId,\n                request.Amount,\n                request.Reference ?? \"\",\n                ct);",
+    "evidence_verified": true,
+    "dimension": "correctness",
+    "severity": "Blocker",
+    "say": "Retried payments can move money twice or fail daily limits because idempotency is checked too late. Ask the author to check for existing payments in PayAsync before limit checks and ledger posting.",
+    "say_facts": "As a result, retried requests with an existing key can fail daily limit checks or move money again via the ledger instead of returning the existing payment without ledger calls. Tests agree. Ask for a fix before merging.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "critical",
+    "level": "fix",
+    "text": "CustomerId and IdempotencyKey database index is not unique",
+    "finding": "S02",
+    "node": "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+    "detail": "no failing test reaches it",
+    "tests": [],
+    "claim": "The EF model defines a non-unique index on (CustomerId, IdempotencyKey). Without a unique constraint at the database layer, concurrent requests cannot be safely serialized, and DbUpdateException will not be raised to trigger the catch block handling concurrent duplicate payments.",
+    "suggested_fix": "Add .IsUnique() to the index configuration: modelBuilder.Entity<Payment>().HasIndex(p => new { p.CustomerId, p.IdempotencyKey }).IsUnique();",
+    "file": "src/Bank.Api/Data/BankDbContext.cs",
+    "line_start": 49,
+    "evidence": "        modelBuilder.Entity<Payment>()\n            .HasIndex(p => new { p.CustomerId, p.IdempotencyKey });",
+    "evidence_verified": true,
+    "dimension": "safety",
+    "severity": "Blocker",
+    "say": "Concurrent duplicate payment requests cannot be safely blocked by the database without a unique key constraint, risking double transfers. Confirm that the database index on customer and idempotency key is made unique.",
+    "say_facts": "Without a unique constraint at the database layer, concurrent requests cannot be safely serialized, and DbUpdateException will not be raised to trigger the catch block handling concurrent duplicate payments. Ask for a fix before merging.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "critical",
+    "level": "fix",
+    "text": "PayAsync executes transfer before checking for existing idempotency key",
+    "finding": "S01",
+    "node": "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+    "detail": "2 failing test(s) reach this code",
+    "tests": [
+     "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+     "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing"
+    ],
+    "claim": "PayAsync does not check whether a payment record already exists for the given CustomerId and IdempotencyKey before calling ILedger.PostTransferAsync and evaluating daily transfer limits. On duplicate or retried requests, money is transferred again via the ledger and/or requests erroneously fail with DailyLimitExceededException.",
+    "suggested_fix": "Query BankDbContext.Payments for an existing record matching customerId and request.IdempotencyKey at the beginning of PayAsync, returning the existing payment immediately before daily limit calculation and before invoking _ledger.PostTransferAsync.",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "line_start": 105,
+    "evidence": "            var transferId = await _ledger.PostTransferAsync(\n                request.FromAccountId,\n                request.ToAccountId,\n                request.Amount,\n                request.Reference ?? \"\",\n                ct);",
+    "evidence_verified": true,
+    "dimension": "safety",
+    "severity": "Blocker",
+    "say": "Customers retrying a transfer risk moving money twice or hitting false daily limit errors. Ask the author to check for an existing idempotency key in PayAsync before running limit or ledger logic.",
+    "say_facts": "On duplicate or retried requests, money is transferred again via the ledger and/or requests erroneously fail with DailyLimitExceededException. Tests agree. Ask for a fix before merging.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "tests_fail",
+    "level": "fix",
+    "text": "2 test(s) disagree with this PR's code (2 case(s)); the code or the test must change",
+    "detail": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actua ×1; Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit excee ×1",
+    "tests": [
+     "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+     "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing"
+    ],
+    "say": "Two automated tests fail with mismatched identifiers and unexpected daily limit exceptions, showing the implementation or tests are broken. Ask the author to investigate and ensure all payment tests pass before merging.",
+    "say_facts": "2 tests written from the requirement expect different behaviour from the code. Decide which is right — the code or the test — before this can merge.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "business",
+    "level": "check",
+    "text": "High business impact",
+    "detail": "Authenticated customers can now transfer whole-cent amounts in the same currency from their own accounts to any bank account and view their payment history, subject to daily transfer limits.",
+    "say": "This change enables live customer money transfers and payment history access, carrying high financial and compliance risk. Review the entire change carefully and ensure all controls and limits are strictly verified.",
+    "say_facts": "This change has a high impact on customers or money: Authenticated customers can now transfer whole-cent amounts in the same currency from their own accounts to any bank account and view their payment history, subject to daily transfer limits. Confirm the business owner agrees.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Idempotency database index lacks unique constraint",
+    "finding": "A02",
+    "node": "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+    "detail": "architecture",
+    "claim": "The composite index on (CustomerId, IdempotencyKey) is created without uniqueness. Without a unique constraint, concurrent identical requests are not prevented at the database level, allowing duplicate payment records and failing to trigger unique violation handling.",
+    "suggested_fix": "Chain .IsUnique() to the index configuration in BankDbContext.OnModelCreating.",
+    "file": "src/Bank.Api/Data/BankDbContext.cs",
+    "line_start": 49,
+    "evidence": "        modelBuilder.Entity<Payment>()\n            .HasIndex(p => new { p.CustomerId, p.IdempotencyKey });",
+    "evidence_verified": true,
+    "dimension": "architecture",
+    "severity": "ShouldFix",
+    "say": "Without a unique constraint in the database, simultaneous identical payment requests can create duplicate transfers and bypass conflict handling. Verify that the composite key index on Payment enforces uniqueness.",
+    "say_facts": "Without a unique constraint, concurrent identical requests are not prevented at the database level, allowing duplicate payment records and failing to trigger unique violation handling. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Idempotency check is bypassed before money movement in ledger",
+    "finding": "A01",
+    "node": "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+    "detail": "architecture",
+    "claim": "PaymentService invokes ILedger.PostTransferAsync before checking if a payment with the specified IdempotencyKey already exists for the customer. This causes duplicate money transfers when requests are retried with the same idempotency key.",
+    "suggested_fix": "Query _db.Payments for an existing payment matching CustomerId and request.IdempotencyKey before calculating daily limits and before calling _ledger.PostTransferAsync; return the existing record if found.",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "line_start": 105,
+    "evidence": "            var transferId = await _ledger.PostTransferAsync(\n                request.FromAccountId,\n                request.ToAccountId,\n                request.Amount,\n                request.Reference ?? \"\",\n                ct);",
+    "evidence_verified": true,
+    "dimension": "architecture",
+    "severity": "ShouldFix",
+    "say": "Retrying a payment moves money again in the ledger because existing keys are not checked beforehand, risking duplicate transfers. Ask the author to check prior payments in PaymentService before moving funds.",
+    "say_facts": "This causes duplicate money transfers when requests are retried with the same idempotency key. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Speculative domain methods implemented for out-of-scope workflows",
+    "finding": "A03",
+    "node": "M:Bank.Modules.Payments.Domain.Payment.Hold",
+    "detail": "architecture",
+    "claim": "The Hold and Reject methods on Payment implement workflow state transitions that were explicitly designated as out of scope in the requirement specification.",
+    "suggested_fix": "Remove the unused Hold and Reject methods to adhere to YAGNI and the defined task scope.",
+    "file": "src/Bank.Api/Modules/Payments/Domain/Payment.cs",
+    "line_start": 38,
+    "evidence": "    public void Hold()\n    {\n        if (Status == PaymentStatus.Rejected || (Status == PaymentStatus.Completed && TransferId is not null))\n            throw new InvalidOperationException($\"Cannot hold payment in status {Status}.\");\n        Status = PaymentStatus.Held;\n    }\n\n    public void Reject()\n    {\n        if (Status == PaymentStatus.Rejected || (Status == PaymentStatus.Completed && TransferId is not null))\n            throw new InvalidOperationException($\"Cannot reject payment in status {Status}.\");\n        Status = PaymentStatus.Rejected;\n    }",
+    "evidence_verified": true,
+    "dimension": "architecture",
+    "severity": "ShouldFix",
+    "say": "Unrequested hold and reject payment behaviors add untested state changes that were explicitly out of scope, risking unintended financial states. Ask the author to remove Hold and Reject from Payment.",
+    "say_facts": "The Hold and Reject methods on Payment implement workflow state transitions that were explicitly designated as out of scope in the requirement specification. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "In-memory materialization of daily payment amounts causes unnecessary allocations",
+    "finding": "P02",
+    "node": "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+    "detail": "performance",
+    "claim": "PayAsync calls ToListAsync on lines 94-100 to materialize all completed payment amounts for the day into an in-memory List<decimal> before summing them via LINQ. This transfers all individual amount records over the database connection and allocates a list on every payment rather than computing the sum directly on the database server.",
+    "suggested_fix": "Use EF Core's SumAsync directly on the filtered IQueryable (e.g., await _db.Payments.Where(...).SumAsync(p => (decimal?)p.Amount, ct) ?? 0m) to execute an SQL SUM aggregate.",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "line_start": 102,
+    "evidence": "            if (todayAmounts.Sum() + request.Amount > _settings.DailyTransferLimit)",
+    "evidence_verified": true,
+    "dimension": "performance",
+    "severity": "ShouldFix",
+    "say": "Loading every daily payment amount into memory before summing wastes database bandwidth and slows down transfers as volume grows. Ask the author to compute the daily total directly in the database in PayAsync.",
+    "say_facts": "This transfers all individual amount records over the database connection and allocates a list on every payment rather than computing the sum directly on the database server. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Unconditional ledger transfer execution causes repeated redundant work on retried idempotency keys",
+    "finding": "P01",
+    "node": "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+    "detail": "performance",
+    "claim": "PayAsync executes ILedger.PostTransferAsync before checking if a payment record with the given CustomerId and IdempotencyKey already exists. Retrying a request with the same idempotency key executes redundant ledger transfers and database operations rather than short-circuiting early.",
+    "suggested_fix": "Query BankDbContext.Payments for an existing record with the matching CustomerId and IdempotencyKey before initiating the daily limit check or ledger transfer, returning the existing payment immediately if found.",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "line_start": 105,
+    "evidence": "            var transferId = await _ledger.PostTransferAsync(",
+    "evidence_verified": true,
+    "dimension": "performance",
+    "severity": "ShouldFix",
+    "say": "Retried payment requests perform unnecessary ledger transfers and database writes instead of returning early, risking duplicate money movement and wasted resources. Ask the author to return the existing payment earlier in PayAsync.",
+    "say_facts": "Retrying a request with the same idempotency key executes redundant ledger transfers and database operations rather than short-circuiting early. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Missing AsNoTracking in customer payment history query creates unnecessary change tracker overhead",
+    "finding": "P03",
+    "node": "M:Bank.Modules.Payments.Application.PaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)",
+    "detail": "performance",
+    "claim": "ForCustomerAsync queries customer payments for read-only consumption without applying AsNoTracking(). Materializing entities into EF Core's ChangeTracker allocates identity tracking structures for records that are mapped directly to DTOs and never updated in the current DbContext scope.",
+    "suggested_fix": "Add .AsNoTracking() to the query pipeline in ForCustomerAsync.",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "line_start": 167,
+    "evidence": "        await _db.Payments",
+    "evidence_verified": true,
+    "dimension": "performance",
+    "severity": "ShouldFix",
+    "say": "Viewing payment history tracks read-only records in memory unnecessarily, increasing server load for staff and customers. Ask the author to disable change tracking in ForCustomerAsync when querying payment history.",
+    "say_facts": "Materializing entities into EF Core's ChangeTracker allocates identity tracking structures for records that are mapped directly to DTOs and never updated in the current DbContext scope. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "No unit or integration tests for PaymentsController endpoints",
+    "finding": "T01",
+    "node": "T:Bank.Modules.Payments.Api.PaymentsController",
+    "detail": "tests",
+    "claim": "PaymentsController defines POST and GET api/payments with authorization and exception-to-HTTP mapping, but neither the controller nor its endpoints are exercised in tests. Crucial behaviors like Customer policy enforcement and status code mapping remain unverified.",
+    "suggested_fix": "Add controller tests to verify authorization attributes, customer ID resolution from ICurrentUser, and mapping of domain exceptions (e.g., UnauthorizedAccessException to 403, DailyLimitExceededException to 409).",
+    "file": "src/Bank.Api/Modules/Payments/Api/PaymentsController.cs",
+    "line_start": 26,
+    "evidence": "public sealed class PaymentsController : ControllerBase",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "Payment web endpoints have no test coverage, leaving customer authorization rules and error status responses unverified in production. Ask the author to add tests for PaymentsController covering access policies and error mapping.",
+    "say_facts": "Crucial behaviors like Customer policy enforcement and status code mapping remain unverified. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "IPaymentService.ForCustomerAsync has zero test coverage",
+    "finding": "T02",
+    "node": "M:Bank.Modules.Payments.Application.PaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)",
+    "detail": "tests",
+    "claim": "The ForCustomerAsync query method is implemented to fetch and order payments by customerId, but it has no test references. Verification of filtering by caller ID, descending CreatedAt ordering, and non-disclosure of other customers' payments is completely absent.",
+    "suggested_fix": "Add unit tests verifying that ForCustomerAsync filters records strictly by the provided customerId, orders results by CreatedAt descending, and returns an empty collection when no records match.",
+    "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+    "line_start": 166,
+    "evidence": "    public async Task<IReadOnlyList<Payment>> ForCustomerAsync(string customerId, CancellationToken ct = default) =>",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "Customer payment history queries are completely untested, creating a risk that customers could view others' private payments or see wrong ordering. Ask the author to add tests for ForCustomerAsync covering filtering and sorting.",
+    "say_facts": "Verification of filtering by caller ID, descending CreatedAt ordering, and non-disclosure of other customers' payments is completely absent. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "untested",
+    "level": "check",
+    "text": "12 changed method(s) have no usable test evidence",
+    "nodes": [
+     "M:Bank.Modules.Payments.Api.PaymentsController.#ctor(Bank.Modules.Payments.Application.IPaymentService,Bank.Modules.Auth.Application.ICurrentUser)",
+     "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Payments.Api.PaymentsController.Mine(System.Threading.CancellationToken)",
+     "M:Bank.Modules.Payments.Api.PaymentsController.ToDto(Bank.Modules.Payments.Domain.Payment)",
+     "M:Bank.Modules.Payments.Application.DailyLimitExceededException.#ctor",
+     "M:Bank.Modules.Payments.Application.DailyLimitExceededException.#ctor(System.String)"
+    ],
+    "detail": "PaymentsController.PaymentsController(), PaymentsController.Pay(), PaymentsController.Mine(), PaymentsController.ToDto()",
+    "say": "Twelve changed methods, including the payment endpoints and mapping logic, lack any test evidence, leaving core customer workflows unverified. Ask the author to add tests covering PaymentsController and related helper methods.",
+    "say_facts": "12 changed parts of the code are not covered by any working test. Read them yourself or ask for tests.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "reviewer",
+    "level": "check",
+    "text": "Reviewer asks a human to check Where",
+    "detail": "Tier HIGH → full human read and 2 sign-off(s) required",
+    "say": "Because this change handles live customer money movement, it carries high risk. Ensure a full human review is completed and two independent sign-offs are recorded before merging.",
+    "say_facts": "The change touches a sensitive part of the bank. Check that only the intended places changed.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "not_checked",
+    "level": "info",
+    "text": "Not checked at this coverage level: Requirement",
+    "say": "Not checked (switched off by the team's coverage level, or did not run): Requirement. Not counted as passed; trust cannot be High."
+   }
+  ],
+  "risk_areas": [
+   {
+    "module": "Payments",
+    "why": "Customer money leaves the account"
+   },
+   {
+    "module": "Platform",
+    "why": "Database schema, wiring and bank-wide settings touch every module"
+   }
+  ],
+  "reviewer_gate": "BLOCKED",
+  "failures": {
+   "new": 2,
+   "broken": 0,
+   "inherited": 0,
+   "cases_failed": 2
+  }
+ },
+ "units": {
+  "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [
+    {
+     "id": "C02",
+     "severity": "Blocker",
+     "title": "Composite index on CustomerId and IdempotencyKey is not configured as unique",
+     "file": "src/Bank.Api/Data/BankDbContext.cs",
+     "line_start": 49,
+     "dimension": "correctness"
+    },
+    {
+     "id": "S02",
+     "severity": "Blocker",
+     "title": "CustomerId and IdempotencyKey database index is not unique",
+     "file": "src/Bank.Api/Data/BankDbContext.cs",
+     "line_start": 49,
+     "dimension": "safety"
+    },
+    {
+     "id": "A02",
+     "severity": "ShouldFix",
+     "title": "Idempotency database index lacks unique constraint",
+     "file": "src/Bank.Api/Data/BankDbContext.cs",
+     "line_start": 49,
+     "dimension": "architecture"
+    }
+   ],
+   "how": "modified"
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.#ctor(Bank.Modules.Payments.Application.IPaymentService,Bank.Modules.Auth.Application.ICurrentUser)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Mine(System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.ToDto(Bank.Modules.Payments.Domain.Payment)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Payments.Application.DailyLimitExceededException.#ctor": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Payments.Application.DailyLimitExceededException.#ctor(System.String)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Shared.Events.IEventBus)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [
+    {
+     "id": "C01",
+     "severity": "Blocker",
+     "title": "Missing idempotency check prior to daily limit calculation and ledger posting",
+     "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+     "line_start": 94,
+     "dimension": "correctness"
+    },
+    {
+     "id": "S01",
+     "severity": "Blocker",
+     "title": "PayAsync executes transfer before checking for existing idempotency key",
+     "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+     "line_start": 105,
+     "dimension": "safety"
+    },
+    {
+     "id": "A01",
+     "severity": "ShouldFix",
+     "title": "Idempotency check is bypassed before money movement in ledger",
+     "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+     "line_start": 105,
+     "dimension": "architecture"
+    },
+    {
+     "id": "P02",
+     "severity": "ShouldFix",
+     "title": "In-memory materialization of daily payment amounts causes unnecessary allocations",
+     "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+     "line_start": 102,
+     "dimension": "performance"
+    },
+    {
+     "id": "P01",
+     "severity": "ShouldFix",
+     "title": "Unconditional ledger transfer execution causes repeated redundant work on retried idempotency keys",
+     "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+     "line_start": 105,
+     "dimension": "performance"
+    }
+   ],
+   "how": "new"
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments"
+    ],
+    "passed_n": 1,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [
+    {
+     "id": "P03",
+     "severity": "ShouldFix",
+     "title": "Missing AsNoTracking in customer payment history query creates unnecessary change tracker overhead",
+     "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+     "line_start": 167,
+     "dimension": "performance"
+    },
+    {
+     "id": "T02",
+     "severity": "ShouldFix",
+     "title": "IPaymentService.ForCustomerAsync has zero test coverage",
+     "file": "src/Bank.Api/Modules/Payments/Application/PaymentService.cs",
+     "line_start": 166,
+     "dimension": "tests"
+    }
+   ],
+   "how": "new"
+  },
+  "M:Bank.Modules.Payments.Domain.Payment.#ctor": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.Id": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.IdempotencyKey": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.CustomerId": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.Currency": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.Status": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Payments.Domain.Payment.Complete(System.Guid)": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Payments.Domain.Payment.Hold": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [
+    {
+     "id": "A03",
+     "severity": "ShouldFix",
+     "title": "Speculative domain methods implemented for out-of-scope workflows",
+     "file": "src/Bank.Api/Modules/Payments/Domain/Payment.cs",
+     "line_start": 38,
+     "dimension": "architecture"
+    }
+   ],
+   "how": "new"
+  },
+  "M:Bank.Modules.Payments.Domain.Payment.Reject": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Payments.PaymentsModule.AddPaymentsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "F:Bank.Modules.Ledger.Domain.BankAccounts.Currencies": {
+   "side": "affected",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Kind": {
+   "side": "affected",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Payments.PaymentTests.PayAsync_valid_transfer_moves_money_persists_completed_payment_and_publishes_event",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "ForCustomerAsync_returns_only_specified_customers_payments",
+     "PayAsync_allows_null_reference",
+     "PayAsync_allows_transfer_between_customers_own_accounts",
+     "PayAsync_cumulative_payments_exceeding_daily_limit_throw_DailyLimitExceededException",
+     "PayAsync_daily_limit_is_isolated_per_customer",
+     "PayAsync_daily_limit_resets_at_utc_midnight",
+     "PayAsync_different_currencies_throws_CurrencyMismatchException",
+     "PayAsync_exact_account_balance_succeeds",
+     "PayAsync_exactly_at_daily_transfer_limit_succeeds",
+     "PayAsync_fractional_cents_throws_ArgumentException",
+     "PayAsync_from_account_not_owned_by_caller_throws_UnauthorizedAccessException",
+     "PayAsync_from_nonexistent_account_throws_UnauthorizedAccessException"
+    ],
+    "passed_n": 19,
+    "failed": [
+     {
+      "name": "PayAsync_duplicate_idempotency_key_does_not_count_twice_toward_daily_limit",
+      "message": "Bank.Modules.Payments.Application.DailyLimitExceededException : Daily transfer limit exceeded.",
+      "cases": 1,
+      "cause": "crash"
+     },
+     {
+      "name": "PayAsync_duplicate_idempotency_key_for_same_customer_returns_existing_payment_without_moving_money_or_republishing",
+      "message": "Assert.Equal() Failure: Values differ Expected: 0e32a198-2b4a-45a3-abd9-92900c4d0fd5 Actual: ecf00046-5672-4b49-a23f-ee28873e4dc8",
+      "cases": 1,
+      "cause": "assertion"
+     }
+    ],
+    "failed_n": 2,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Shared.Events.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 4
+  }
+ },
+ "roll": {
+  "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Data.BankDbContext": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "layer:Platform/Data": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "module:Platform": {
+   "changed": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+      "contradicted"
+     ],
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   },
+   "affected": {
+    "n": 3,
+    "verified": 0,
+    "contradicted": 3,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.125,
+    "lo": 0.0,
+    "hi": 0.536
+   }
+  },
+  "pr": {
+   "changed": {
+    "n": 21,
+    "verified": 1,
+    "contradicted": 8,
+    "not_run": 0,
+    "none": 12,
+    "weakest": [
+     [
+      "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.Id",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.IdempotencyKey",
+      "contradicted"
+     ]
+    ],
+    "pct": 5,
+    "conf": 0.068,
+    "lo": 0.005,
+    "hi": 0.202
+   },
+   "affected": {
+    "n": 17,
+    "verified": 0,
+    "contradicted": 15,
+    "not_run": 0,
+    "none": 2,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Id",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Iban",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.028,
+    "lo": 0.0,
+    "hi": 0.135
+   }
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.#ctor(Bank.Modules.Payments.Application.IPaymentService,Bank.Modules.Auth.Application.ICurrentUser)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.#ctor(Bank.Modules.Payments.Application.IPaymentService,Bank.Modules.Auth.Application.ICurrentUser)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Payments.Api.PaymentsController": {
+   "changed": {
+    "n": 4,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 4,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.#ctor(Bank.Modules.Payments.Application.IPaymentService,Bank.Modules.Auth.Application.ICurrentUser)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Mine(System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.ToDto(Bank.Modules.Payments.Domain.Payment)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.1,
+    "lo": 0.0,
+    "hi": 0.445
+   },
+   "affected": null
+  },
+  "layer:Payments/Api": {
+   "changed": {
+    "n": 4,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 4,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.#ctor(Bank.Modules.Payments.Application.IPaymentService,Bank.Modules.Auth.Application.ICurrentUser)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Mine(System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.ToDto(Bank.Modules.Payments.Domain.Payment)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.1,
+    "lo": 0.0,
+    "hi": 0.445
+   },
+   "affected": null
+  },
+  "module:Payments": {
+   "changed": {
+    "n": 19,
+    "verified": 1,
+    "contradicted": 7,
+    "not_run": 0,
+    "none": 11,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.Id",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.IdempotencyKey",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.CustomerId",
+      "contradicted"
+     ]
+    ],
+    "pct": 5,
+    "conf": 0.075,
+    "lo": 0.006,
+    "hi": 0.221
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Pay(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.Mine(System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.Mine(System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Payments.Api.PaymentsController.ToDto(Bank.Modules.Payments.Domain.Payment)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Api.PaymentsController.ToDto(Bank.Modules.Payments.Domain.Payment)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Payments.Application.DailyLimitExceededException.#ctor": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Application.DailyLimitExceededException.#ctor",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Payments.Application.DailyLimitExceededException": {
+   "changed": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 2,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Application.DailyLimitExceededException.#ctor",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Application.DailyLimitExceededException.#ctor(System.String)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   },
+   "affected": null
+  },
+  "layer:Payments/Application": {
+   "changed": {
+    "n": 5,
+    "verified": 1,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 3,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Payments.Application.DailyLimitExceededException.#ctor",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Application.DailyLimitExceededException.#ctor(System.String)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 20,
+    "conf": 0.25,
+    "lo": 0.023,
+    "hi": 0.629
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Payments.Application.DailyLimitExceededException.#ctor(System.String)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Application.DailyLimitExceededException.#ctor(System.String)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Shared.Events.IEventBus)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Payments.Application.PaymentService": {
+   "changed": {
+    "n": 3,
+    "verified": 1,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Payments.Application.PaymentService.#ctor(Bank.Data.BankDbContext,Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser,Bank.Shared.Time.IClock,Bank.Shared.Settings.BankSettings,Bank.Shared.Events.IEventBus)",
+      "none"
+     ]
+    ],
+    "pct": 33,
+    "conf": 0.375,
+    "lo": 0.039,
+    "hi": 0.823
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Payments.Application.PaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Payments.Domain.Payment.#ctor": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Domain.Payment.#ctor",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Payments.Domain.Payment": {
+   "changed": {
+    "n": 9,
+    "verified": 0,
+    "contradicted": 6,
+    "not_run": 0,
+    "none": 3,
+    "weakest": [
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.Id",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.IdempotencyKey",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.CustomerId",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.Currency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.05,
+    "lo": 0.0,
+    "hi": 0.238
+   },
+   "affected": null
+  },
+  "layer:Payments/Domain": {
+   "changed": {
+    "n": 9,
+    "verified": 0,
+    "contradicted": 6,
+    "not_run": 0,
+    "none": 3,
+    "weakest": [
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.Id",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.IdempotencyKey",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.CustomerId",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.Currency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.05,
+    "lo": 0.0,
+    "hi": 0.238
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.Id": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.Id",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.IdempotencyKey": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.IdempotencyKey",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.CustomerId": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.CustomerId",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.Currency": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.Currency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "P:Bank.Modules.Payments.Domain.Payment.Status": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Payments.Domain.Payment.Status",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Payments.Domain.Payment.Complete(System.Guid)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Domain.Payment.Complete(System.Guid)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Payments.Domain.Payment.Hold": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Domain.Payment.Hold",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Payments.Domain.Payment.Reject": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.Domain.Payment.Reject",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Payments.PaymentsModule.AddPaymentsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.PaymentsModule.AddPaymentsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Payments.PaymentsModule": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.PaymentsModule.AddPaymentsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "layer:Payments/Wiring": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Payments.PaymentsModule.AddPaymentsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Program": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "layer:Platform/Host": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+      "contradicted"
+     ],
+     [
+      "F:Bank.Modules.Ledger.Domain.BankAccounts.Currencies",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   }
+  },
+  "layer:Ledger/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 0,
+    "contradicted": 3,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference",
+      "contradicted"
+     ],
+     [
+      "F:Bank.Modules.Ledger.Domain.BankAccounts.Currencies",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.1,
+    "lo": 0.0,
+    "hi": 0.445
+   }
+  },
+  "module:Ledger": {
+   "changed": null,
+   "affected": {
+    "n": 5,
+    "verified": 0,
+    "contradicted": 4,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.083,
+    "lo": 0.0,
+    "hi": 0.379
+   }
+  },
+  "F:Bank.Modules.Ledger.Domain.BankAccounts.Currencies": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "F:Bank.Modules.Ledger.Domain.BankAccounts.Currencies",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Id",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "changed": null,
+   "affected": {
+    "n": 5,
+    "verified": 0,
+    "contradicted": 4,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Id",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Iban",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Currency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.083,
+    "lo": 0.0,
+    "hi": 0.379
+   }
+  },
+  "layer:Accounts/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 5,
+    "verified": 0,
+    "contradicted": 4,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Id",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Iban",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Currency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.083,
+    "lo": 0.0,
+    "hi": 0.379
+   }
+  },
+  "module:Accounts": {
+   "changed": null,
+   "affected": {
+    "n": 7,
+    "verified": 0,
+    "contradicted": 6,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Id",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Iban",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Currency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.062,
+    "lo": 0.0,
+    "hi": 0.292
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.OwnerId",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Iban",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Currency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Kind": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "P:Bank.Modules.Accounts.Domain.Account.Kind",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Shared.Settings.BankSettings": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 2,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   }
+  },
+  "layer:Platform/Shared": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 0,
+    "contradicted": 3,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.125,
+    "lo": 0.0,
+    "hi": 0.536
+   }
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "F:Bank.Modules.Auth.Roles.Customer",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Auth.Roles": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "F:Bank.Modules.Auth.Roles.Customer",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "layer:Auth/Wiring": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "F:Bank.Modules.Auth.Roles.Customer",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "module:Auth": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "F:Bank.Modules.Auth.Roles.Customer",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 2,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   }
+  },
+  "layer:Accounts/Application": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 2,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Ledger.Application.Ledger": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "layer:Ledger/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Shared.Settings.BankSettings.DefaultCurrency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 2,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency",
+      "contradicted"
+     ],
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   }
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "T:Bank.Modules.Audit.Application.AuditEventHandler": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "layer:Audit/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  },
+  "module:Audit": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Audit.Application.AuditEventHandler.HandleAsync(Bank.Shared.Events.IDomainEvent,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   }
+  }
+ },
+ "tests_ran": true,
+ "findings_at": {
+  "M:Bank.Data.BankDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)": [
+   "C02",
+   "S02",
+   "A02"
+  ],
+  "M:Bank.Modules.Payments.Application.PaymentService.PayAsync(Bank.Modules.Payments.Application.PaymentRequest,System.Threading.CancellationToken)": [
+   "C01",
+   "S01",
+   "A01",
+   "P02",
+   "P01"
+  ],
+  "M:Bank.Modules.Payments.Domain.Payment.Hold": [
+   "A03"
+  ],
+  "M:Bank.Modules.Payments.Application.PaymentService.ForCustomerAsync(System.String,System.Threading.CancellationToken)": [
+   "P03",
+   "T02"
+  ],
+  "T:Bank.Modules.Payments.Api.PaymentsController": [
+   "T01"
+  ]
+ },
+ "trust": {
+  "level": "low",
+  "why": "8 changed method(s) contradicted by a failing test or a Critical finding"
+ }
+}

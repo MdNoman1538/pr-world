@@ -1,0 +1,109 @@
+# Critical only: Essential coverage, and people see Critical findings first (the rest is folded, never deleted).
+version: '1'
+preset: critical-only
+rulebook: review-policy.yaml
+coverage:
+  default: essential
+  by_tier:
+    high: full
+    medium: essential
+    low: essential
+plugins:
+  enable: []
+  disable: []
+  company_dir: plugins/company
+  allow_unsigned: true
+  waivers: []
+models:
+  default:
+    provider: gemini
+    model: gemini-3.8-flash
+  roles:
+    specialist:
+      provider: gemini
+      model: gemini-3.8-flash
+    validator:
+      provider: gemini
+      model: gemini-4-hydrogen
+    radar:
+      provider: gemini
+      model: gemini-4-hydrogen
+    fixer:
+      provider: gemini
+      model: gemini-4-hydrogen
+    investigator:
+      provider: gemini
+      model: gemini-4-hydrogen
+    requirement_analyst:
+      provider: gemini
+      model: gemini-4-hydrogen
+    change_interpreter:
+      provider: gemini
+      model: gemini-3.8-flash
+    requirement_judge:
+      provider: gemini
+      model: gemini-4-hydrogen
+    writer:
+      provider: gemini
+      model: gemini-3.8-flash
+    panel:
+    - provider: gemini
+      model: gemini-4-hydrogen
+    - provider: gemini
+      model: gemini-3.8-flash
+  providers:
+    gemini:
+      key_env: GEMINI_API_KEY
+      price_in_per_mtok: 0
+      price_out_per_mtok: 0
+    openai:
+      base_url: https://api.openai.com/v1
+      key_env: OPENAI_API_KEY
+      price_in_per_mtok: 0
+      price_out_per_mtok: 0
+    anthropic:
+      base_url: https://api.anthropic.com/v1
+      key_env: ANTHROPIC_API_KEY
+      price_in_per_mtok: 0
+      price_out_per_mtok: 0
+    local:
+      base_url: http://127.0.0.1:8000/v1
+      key_env: null
+      price_in_per_mtok: 0
+      price_out_per_mtok: 0
+budget:
+  max_calls: 40
+  max_cost_eur: 5
+  timeout_s: 1800
+  call_timeout_s: 180
+thresholds:
+  min_blocker_confidence: 0.6
+  panel_size: 2
+  investigator_max_steps: 6
+  show_nits: false
+local_only: []
+integrations:
+  dry_run: true
+view_defaults:
+  trust_view: level
+  severity_min: Blocker
+  lenses:
+  - risk
+  - calls
+  - apis
+  - events
+  - data
+  - security
+  - tests
+  layout: split
+  density: comfortable
+  theme: dark
+  language: en
+  start: list
+access:
+  hide_restricted_names: false
+  restricted_names: []
+  emergency_max_hours: 4
+merge_policy:
+  protected_areas: []
+  rules: []

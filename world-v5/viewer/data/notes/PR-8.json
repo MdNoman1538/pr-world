@@ -1,0 +1,2264 @@
+{
+ "pr": "PR-8",
+ "findings": [
+  {
+   "id": "C01",
+   "severity": "Blocker",
+   "title": "Inclusive upper bounds in ledger queries violate UTC month boundary exclusion",
+   "dimension": "correctness"
+  },
+  {
+   "id": "T01",
+   "severity": "ShouldFix",
+   "title": "StatementsController endpoint and HTTP status mappings have no test coverage",
+   "dimension": "tests"
+  },
+  {
+   "id": "T02",
+   "severity": "ShouldFix",
+   "title": "Tautological assertion recalculates running balance over returned lines without checking expected line order",
+   "dimension": "tests"
+  }
+ ],
+ "source": "ai",
+ "model": "gemini-4-hydrogen",
+ "headline": "Adds monthly UTC account statements API and service",
+ "summary": "Introduces the Statements module with an HTTP endpoint and StatementService to compute read-only monthly account statements in UTC. Statements calculate opening balance, chronological ledger lines with running balances, and closing balance, restricted to the account owner or staff roles.",
+ "business": "Customers and authorized staff can now retrieve monthly account statements showing opening balance, chronological transactions, and closing balance in the account currency. Statement access is limited to account owners or staff, and balances round to two decimal places away from zero.",
+ "business_impact": "medium",
+ "notes": {
+  "T:Bank.Modules.Statements.Api.StatementsController": {
+   "changed": "New class with 4 member(s)."
+  },
+  "F:Bank.Modules.Statements.Api.StatementsController._statements": {
+   "changed": "Holds the injected statement service used to generate monthly statements.",
+   "changed_facts": "New field.",
+   "changed_src": "ai"
+  },
+  "M:Bank.Modules.Statements.Api.StatementsController.#ctor(Bank.Modules.Statements.Application.IStatementService)": {
+   "changed": "New ctor."
+  },
+  "M:Bank.Modules.Statements.Api.StatementsController.GetForMonth(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls IStatementService.ForMonthAsync()."
+  },
+  "T:Bank.Modules.Statements.Application.StatementLine": {
+   "changed": "New record with 5 member(s)."
+  },
+  "M:Bank.Modules.Statements.Application.StatementLine.#ctor(System.DateTimeOffset,System.Decimal,System.Decimal,System.String)": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Statements.Application.StatementLine.At": {
+   "changed": "Records the UTC timestamp of the ledger entry on the statement line.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "P:Bank.Modules.Statements.Application.StatementLine.Amount": {
+   "changed": "Holds the ledger entry amount rounded to two decimal places.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "P:Bank.Modules.Statements.Application.StatementLine.BalanceAfter": {
+   "changed": "Holds the running account balance immediately after applying this entry.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "P:Bank.Modules.Statements.Application.StatementLine.Reference": {
+   "changed": "Carries the reference text from the underlying ledger entry.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Statements.Application.Statement": {
+   "changed": "New record with 8 member(s)."
+  },
+  "M:Bank.Modules.Statements.Application.Statement.#ctor(System.Guid,System.Int32,System.Int32,System.String,System.Decimal,System.Decimal,System.Collections.Generic.IReadOnlyList{Bank.Modules.Statements.Application.StatementLine})": {
+   "changed": "New ctor."
+  },
+  "P:Bank.Modules.Statements.Application.Statement.AccountId": {
+   "changed": "Identifies the account the monthly statement belongs to.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "P:Bank.Modules.Statements.Application.Statement.Year": {
+   "changed": "Specifies the four-digit calendar year of the statement.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "P:Bank.Modules.Statements.Application.Statement.Month": {
+   "changed": "Specifies the calendar month from 1 to 12 of the statement.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "P:Bank.Modules.Statements.Application.Statement.Currency": {
+   "changed": "Reflects the currency of the target account.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "P:Bank.Modules.Statements.Application.Statement.OpeningBalance": {
+   "changed": "Holds the sum of ledger entries strictly before the month start, rounded to two decimals.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "P:Bank.Modules.Statements.Application.Statement.ClosingBalance": {
+   "changed": "Holds the opening balance plus the sum of month line amounts, rounded to two decimals.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "P:Bank.Modules.Statements.Application.Statement.Lines": {
+   "changed": "Contains the chronological list of statement lines within the UTC month.",
+   "changed_facts": "New property.",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Statements.Application.IStatementService": {
+   "changed": "New interface with 1 member(s)."
+  },
+  "M:Bank.Modules.Statements.Application.IStatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)": {
+   "changed": "New method."
+  },
+  "T:Bank.Modules.Statements.Application.StatementService": {
+   "changed": "New class with 3 member(s)."
+  },
+  "M:Bank.Modules.Statements.Application.StatementService.#ctor(Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser)": {
+   "changed": "New ctor."
+  },
+  "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)": {
+   "changed": "New method. Now calls IAccountService.GetAsync(), calls IAccountService.IsOwnerAsync(), calls ILedger.EntriesAsync(), calls StatementService.IsStaff()."
+  },
+  "M:Bank.Modules.Statements.Application.StatementService.IsStaff": {
+   "changed": "Checks whether the current user holds the Teller, LoanOfficer, ComplianceOfficer, or Admin role.",
+   "changed_facts": "New method. Now calls ICurrentUser.IsInRole().",
+   "changed_src": "ai"
+  },
+  "T:Bank.Modules.Statements.StatementsModule": {
+   "changed": "New class with 1 member(s)."
+  },
+  "M:Bank.Modules.Statements.StatementsModule.AddStatementsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "changed": "New method."
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "changed": "Modified (lines 14, 37)."
+  },
+  "endpoint:GET /api/accounts/{id:guid}/statements/{year:int}/{month:int}": {
+   "changed": "New endpoint."
+  },
+  "module:Statements": {
+   "changed": "Classes: 6 new (StatementsController, StatementLine, Statement, IStatementService…)."
+  },
+  "T:Program": {
+   "changed": "modified <Main>$."
+  },
+  "module:Platform": {
+   "changed": "Classes: 1 changed (Program).",
+   "affected": "3 part(s) are reached by it: DefaultCurrency, DailyTransferLimit, PublishAsync."
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "affected": "Reached by the change through StatementService.ForMonthAsync() (uses), 1 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "affected": "Reached by the change through StatementService.ForMonthAsync() (uses), 1 hop(s)."
+  },
+  "F:Bank.Modules.Auth.Roles.Teller": {
+   "affected": "Reached by the change through StatementService.IsStaff() (uses), 1 hop(s)."
+  },
+  "F:Bank.Modules.Auth.Roles.LoanOfficer": {
+   "affected": "Reached by the change through StatementService.IsStaff() (uses), 1 hop(s)."
+  },
+  "F:Bank.Modules.Auth.Roles.ComplianceOfficer": {
+   "affected": "Reached by the change through StatementService.IsStaff() (uses), 1 hop(s)."
+  },
+  "F:Bank.Modules.Auth.Roles.Admin": {
+   "affected": "Reached by the change through StatementService.IsStaff() (uses), 1 hop(s)."
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "affected": "Reached by the change through StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance() (calls), 1 hop(s)."
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "affected": "Reached by the change through StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance() (uses), 1 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IAccountService.GetAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IAccountService.IsOwnerAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.EntriesAsync(System.Guid,System.DateTimeOffset,System.DateTimeOffset,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through ILedger.EntriesAsync() (resolves), 2 hop(s)."
+  },
+  "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)": {
+   "affected": "Reached by the change through ICurrentUser.IsInRole() (resolves), 2 hop(s)."
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "affected": "Reached by the change through TestKit.Settings() (uses), 2 hop(s)."
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "affected": "Reached by the change through TestKit.Settings() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "affected": "Reached by the change through TestKit.Account() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "affected": "Reached by the change through TestKit.Account() (uses), 2 hop(s)."
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "affected": "Reached by the change through TestKit.Account() (uses), 2 hop(s)."
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through ILedger.PostTransferAsync() (resolves), 2 hop(s)."
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "affected": "Reached by the change through Ledger.PostTransferAsync() (uses), 3 hop(s)."
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "affected": "Reached by the change through IEventBus.PublishAsync() (resolves), 4 hop(s)."
+  },
+  "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+   "affected": "LedgerEntry.Reference is read by StatementService.ForMonthAsync, and LedgerEntry.Currency is used via Ledger.PostTransferAsync.",
+   "affected_facts": "2 part(s) are reached by it: Reference, Currency.",
+   "affected_src": "ai"
+  },
+  "module:Ledger": {
+   "affected": "5 part(s) are reached by it: Reference, For, EntriesAsync, PostTransferAsync…."
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "affected": "Account.Currency is read by StatementService.ForMonthAsync, while OwnerId, Iban, and Id are used by test setup.",
+   "affected_facts": "4 part(s) are reached by it: Currency, OwnerId, Iban, Id.",
+   "affected_src": "ai"
+  },
+  "module:Accounts": {
+   "affected": "6 part(s) are reached by it: Currency, GetAsync, IsOwnerAsync, OwnerId…."
+  },
+  "T:Bank.Modules.Auth.Roles": {
+   "affected": "Teller, LoanOfficer, ComplianceOfficer, and Admin constants are checked by StatementService.IsStaff for statement access.",
+   "affected_facts": "5 part(s) are reached by it: Teller, LoanOfficer, ComplianceOfficer, Admin….",
+   "affected_src": "ai"
+  },
+  "module:Auth": {
+   "affected": "6 part(s) are reached by it: Teller, LoanOfficer, ComplianceOfficer, Admin…."
+  },
+  "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+   "affected": "Reached via BankAccounts.For when statement tests initialize ledger accounts.",
+   "affected_facts": "1 part(s) are reached by it: For.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "affected": "Reached via IAccountService.GetAsync and IsOwnerAsync when StatementService loads the account and checks ownership.",
+   "affected_facts": "2 part(s) are reached by it: GetAsync, IsOwnerAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Ledger.Application.Ledger": {
+   "affected": "Reached via ILedger.EntriesAsync and PostTransferAsync when StatementService queries entries and tests post transfers.",
+   "affected_facts": "2 part(s) are reached by it: EntriesAsync, PostTransferAsync.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Modules.Auth.Application.CurrentUser": {
+   "affected": "Reached via ICurrentUser.IsInRole when StatementService enforces staff or owner authorization.",
+   "affected_facts": "1 part(s) are reached by it: IsInRole.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Shared.Settings.BankSettings": {
+   "affected": "DefaultCurrency and DailyTransferLimit are used via TestKit.Settings during statement test setup.",
+   "affected_facts": "2 part(s) are reached by it: DefaultCurrency, DailyTransferLimit.",
+   "affected_src": "ai"
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "affected": "Reached via IEventBus.PublishAsync when ledger transfers publish events during statement test runs.",
+   "affected_facts": "1 part(s) are reached by it: PublishAsync.",
+   "affected_src": "ai"
+  }
+ },
+ "verdict": {
+  "label": "fix",
+  "reasons": [
+   {
+    "kind": "critical",
+    "level": "fix",
+    "text": "Inclusive upper bounds in ledger queries violate UTC month boundary exclusion",
+    "finding": "C01",
+    "node": "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+    "detail": "no failing test reaches it",
+    "tests": [],
+    "claim": "ledger.EntriesAsync evaluates ranges with inclusive upper bounds. Passing monthStart when retrieving prior entries causes entries at exactly YYYY-MM-01T00:00:00Z to be included in opening balance, while passing monthEnd causes entries at 00:00:00Z on the 1st of the next month to be included in the current month's lines. This violates strict month boundary criteria and causes boundary tests to fail.",
+    "suggested_fix": "Filter priorEntries with .Where(e => e.CreatedAt < monthStart) and monthEntries with .Where(e => e.CreatedAt >= monthStart && e.CreatedAt < monthEnd) so that midnight UTC boundary entries are strictly excluded as required.",
+    "file": "src/Bank.Api/Modules/Statements/Application/StatementService.cs",
+    "line_start": 45,
+    "evidence": "        var priorEntries = await ledger.EntriesAsync(accountId, DateTimeOffset.MinValue, monthStart, ct);\n        var openingBalance = Math.Round(priorEntries.Sum(e => e.Amount), 2, MidpointRounding.AwayFromZero);\n\n        var monthEntries = await ledger.EntriesAsync(accountId, monthStart, monthEnd, ct);\n        var orderedEntries = monthEntries.OrderBy(e => e.CreatedAt).ToList();",
+    "evidence_verified": true,
+    "dimension": "correctness",
+    "severity": "Blocker",
+    "say": "Midnight UTC transactions on the first of a month appear in wrong-month statements and opening balances, distorting customer figures. Ask the author to fix StatementService to exclude exact month-end boundaries.",
+    "say_facts": "This violates strict month boundary criteria and causes boundary tests to fail. Ask for a fix before merging.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "StatementsController endpoint and HTTP status mappings have no test coverage",
+    "finding": "T01",
+    "node": "endpoint:GET /api/accounts/{id:guid}/statements/{year:int}/{month:int}",
+    "detail": "tests",
+    "claim": "StatementsController is completely uncovered by tests. The requirement acceptance criteria explicitly specify endpoint routing, [Authorize(Policy = Policies.Customer)], 401 for unauthenticated calls, and exception-to-HTTP-status mappings (400, 404, 403), none of which are validated by any unit or integration tests.",
+    "suggested_fix": "Add controller unit or integration tests verifying that GET api/accounts/{id}/statements/{year}/{month} returns 200 OK for valid requests, 401 for unauthenticated calls, 403 when forbidden, 404 on missing account, and 400 on invalid calendar inputs.",
+    "file": "src/Bank.Api/Modules/Statements/Api/StatementsController.cs",
+    "line_start": 17,
+    "evidence": "    [HttpGet(\"{year:int}/{month:int}\")]\n    public async Task<ActionResult<Statement>> GetForMonth(Guid id, int year, int month, CancellationToken ct)\n    {\n        try\n        {\n            var statement = await _statements.ForMonthAsync(id, year, month, ct);\n            return Ok(statement);\n        }\n        catch (ArgumentOutOfRangeException ex)\n        {\n            return BadRequest(ex.Message);\n        }\n        catch (KeyNotFoundException ex)\n        {\n            return NotFound(ex.Message);\n        }\n        catch (UnauthorizedAccessException)\n        {\n            return Forbid();\n        }\n    }",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "Without API tests, unauthorized callers might access customer statements or receive wrong error responses. Ask for tests on StatementsController covering routing, login enforcement, and error status codes.",
+    "say_facts": "StatementsController is completely uncovered by tests. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "major",
+    "level": "check",
+    "text": "Tautological assertion recalculates running balance over returned lines without checking expected line order",
+    "finding": "T02",
+    "node": "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+    "detail": "tests",
+    "claim": "The test re-computes running balances by looping over the returned statement.Lines array in whatever sequence the service returned them. Because two transactions share the identical timestamp (10:00:00), an arbitrary or reversed ordering would still pass the assertion loop without verifying expected transaction sequence or reference order.",
+    "suggested_fix": "Assert expected line references, individual amounts, and explicit BalanceAfter values for statement.Lines[0], statement.Lines[1], and statement.Lines[2] directly rather than looping and recalculating.",
+    "file": "tests/Bank.Tests/Statements/StatementTests.cs",
+    "line_start": 238,
+    "evidence": "        var running = statement.OpeningBalance;\n        DateTimeOffset? previousAt = null;\n        foreach (var line in statement.Lines)\n        {\n            if (previousAt is not null)\n                Assert.True(line.At >= previousAt.Value);\n            running = Math.Round(running + line.Amount, 2, MidpointRounding.AwayFromZero);\n            Assert.Equal(running, line.BalanceAfter);\n            previousAt = line.At;\n        }",
+    "evidence_verified": true,
+    "dimension": "tests",
+    "severity": "ShouldFix",
+    "say": "A statement test trusts whatever transaction order the service returns, which could hide misordered entries with identical timestamps from customers and staff. Ask the author to assert the exact expected sequence.",
+    "say_facts": "Because two transactions share the identical timestamp (10:00:00), an arbitrary or reversed ordering would still pass the assertion loop without verifying expected transaction sequence or reference order. Decide whether it must be fixed now.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "untested",
+    "level": "check",
+    "text": "5 changed method(s) have no usable test evidence",
+    "nodes": [
+     "M:Bank.Modules.Statements.Api.StatementsController.#ctor(Bank.Modules.Statements.Application.IStatementService)",
+     "M:Bank.Modules.Statements.Api.StatementsController.GetForMonth(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+     "M:Bank.Modules.Statements.Application.StatementService.#ctor(Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser)",
+     "M:Bank.Modules.Statements.StatementsModule.AddStatementsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+     "M:Program.{Main}$(System.String[])"
+    ],
+    "detail": "StatementsController.StatementsController(), StatementsController.GetForMonth(), StatementService.StatementService(), StatementsModule.AddStatementsModule()",
+    "say": "Five new methods covering statement setup and web requests have no test evidence, risking undetected runtime failures for customers and staff. Ask the author to add test coverage before merging.",
+    "say_facts": "5 changed parts of the code are not covered by any working test. Read them yourself or ask for tests.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "reviewer",
+    "level": "check",
+    "text": "Reviewer asks a human to check What",
+    "detail": "Requirement match is partial: The module structure, routing, models, and authorization checks meet the requirement. However, month boundary handling in StatementService fails to enforce exclusive upper bounds on ledger queries, causing entries at midnight UTC on month boundaries to be included in both opening balance and statement lines.",
+    "say": "Customer statements will misreport balances around midnight UTC month boundaries because upper date limits are inclusive. Verify that StatementService excludes exact boundary timestamps from both opening balances and statement lines.",
+    "say_facts": "The reviewer is not sure the change does everything the requirement asks. Compare the change with the requirement.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "reviewer",
+    "level": "check",
+    "text": "Reviewer asks a human to check Where",
+    "detail": "Tier HIGH → full human read and 2 sign-off(s) required",
+    "say": "Because this change affects customer financial statements and balances, it carries high risk for money and compliance. Perform a full manual review and ensure two authorized reviewers sign off.",
+    "say_facts": "The change touches a sensitive part of the bank. Check that only the intended places changed.",
+    "say_src": "ai"
+   },
+   {
+    "kind": "not_checked",
+    "level": "info",
+    "text": "Not checked at this coverage level: Requirement",
+    "say": "Not checked (switched off by the team's coverage level, or did not run): Requirement. Not counted as passed; trust cannot be High."
+   },
+   {
+    "kind": "inherited",
+    "level": "info",
+    "text": "4 failing case(s) already failed before this PR (in PR-7): not counted here",
+    "say": "4 failing test case(s) were already failing before this PR (in PR-7); they are not held against it."
+   }
+  ],
+  "risk_areas": [
+   {
+    "module": "Platform",
+    "why": "Database schema, wiring and bank-wide settings touch every module"
+   }
+  ],
+  "reviewer_gate": "BLOCKED",
+  "failures": {
+   "new": 0,
+   "broken": 0,
+   "inherited": 4,
+   "cases_failed": 4
+  }
+ },
+ "units": {
+  "M:Bank.Modules.Statements.Api.StatementsController.#ctor(Bank.Modules.Statements.Application.IStatementService)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Statements.Api.StatementsController.GetForMonth(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Statements.Application.StatementService.#ctor(Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)": {
+   "side": "changed",
+   "level": "contradicted",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [
+    {
+     "id": "C01",
+     "severity": "Blocker",
+     "title": "Inclusive upper bounds in ledger queries violate UTC month boundary exclusion",
+     "file": "src/Bank.Api/Modules/Statements/Application/StatementService.cs",
+     "line_start": 45,
+     "dimension": "correctness"
+    }
+   ],
+   "how": "new"
+  },
+  "M:Bank.Modules.Statements.Application.StatementService.IsStaff": {
+   "side": "changed",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Bank.Modules.Statements.StatementsModule.AddStatementsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "new"
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "side": "changed",
+   "level": "none",
+   "tests": {
+    "passed": [],
+    "passed_n": 0,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "how": "modified"
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "F:Bank.Modules.Auth.Roles.Teller": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "F:Bank.Modules.Auth.Roles.LoanOfficer": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "F:Bank.Modules.Auth.Roles.ComplianceOfficer": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "F:Bank.Modules.Auth.Roles.Admin": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Statements.Application.StatementService.IsStaff",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Year_rollover_december_to_january_respects_utc_boundaries"
+    ],
+    "passed_n": 12,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+    "calls"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Statement_currency_matches_account_currency",
+     "Year_rollover_december_to_january_respects_utc_boundaries"
+    ],
+    "passed_n": 10,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.Statements.StatementTests.Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 1
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountService.GetAsync(System.Guid,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Accounts.Application.IAccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.EntriesAsync(System.Guid,System.DateTimeOffset,System.DateTimeOffset,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.ILedger.EntriesAsync(System.Guid,System.DateTimeOffset,System.DateTimeOffset,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Auth.Application.ICurrentUser.IsInRole(System.String)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Settings(System.String,System.Decimal)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Year_rollover_december_to_january_respects_utc_boundaries"
+    ],
+    "passed_n": 12,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Unknown_account_throws_KeyNotFoundException"
+    ],
+    "passed_n": 13,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Tests.TestKit.Account(Bank.Data.BankDbContext,System.String,System.Decimal,System.String)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Year_rollover_december_to_january_respects_utc_boundaries"
+    ],
+    "passed_n": 12,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.ILedger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 2
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Year_rollover_december_to_january_respects_utc_boundaries"
+    ],
+    "passed_n": 12,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)",
+    "uses"
+   ],
+   "direction": "reached by the change",
+   "hops": 3
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "side": "affected",
+   "level": "verified",
+   "tests": {
+    "passed": [
+     "Empty_month_returns_empty_lines_and_closing_balance_equals_opening_balance",
+     "Entries_from_other_accounts_are_isolated",
+     "Generating_statement_is_read_only_and_emits_no_events_or_ledger_entries",
+     "Invalid_year_or_month_throws_ArgumentOutOfRangeException",
+     "Leap_year_february_includes_feb_29_and_excludes_mar_1",
+     "Lines_are_ordered_chronologically_and_balance_after_tracks_running_total",
+     "Month_boundaries_are_strictly_utc_inclusive_start_and_exclusive_end",
+     "Non_owner_customer_and_unauthorized_users_are_rejected",
+     "Owner_can_retrieve_statement_with_opening_lines_and_closing_balance",
+     "Staff_roles_can_read_any_customer_statement",
+     "Statement_currency_matches_account_currency",
+     "Year_rollover_december_to_january_respects_utc_boundaries"
+    ],
+    "passed_n": 12,
+    "failed": [],
+    "failed_n": 0,
+    "broken": [],
+    "broken_n": 0,
+    "inherited": [],
+    "inherited_n": 0,
+    "not_run_n": 0
+   },
+   "findings": [],
+   "via": [
+    "M:Bank.Shared.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)",
+    "resolves"
+   ],
+   "direction": "reached by the change",
+   "hops": 4
+  }
+ },
+ "roll": {
+  "M:Bank.Modules.Statements.Api.StatementsController.#ctor(Bank.Modules.Statements.Application.IStatementService)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Statements.Api.StatementsController.#ctor(Bank.Modules.Statements.Application.IStatementService)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Statements.Api.StatementsController": {
+   "changed": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 2,
+    "weakest": [
+     [
+      "M:Bank.Modules.Statements.Api.StatementsController.#ctor(Bank.Modules.Statements.Application.IStatementService)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Statements.Api.StatementsController.GetForMonth(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   },
+   "affected": null
+  },
+  "layer:Statements/Api": {
+   "changed": {
+    "n": 2,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 2,
+    "weakest": [
+     [
+      "M:Bank.Modules.Statements.Api.StatementsController.#ctor(Bank.Modules.Statements.Application.IStatementService)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Statements.Api.StatementsController.GetForMonth(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.167,
+    "lo": 0.0,
+    "hi": 0.667
+   },
+   "affected": null
+  },
+  "module:Statements": {
+   "changed": {
+    "n": 6,
+    "verified": 1,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 4,
+    "weakest": [
+     [
+      "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Statements.Api.StatementsController.#ctor(Bank.Modules.Statements.Application.IStatementService)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Statements.Api.StatementsController.GetForMonth(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Statements.Application.StatementService.#ctor(Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser)",
+      "none"
+     ]
+    ],
+    "pct": 17,
+    "conf": 0.214,
+    "lo": 0.019,
+    "hi": 0.558
+   },
+   "affected": null
+  },
+  "pr": {
+   "changed": {
+    "n": 7,
+    "verified": 1,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 5,
+    "weakest": [
+     [
+      "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Statements.Api.StatementsController.#ctor(Bank.Modules.Statements.Application.IStatementService)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Statements.Api.StatementsController.GetForMonth(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+      "none"
+     ],
+     [
+      "M:Bank.Modules.Statements.Application.StatementService.#ctor(Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser)",
+      "none"
+     ]
+    ],
+    "pct": 14,
+    "conf": 0.188,
+    "lo": 0.016,
+    "hi": 0.501
+   },
+   "affected": {
+    "n": 20,
+    "verified": 20,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.976,
+    "lo": 0.883,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Statements.Api.StatementsController.GetForMonth(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Statements.Api.StatementsController.GetForMonth(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Statements.Application.StatementService.#ctor(Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Statements.Application.StatementService.#ctor(Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Statements.Application.StatementService": {
+   "changed": {
+    "n": 3,
+    "verified": 1,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Statements.Application.StatementService.#ctor(Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser)",
+      "none"
+     ]
+    ],
+    "pct": 33,
+    "conf": 0.375,
+    "lo": 0.039,
+    "hi": 0.823
+   },
+   "affected": null
+  },
+  "layer:Statements/Application": {
+   "changed": {
+    "n": 3,
+    "verified": 1,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+      "contradicted"
+     ],
+     [
+      "M:Bank.Modules.Statements.Application.StatementService.#ctor(Bank.Modules.Ledger.Application.ILedger,Bank.Modules.Accounts.Application.IAccountService,Bank.Modules.Auth.Application.ICurrentUser)",
+      "none"
+     ]
+    ],
+    "pct": 33,
+    "conf": 0.375,
+    "lo": 0.039,
+    "hi": 0.823
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 1,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [
+     [
+      "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)",
+      "contradicted"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Statements.Application.StatementService.IsStaff": {
+   "changed": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   },
+   "affected": null
+  },
+  "M:Bank.Modules.Statements.StatementsModule.AddStatementsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Statements.StatementsModule.AddStatementsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Bank.Modules.Statements.StatementsModule": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Statements.StatementsModule.AddStatementsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "layer:Statements/Wiring": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Bank.Modules.Statements.StatementsModule.AddStatementsModule(Microsoft.Extensions.DependencyInjection.IServiceCollection)",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "M:Program.{Main}$(System.String[])": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "T:Program": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "layer:Platform/Host": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": null
+  },
+  "module:Platform": {
+   "changed": {
+    "n": 1,
+    "verified": 0,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 1,
+    "weakest": [
+     [
+      "M:Program.{Main}$(System.String[])",
+      "none"
+     ]
+    ],
+    "pct": 0,
+    "conf": 0.25,
+    "lo": 0.0,
+    "hi": 0.853
+   },
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Reference": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Domain.LedgerEntry": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "layer:Ledger/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "module:Ledger": {
+   "changed": null,
+   "affected": {
+    "n": 5,
+    "verified": 5,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.917,
+    "lo": 0.621,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Accounts.Domain.Account": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "layer:Accounts/Domain": {
+   "changed": null,
+   "affected": {
+    "n": 4,
+    "verified": 4,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.9,
+    "lo": 0.555,
+    "hi": 1.0
+   }
+  },
+  "module:Accounts": {
+   "changed": null,
+   "affected": {
+    "n": 6,
+    "verified": 6,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.929,
+    "lo": 0.67,
+    "hi": 1.0
+   }
+  },
+  "F:Bank.Modules.Auth.Roles.Teller": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Auth.Roles": {
+   "changed": null,
+   "affected": {
+    "n": 5,
+    "verified": 5,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.917,
+    "lo": 0.621,
+    "hi": 1.0
+   }
+  },
+  "layer:Auth/Wiring": {
+   "changed": null,
+   "affected": {
+    "n": 5,
+    "verified": 5,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.917,
+    "lo": 0.621,
+    "hi": 1.0
+   }
+  },
+  "module:Auth": {
+   "changed": null,
+   "affected": {
+    "n": 6,
+    "verified": 6,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.929,
+    "lo": 0.67,
+    "hi": 1.0
+   }
+  },
+  "F:Bank.Modules.Auth.Roles.LoanOfficer": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "F:Bank.Modules.Auth.Roles.ComplianceOfficer": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "F:Bank.Modules.Auth.Roles.Admin": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Ledger.Domain.BankAccounts.For(Bank.Modules.Ledger.Domain.BankAccountKind,System.String)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Domain.BankAccounts": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "F:Bank.Modules.Auth.Roles.Customer": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.GetAsync(System.Guid,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Accounts.Application.AccountService": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "layer:Accounts/Application": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Accounts.Application.AccountService.IsOwnerAsync(System.Guid,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.EntriesAsync(System.Guid,System.DateTimeOffset,System.DateTimeOffset,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Ledger.Application.Ledger": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "layer:Ledger/Application": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Auth.Application.CurrentUser.IsInRole(System.String)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Modules.Auth.Application.CurrentUser": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "layer:Auth/Application": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.DefaultCurrency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Shared.Settings.BankSettings": {
+   "changed": null,
+   "affected": {
+    "n": 2,
+    "verified": 2,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.833,
+    "lo": 0.333,
+    "hi": 1.0
+   }
+  },
+  "layer:Platform/Shared": {
+   "changed": null,
+   "affected": {
+    "n": 3,
+    "verified": 3,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.875,
+    "lo": 0.464,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Shared.Settings.BankSettings.DailyTransferLimit": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.OwnerId": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Iban": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Accounts.Domain.Account.Id": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Modules.Ledger.Application.Ledger.PostTransferAsync(System.Guid,System.Guid,System.Decimal,System.String,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "P:Bank.Modules.Ledger.Domain.LedgerEntry.Currency": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "M:Bank.Shared.Events.InMemoryEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  },
+  "T:Bank.Shared.Events.InMemoryEventBus": {
+   "changed": null,
+   "affected": {
+    "n": 1,
+    "verified": 1,
+    "contradicted": 0,
+    "not_run": 0,
+    "none": 0,
+    "weakest": [],
+    "pct": 100,
+    "conf": 0.75,
+    "lo": 0.147,
+    "hi": 1.0
+   }
+  }
+ },
+ "tests_ran": true,
+ "findings_at": {
+  "M:Bank.Modules.Statements.Application.StatementService.ForMonthAsync(System.Guid,System.Int32,System.Int32,System.Threading.CancellationToken)": [
+   "C01"
+  ],
+  "endpoint:GET /api/accounts/{id:guid}/statements/{year:int}/{month:int}": [
+   "T01"
+  ],
+  "M:Bank.Tests.Statements.StatementTests.Lines_are_ordered_chronologically_and_balance_after_tracks_running_total": [
+   "T02"
+  ]
+ },
+ "trust": {
+  "level": "low",
+  "why": "1 changed method(s) contradicted by a failing test or a Critical finding"
+ }
+}
