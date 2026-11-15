@@ -1,0 +1,3 @@
+# Everything Render needs to run the app in view mode
+-r ai-reviewer/backend/requirements.txt
+-r world-v5/server/requirements.txt

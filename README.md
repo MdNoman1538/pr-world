@@ -38,3 +38,11 @@ Needs Python 3.11+ and the .NET SDK 8+. Keys live only in `.env`, which is never
 8. The server enforces access and logs it in a hash-chained audit log.
 
 Author: Md Abdullah Al Noman · November 2026
+
+## Deploy on Render (free)
+
+1. Render dashboard → **New → Blueprint** → pick this repo. `render.yaml` sets everything up.
+2. Wait for the build. The app opens on the finished 12-PR run; no API key is needed.
+3. Free services sleep when idle (first visit takes about a minute). Demo mode has no sign-in: use Menu → View as.
+
+Files: `render.yaml` (service), `requirements.txt` (packages), `start.sh` (starts the server on `$PORT`).
